@@ -1,0 +1,349 @@
+ 
+ /* 主区域 */
+.MainContent{
+   width: 100%;
+   height: 100%;
+   flex-direction: row;
+   align-items: center;
+}
+
+/* AB包搜索区域 */
+.ABSearchInput{
+    width: 100%;
+    height: 18px;
+
+    flex-grow: 1;               
+    flex-shrink: 1;             
+    flex-basis: 0%;  
+
+    margin-left: 1px;
+    margin-right: 1px;
+    align-items: center;
+    -unity-font-style: bold;
+}
+
+/* AB包下拉列表区域 */
+.ABListContent{
+    width:200px;
+    height: 100%;
+    flex-direction: column;
+    align-items: center;
+    align-self: flex-start;
+    flex-grow:0;
+    border-right-width: 1px;
+    border-right-color:#585858;
+
+    padding-right: 1px;
+}
+
+/* AB包滚动列表 */
+.ABListScrollView{
+    width:100%;
+    height: 100%;
+    background-color:#383838;
+}
+
+/* 添加AB包组 */
+.AddABGroupButton{
+    width: 100%;
+    height: 26px;
+
+    margin-left:0px;
+    margin-right:0px;
+    margin-bottom:0px;
+
+    padding-left: 1px;
+    padding-right: 1px;
+    flex-direction: row;
+    background-color:#585858;
+    background-size: 16px 16px;
+    background-image: resource("Icon/Add");
+}
+
+.AddABGroupInput{
+    width: 168px;
+    height: 20px;
+
+    margin-left:1px;
+    margin-right:2px;
+    margin-bottom:0px;
+}
+
+.AddABGroupSureButton{
+    width:20px;
+    height: 20px;
+
+    margin-left:1px;
+    margin-right:2px;
+
+    padding-left:0px;
+    padding-right:0px;
+
+    background-color:#585858; 
+    background-size: 60% 60%;
+    background-image: resource("Icon/Add");
+}
+
+/* AB包元素下拉列表 */
+.ABItemListContent{
+    width:100%;
+    height: 100%;
+    align-self: flex-start;
+
+    flex-grow: 1;               
+    flex-shrink: 1;             
+    flex-basis: 0%;  
+
+    padding-left: 0px;
+    padding-right: 0px;
+
+    flex-direction: column;
+    align-items: center;
+}
+
+/* AB包项搜索区域 */
+.ABItemSearchContent{
+    width:100%;
+    height: 18px;
+
+    margin-top:1px;
+
+    padding-left: 1px;
+    flex-direction: row;
+    align-items: center;
+    align-self: flex-start;
+    -unity-font-style: bold;
+}
+
+/* AB包项搜索类型按钮 */
+.ABItemSearchTypeEnumField{
+    width: 80px;
+    height: 18px;
+    margin-left: 0px;
+    margin-right: 0px;
+}
+
+/* AB包显示限制类型 */
+.LimitItemShowTypeEnumField{
+    width: 120px;
+    height: 18px;
+    margin-left: 1px;
+    margin-right: 0px;
+    padding-left:1px;
+}
+
+.ABItemDataInfoBar{
+    width: 100%;
+    height: 18px;
+
+    margin-top:1px;
+    margin-left:2px;
+    margin-right:0px;
+    padding-right:1.5px;
+    flex-direction: row;       
+    display: flex;             
+    justify-content: space-between;  
+    align-items: center;       
+}
+
+.ABItemDataInfo{
+    height: 18px;
+
+    flex-grow: 1;               
+    flex-shrink: 1;             
+    flex-basis: 0%;             
+    
+    background-color: rgba(125, 125, 125, 0.25);
+    border-right-width: 1px;
+    border-right-color: rgba(125, 125, 125, 0.25);
+    
+    -unity-text-align: middle-center;
+    -unity-font-style: bold;
+}
+
+/* AB包元素滚动列表 */
+.ABItemScrollView{
+    width:100%;
+    height: 100%;
+    margin-top:1px;
+    margin-left:5px;
+    margin-right:2px;
+    background-color:#383838;
+}
+
+/* 刷新AB包数据按钮 */
+.RefreshABItemDataButton{
+    width: 18px;
+    height: 18px;
+    margin-left:1px;
+    margin-right:1px;
+    background-image: resource("Icon/AB-Refresh");
+}
+
+/* 搜索图标 */
+.SearchIcon{
+    width: 18px;
+    height: 18px;
+    background-image: resource("Icon/SearchIcon"); 
+    position:absolute;
+}
+
+
+/* AssetBundle数据项 */
+.DefaultAssetBundleItem{
+    width: 100%;
+    height: 26px;
+
+    margin-left:0px;
+    margin-right:0px;
+    margin-bottom:0px;
+
+    padding-left: 1px;
+    padding-right: 1px;
+
+    flex-direction: row;       
+    justify-content: center;
+    align-items: center;
+    font-size: 12px;
+    -unity-font-style: bold;  
+    white-space: normal;
+}
+.DefaultAssetBundleItem:hover{
+    background-color: rgba(131, 131, 131, 0.85);
+}
+
+.SelectAssetBundleItem{
+    background-color: rgb(214, 166, 99);
+}
+
+/* ABGroup名称  */
+.AssetBundleItemTitle{
+    width: 110px;
+    height: 20px;
+    font-size: 12px;
+
+    margin-top:0px;
+    margin-left:0px;
+    margin-right:0px;
+    margin-bottom:0px;
+
+    border-left-width: 3px;
+
+    overflow: hidden;          /* 隐藏超出部分 */
+    white-space: nowrap;       /* 禁止文本换行 */
+    text-overflow: ellipsis;   /* 超出部分显示省略号 */
+    -unity-text-align: middle-left;
+    -unity-font-style: bold;
+}
+
+/* 删除ABGroupButton */
+.DeleteABGroupButton{
+    width:18px;
+    height: 18px;
+
+    margin-left:1px;
+    margin-right:1px;
+
+    padding-left:0px;
+    padding-right:0px;
+    
+    border-top-width: 0px;
+    border-bottom-width: 0px;
+    border-left-width: 0px;
+    border-right-width: 0px;
+
+    background-color:#585858; 
+    background-size: 80% 80%;
+    background-image: resource("Icon/CancelButton");
+}
+
+.BuildPathTypeEnumField{
+    width:65px;
+    height: 18px;
+
+    border-top-width: 0px;
+    border-bottom-width: 0px;
+    border-left-width: 0px;
+    border-right-width: 0px;
+
+    margin-left:0px;
+    margin-right:0px;
+}
+.BuildPathTypeEnumField > .unity-base-field__input{
+    border-top-width: 0px;
+    border-bottom-width: 0px;
+    border-left-width: 0px;
+    border-right-width: 0px;
+}
+/* AB包数据项区域 */
+.AssetBundlesDataItemContent{
+    width: auto;
+    height: 20px;
+
+    margin-top:0px;
+    margin-left:1px;
+    margin-right:1px;
+    margin-bottom:0px;
+
+    border-left-width:0px;
+    padding-right:0px;
+    padding-left:0px;
+
+    flex-direction: row;       
+    display: flex;             
+    justify-content: space-between;  
+    align-items: center;     
+}
+
+.DefaultAssetBundlesDataItem{
+    background-color: #585858;
+}
+.DefaultAssetBundlesDataItem-Gray{
+    background-color: #454545;
+}
+.SelectAssetBundlesDataItem{
+    background-color: rgb(214, 166, 99);
+}
+
+.AssetBundlesDataItemInfo{
+    height:18px;
+    flex-grow: 1;               
+    flex-shrink: 1;             
+    flex-basis: 0%;             
+    
+    border-left-width: 2px;
+    background-color: rgba(125, 125, 125, 0.25);
+    border-right-width: 1px;
+    border-right-color:  rgba(131, 131, 131, 0.85);
+    justify-content: center;
+
+    font-size: 10px;
+    overflow: hidden;          /* 隐藏超出部分 */
+    white-space: nowrap;       /* 禁止文本换行 */
+    text-overflow: ellipsis;   /* 超出部分显示省略号 */
+    -unity-text-align: middle-left;
+    -unity-font-style: bold;
+}
+
+.CancelAsset{
+    width: 18px;
+    height: 18px;
+
+    border-top-width: 0px;
+    border-bottom-width: 0px;
+    border-left-width: 0px;
+    border-right-width: 0px;
+    
+    padding-left:0px;
+    padding-right:0px;
+
+    margin-left:0px;
+    margin-right:0px;
+    
+    position:absolute;
+    right:0px;
+
+    background-color:  rgba(255, 255, 255, 0);
+    background-size: 80% 80%;
+    background-image: resource("Icon/CancelButton");
+}

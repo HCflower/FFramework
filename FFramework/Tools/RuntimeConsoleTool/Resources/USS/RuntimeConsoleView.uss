@@ -1,0 +1,128 @@
+.Root{
+    width:100%;
+    height:100%;
+    align-items: center;
+    justify-content: center;
+    padding:80px;
+}
+
+/* 最小化视图 */
+.LeastView{
+    height: 60px;
+    width:180px;
+    
+    left: 10px;
+    top: 80px;
+    position: absolute;
+    border-width: 0px;
+    padding: 0px;
+    margin: 0px;
+    font-size: 18px;
+    color: white;
+    justify-content: center;
+    flex-direction: column;    
+    border-radius: 6px 6px 6px 6px;
+    -unity-font-style: bold;
+    background-color:rgba(56, 56, 56, 0.50);
+}
+
+/* 主区域 */
+.MainContent{
+    width: 100%;
+    height: auto;
+    flex-grow: 0;  
+    background-color: #383838;
+    border-radius: 6px 6px 6px 6px;
+}
+
+/* 控制栏 */
+.ControllerBar{
+    height: 60px;
+    width: 100%;
+    top:2px;
+
+    flex-direction: row;       
+    display: flex;             
+    justify-content: space-between;  
+    align-items: center; 
+
+    border-radius: 6px 6px 6px 6px;
+    background-color:#303030;
+}
+
+/* 控制按钮 */
+.ControllerBar-Button{
+    width:auto;
+    height:50px;
+    padding:0px;
+    border-width: 0px;
+    margin-right:4px;
+
+    align-items: center;
+    flex-direction: row;
+
+    flex-grow: 1;               
+    flex-shrink: 1;             
+    flex-basis: 0%; 
+
+    background-color:#585858;
+    color:white;
+
+    border-radius: 6px 6px 6px 6px; 
+    overflow: hidden;      
+}
+
+.ControllerBar-Button:hover{
+    background-color:rgb(126, 126, 126);
+}
+
+/* 类型选择枚举 */
+.ControllerBar-EnumField {
+    background-color:#585858;
+    -unity-font-style: bold;
+    font-size: 20px;
+}
+
+.ControllerBar-EnumField > .unity-base-field__input{
+    background-color:#585858;
+    -unity-font-style: bold;
+    border-width: 0px;
+    font-size: 20px;
+}
+
+.ControllerBar-EnumField > .unity-enum-field__arrow{
+    height: 15px;
+    width: 15px;
+}
+
+.TitleIcon{
+    width:45px;
+    height:45px;
+    background-size: 90% 90%;
+    -unity-background-image-tint-color:rgb(255, 196, 0);
+    background-image: resource("Icon/Debug");
+}
+
+/* 控制按钮图标 */
+.Icon{
+    width:45px;
+    height:45px;
+    background-size: 75% 75%;
+}
+
+/* 控制按钮标题 */
+.ControllerButton-Title{
+    font-size: 10px;
+    overflow: hidden;          /* 隐藏超出部分 */
+    white-space: nowrap;       /* 禁止文本换行 */
+    text-overflow: ellipsis;   /* 超出部分显示省略号 */
+    -unity-text-align: middle-left;
+    -unity-font-style: bold;
+    font-size: 20px;
+}
+
+/* 信息区域 */
+.InfoArea{
+    width: 100%;
+    height: auto;
+}
