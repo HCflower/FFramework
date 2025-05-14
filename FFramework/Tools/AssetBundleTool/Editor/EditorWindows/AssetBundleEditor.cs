@@ -19,7 +19,7 @@ namespace AssetBundleToolEditor
         private AssetBundlesSettingAndBuildingView settingAndBuildingView;
         #endregion
 
-        [MenuItem("FFramework/AssetBundleTool #B", priority = 1)]
+        [MenuItem("FFramework/AssetBundleTool #B", priority = 0)]
         public static void SkillEditorCreateWindow()
         {
             AssetBundleEditor window = GetWindow<AssetBundleEditor>();
