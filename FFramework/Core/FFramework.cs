@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using UnityEngine;
 using System;
 
 namespace FFramework
@@ -126,7 +125,7 @@ namespace FFramework
         public static void Register<T>(T instance)
         {
             MakeSureArchitecture();
-            architecture.mIOCContainer.Register<T>(instance);
+            architecture.mIOCContainer.RegisterInstance<T>(instance);
         }
 
         /// <summary>
@@ -136,7 +135,7 @@ namespace FFramework
         public void RegisterModel<T>(T model) where T : IModel
         {
             model.SetArchitecture(this);
-            mIOCContainer.Register<T>(model);
+            mIOCContainer.RegisterInstance<T>(model);
             //缓存Model
             if (!isInit)
                 modelList.Add(model);
@@ -151,7 +150,7 @@ namespace FFramework
         public void RegisterSystem<T>(T system) where T : ISystem
         {
             system.SetArchitecture(this);
-            mIOCContainer.Register<T>(system);
+            mIOCContainer.RegisterInstance<T>(system);
             //缓存Model
             if (!isInit)
                 systemList.Add(system);
@@ -174,7 +173,7 @@ namespace FFramework
         /// </summary>
         public void RegisterUtility<T>(T utility) where T : IUtility
         {
-            mIOCContainer.Register<T>(utility);
+            mIOCContainer.RegisterInstance<T>(utility);
         }
 
         /// <summary>
@@ -550,283 +549,6 @@ namespace FFramework
             return self.GetArchitecture().SendQuery(query);
         }
     }
-
-    #endregion
-
-    #region IOC容器
-
-    /// <summary>
-    /// IOC容器 - 实例控制管理容器 
-    /// 可使用接口注入
-    /// </summary>
-    public class IOCContainer
-    {
-        private Dictionary<Type, object> mInstanceDic = new Dictionary<Type, object>();
-
-        /// <summary>
-        /// 注册实例
-        /// </summary>
-        public void Register<T>(T instance)
-        {
-            Type key = typeof(T);
-            if (mInstanceDic.ContainsKey(key))
-            {
-                mInstanceDic[key] = instance;
-            }
-            else
-            {
-                mInstanceDic.Add(key, instance);
-            }
-        }
-
-        /// <summary>
-        /// 获取实例
-        /// </summary>
-        public T Get<T>() where T : class
-        {
-            Type key = typeof(T);
-            if (mInstanceDic.TryGetValue(key, out object instance))
-            {
-                return instance as T;
-            }
-            return null;
-        }
-    }
-
-    #endregion
-
-    #region Event事件系统
-
-    /// <summary>
-    /// 类型事件系统接口
-    /// </summary>
-    public interface ITypeEventSystem
-    {
-        public void Send<T>() where T : new();                          //发送事件
-        public void Send<T>(T Event);                                   //发送事件
-        public IUnRegister Register<T>(Action<T> onEvent);              //注册事件
-        public void UnRegister<T>(Action<T> onEvent);                   //取消注册事件
-    }
-
-    //注销事件接口
-    public interface IUnRegister
-    {
-        public void UnRegister();
-    }
-
-    //用于存储事件系统和事件回调的引用，以便后续注销
-    public struct TypeEventSystemUnRegister<T> : IUnRegister
-    {
-        public ITypeEventSystem TypeEventSystem;
-        public Action<T> OnEvent;
-        public void UnRegister()
-        {
-            TypeEventSystem.UnRegister<T>(OnEvent);
-            TypeEventSystem = null;
-            OnEvent = null;
-        }
-    }
-
-    public class UnRegisterOnDestoryTrigger : MonoBehaviour
-    {
-        private HashSet<IUnRegister> unRegisters = new HashSet<IUnRegister>();
-
-        public void AddUnRegister(IUnRegister unRegister)
-        {
-            unRegisters.Add(unRegister);
-        }
-
-        private void OnDestroy()
-        {
-            foreach (var unRegister in unRegisters)
-            {
-                unRegister.UnRegister();
-            }
-            unRegisters.Clear();
-        }
-    }
-
-    public static class UnRegisterExtension
-    {
-        /// <summary>
-        /// 在物体销毁时注销事件
-        /// 自动附加 UnRegisterOnDestoryTrigger
-        /// </summary>
-        public static void UnRegisterWhenGameObjectDestory(this IUnRegister unRegister, GameObject gameObject)
-        {
-            UnRegisterOnDestoryTrigger trigger = gameObject.GetComponent<UnRegisterOnDestoryTrigger>();
-            if (trigger == null)
-            {
-                trigger = gameObject.AddComponent<UnRegisterOnDestoryTrigger>();
-            }
-            trigger.AddUnRegister(unRegister);
-        }
-    }
-
-    // 替代 typeof(T) 的高性能方案
-    public static class TypeHelper<T>
-    {
-        public static readonly Type Type = typeof(T);
-    }
-
-    /// <summary>
-    /// 事件系统的核心实现，管理事件的注册、注销和触发
-    /// </summary>
-    public class TypeEventSystem : ITypeEventSystem
-    {
-        public interface IRegisters { }
-
-        public class Registers<T> : IRegisters
-        {
-            public Action<T> OnEvent = Event => { };
-        }
-
-        //事件注册字典
-        private Dictionary<Type, IRegisters> registerDic = new Dictionary<Type, IRegisters>();
-
-        /// <summary>
-        /// 发送事件
-        /// T -> 事件类型
-        /// </summary>
-        public void Send<T>() where T : new()
-        {
-            T Event = new T();
-            Send<T>(Event);
-        }
-
-        /// <summary>
-        /// 发送指定事件
-        /// T -> 事件类型
-        /// </summary>
-        public void Send<T>(T Event)
-        {
-            Type type = typeof(T);
-            IRegisters registers;
-            if (registerDic.TryGetValue(TypeHelper<T>.Type, out registers))
-            {
-                ((Registers<T>)registers).OnEvent(Event);
-            }
-        }
-
-        /// <summary>
-        /// 事件注册
-        /// </summary>
-        public IUnRegister Register<T>(Action<T> onEvent)
-        {
-            Type type = typeof(T);
-            IRegisters registers;
-
-            if (!registerDic.TryGetValue(TypeHelper<T>.Type, out registers))
-            {
-                registers = new Registers<T>();
-                registerDic.Add(type, registers);
-            }
-            ((Registers<T>)registers).OnEvent += onEvent;
-
-            return new TypeEventSystemUnRegister<T>
-            {
-                TypeEventSystem = this,
-                OnEvent = onEvent
-            };
-        }
-
-        /// <summary>
-        /// 事件注销
-        /// </summary>
-        public void UnRegister<T>(Action<T> onEvent)
-        {
-            Type type = typeof(T);
-            IRegisters registers;
-            if (registerDic.TryGetValue(TypeHelper<T>.Type, out registers))
-            {
-                ((Registers<T>)registers).OnEvent -= onEvent;
-            }
-        }
-    }
-
-    #endregion
-    //TODO:优化
-    #region BindableProperty属性绑定
-
-    /// <summary>
-    /// 绑定属性    
-    /// </summary>
-    public class BindableProperty<T>
-    {
-        private readonly object mlock = new object();
-        private T bindableValue = default(T);
-        public T Value
-        {
-            get => bindableValue;
-            set
-            {
-                lock (mlock)
-                {
-                    // 使用 EqualityComparer<T> 处理所有情况
-                    if (EqualityComparer<T>.Default.Equals(bindableValue, value)) return;
-                    this.bindableValue = value;
-                }
-                if (OnValueChanged != null) OnValueChanged?.Invoke(this.bindableValue);
-            }
-        }
-
-        public BindableProperty(T defaultValue = default(T))
-        {
-            bindableValue = defaultValue;
-        }
-
-        // 属性值变化事件
-        private event Action<T> OnValueChanged;
-
-        public IUnRegister Register(Action<T> onValueChange)
-        {
-            this.OnValueChanged += onValueChange;
-            return new BindablePropertyUnRegister<T>()
-            {
-                BindableProperty = this,
-                OnValueChanged = onValueChange,
-            };
-        }
-
-        public IUnRegister RegisterWithInitvalue(Action<T> onValueChange)
-        {
-            onValueChange?.Invoke(bindableValue);
-            return Register(onValueChange);
-        }
-
-        public void UnRegister(Action<T> onValueChange)
-        {
-            if (onValueChange != null) this.OnValueChanged -= onValueChange;
-        }
-
-        //操作符重载 a.Value == b.value; -> a == b;;
-        public static implicit operator T(BindableProperty<T> bindableProperty)
-        {
-            return bindableProperty.Value;
-        }
-
-        //字符串转换
-        public override string ToString()
-        {
-            return Value.ToString();
-        }
-    }
-
-    public class BindablePropertyUnRegister<T> : IUnRegister
-    {
-        public BindableProperty<T> BindableProperty { get; set; }
-        public Action<T> OnValueChanged { get; set; }
-        public void UnRegister()
-        {
-            BindableProperty.UnRegister(OnValueChanged);
-            BindableProperty = null;
-            OnValueChanged = null;
-        }
-    }
-
-    #endregion
-
-    #region ...
 
     #endregion
 }
