@@ -13,11 +13,13 @@ namespace CreateProjectFolder
         {
             CreateFolderByName("Scripts/Command");
             CreateFolderByName("Scripts/ViewController");
+            CreateFolderByName("Scripts/ViewController/UI");
             CreateFolderByName("Scripts/Model");
             CreateFolderByName("Scripts/System");
             CreateFolderByName("Scripts/Command");
             CreateFolderByName("Scripts/Utility");
             CreateFolderByName("GameRes/Resources");
+            CreateFolderByName("GameRes/Resources/UI");
             CreateFolderByName("GameRes/Prefab");
             CreateFolderByName("GameRes/Image");
             CreateFolderByName("GameRes/Audio");

@@ -8,8 +8,8 @@ namespace FFramework
     /// </summary>
     public class UIManager : SingletonMono<UIManager>
     {
-        private Dictionary<string, UIPanelBase> uiPanelDic = new Dictionary<string, UIPanelBase>();
-        private Stack<UIPanelBase> panelStack = new Stack<UIPanelBase>();
+        private Dictionary<string, UIPanel> uiPanelDic = new Dictionary<string, UIPanel>();
+        private Stack<UIPanel> panelStack = new Stack<UIPanel>();
         public Transform uiRoot;
 
         protected override void Awake()
@@ -26,9 +26,9 @@ namespace FFramework
         /// </summary>
         /// <param name="uiPanelName">UI面板名称</param>
         /// <param name="isCache">是否缓存面板(默认true)</param>
-        public T OpenUIFromRes<T>(string uiPanelName, bool isCache = true) where T : UIPanelBase
+        public T OpenUIFromRes<T>(string uiPanelName, bool isCache = true) where T : UIPanel
         {
-            if (!uiPanelDic.TryGetValue(uiPanelName, out UIPanelBase uiPanel))
+            if (!uiPanelDic.TryGetValue(uiPanelName, out UIPanel uiPanel))
             {
                 // 从Resources加载预设体
                 GameObject prefab = Resources.Load<GameObject>($"UI/{uiPanelName}");
@@ -43,7 +43,7 @@ namespace FFramework
                 uiPanel = ui.GetComponent<T>();
                 if (uiPanel == null)
                 {
-                    Debug.LogError($"UI预制体缺少{typeof(UIPanelBase)}组件: {uiPanelName}");
+                    Debug.LogError($"UI预制体缺少{typeof(UIPanel)}组件: {uiPanelName}");
                     Object.Destroy(ui);
                     return null;
                 }
@@ -66,7 +66,7 @@ namespace FFramework
         /// </summary>
         /// <param name="uiPrefab">UI预制体</param>
         /// <param name="isCache">是否缓存面板(默认true)</param>
-        public T OpenUIFromAssetBundle<T>(GameObject uiPrefab, bool isCache = true) where T : UIPanelBase
+        public T OpenUIFromAssetBundle<T>(GameObject uiPrefab, bool isCache = true) where T : UIPanel
         {
             if (uiPrefab == null)
             {
@@ -75,7 +75,7 @@ namespace FFramework
             }
 
             string panelName = uiPrefab.name;
-            if (!uiPanelDic.TryGetValue(panelName, out UIPanelBase uiPanel))
+            if (!uiPanelDic.TryGetValue(panelName, out UIPanel uiPanel))
             {
                 // 实例化UI
                 GameObject uiInstance = Object.Instantiate(uiPrefab, uiRoot);
@@ -124,10 +124,10 @@ namespace FFramework
         /// </summary>
         public void CloseUI(string uiName)
         {
-            if (uiPanelDic.TryGetValue(uiName, out UIPanelBase ui))
+            if (uiPanelDic.TryGetValue(uiName, out UIPanel ui))
             {
                 // 从栈中移除该面板(如果存在)
-                var tempStack = new Stack<UIPanelBase>();
+                var tempStack = new Stack<UIPanel>();
                 while (panelStack.Count > 0)
                 {
                     var panel = panelStack.Pop();
@@ -180,7 +180,7 @@ namespace FFramework
         /// <summary>
         /// 获取当前显示的UIPanel
         /// </summary>
-        public T GetCurrentUIPanel<T>() where T : UIPanelBase
+        public T GetCurrentUIPanel<T>() where T : UIPanel
         {
             if (panelStack.Count == 0) return null;
             return panelStack.Peek() as T;
