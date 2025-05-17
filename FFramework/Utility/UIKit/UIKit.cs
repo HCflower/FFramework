@@ -57,11 +57,11 @@ namespace FFramework.Kit
         }
 
         ///<summary>
-        /// 从AssetBundle加载UI
+        /// 从资产中加载UI
         /// </summary>
         /// <param name="uiPrefab">UI预制体</param>
         /// <param name="isCache">是否缓存面板(默认true)</param>
-        public static T OpenUIFromAssetBundle<T>(GameObject uiPrefab, bool isCache = true) where T : UIPanel
+        public static T OpenUIFromAsset<T>(GameObject uiPrefab, bool isCache = true) where T : UIPanel
         {
             if (uiPrefab == null)
             {
