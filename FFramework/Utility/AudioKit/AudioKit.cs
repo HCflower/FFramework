@@ -52,6 +52,9 @@ namespace FFramework.Kit
             {
                 audioClipDic.Add(audioSetting.clipName, audioSetting);
             }
+#if UNITY_EDITOR
+            GetAudioClipSettings().SaveData();
+#endif
             isInitialized = true;
         }
 

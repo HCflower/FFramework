@@ -7,6 +7,7 @@ namespace FFramework.Kit
     /// </summary>
     public class AudioManager : SingletonMono<AudioManager>
     {
+        AudioManager() => IsDontDestroyOnLoad = true;
         [Header("音频组件")]
         [Tooltip("BGM音频组件")] public AudioSource BGMAudioSource;
         [Tooltip("SFX音频组件")] public AudioSource SFXAudioSource;
@@ -14,7 +15,6 @@ namespace FFramework.Kit
 
         protected override void Awake()
         {
-            IsDontDestroyOnLoad = true;
             base.Awake();
             Init();
         }

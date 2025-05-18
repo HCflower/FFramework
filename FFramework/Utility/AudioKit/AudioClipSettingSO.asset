@@ -10,7 +10,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 0fff5dde8ad22024d87731a7314a34a6, type: 3}
-  m_Name: AduioClipSettingSO
+  m_Name: AudioClipSettingSO
   m_EditorClassIdentifier: 
   volume: 0.8
   bgmVolume: 0.8
@@ -20,6 +20,6 @@ MonoBehaviour:
   - clipName: BGM
     clip: {fileID: 8300000, guid: 214361d6ad12f964298f750fc8dac645, type: 3}
     audioMixerGroup: {fileID: 3934385039852107434, guid: 858e26f244a7e3e4098ab73ad59aabfc, type: 2}
-    volume: 0.8
+    volume: 0.2
     loop: 1
     playOnAwake: 1

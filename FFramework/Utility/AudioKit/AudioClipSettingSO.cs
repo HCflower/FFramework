@@ -1,6 +1,9 @@
 using System.Collections.Generic;
 using UnityEngine.Audio;
 using UnityEngine;
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 
 namespace FFramework.Kit
 {
@@ -41,5 +44,13 @@ namespace FFramework.Kit
         }
         [Header("音频组件")][Tooltip("音频混音器")] public AudioMixer AudioMixer;
         public List<AudioClipSetting> AudioClipSettings = new List<AudioClipSetting>();
+
+#if UNITY_EDITOR
+        [Button("保存数据")]
+        public void SaveData()
+        {
+            AssetDatabase.SaveAssetIfDirty(this);
+        }
+#endif
     }
 }

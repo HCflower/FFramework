@@ -52,7 +52,7 @@ namespace FFramework.Kit
             }
 
             // 使用协程执行异步加载
-            CoroutineHelper.StartCoroutine(LoadSceneAsyncCoroutine(sceneName, onComplete, mode, allowActivation));
+            CoroutineRunner.StartStaticCoroutine(LoadSceneAsyncCoroutine(sceneName, onComplete, mode, allowActivation));
         }
 
         private static IEnumerator LoadSceneAsyncCoroutine(string sceneName, Action onComplete,
@@ -124,9 +124,8 @@ namespace FFramework.Kit
                 onComplete?.Invoke(false);
                 return;
             }
-
             // 使用协程执行异步卸载
-            CoroutineHelper.StartCoroutine(UnloadSceneAsyncCoroutine(sceneName, onComplete));
+            CoroutineRunner.StartStaticCoroutine(UnloadSceneAsyncCoroutine(sceneName, onComplete));
         }
 
         //卸载场景协程
@@ -151,31 +150,6 @@ namespace FFramework.Kit
 
             currentAsyncOp = null;
             onComplete?.Invoke(true);
-        }
-    }
-
-
-    // 协程辅助类(因为静态类不能继承MonoBehaviour)
-    public static class CoroutineHelper
-    {
-        private class CoroutineRunner : MonoBehaviour { }
-
-        private static CoroutineRunner runner;
-
-        public static Coroutine StartCoroutine(IEnumerator coroutine)
-        {
-            EnsureRunner();
-            return runner.StartCoroutine(coroutine);
-        }
-
-        private static void EnsureRunner()
-        {
-            if (runner == null)
-            {
-                runner = new GameObject("CoroutineRunner")
-                    .AddComponent<CoroutineRunner>();
-                UnityEngine.Object.DontDestroyOnLoad(runner.gameObject);
-            }
         }
     }
 }

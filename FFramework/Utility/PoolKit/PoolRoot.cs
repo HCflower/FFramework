@@ -5,9 +5,9 @@ namespace FFramework.Kit
     /// </summary>
     public class PoolRoot : SingletonMono<PoolRoot>
     {
+        PoolRoot() => IsDontDestroyOnLoad = true;
         protected override void Awake()
         {
-            IsDontDestroyOnLoad = true;
             base.Awake();
         }
     }
