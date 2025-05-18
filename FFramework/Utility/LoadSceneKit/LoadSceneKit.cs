@@ -78,9 +78,7 @@ namespace FFramework.Kit
             onComplete?.Invoke();
         }
 
-        /// <summary>
-        /// 允许激活已加载的场景(当allowActivation=false时使用)
-        /// </summary>
+        //允许激活已加载的场景(当allowActivation=false时使用)
         public static void AllowActivation()
         {
             if (currentAsyncOp != null)
@@ -96,7 +94,66 @@ namespace FFramework.Kit
         {
             return LoadingProgress;
         }
+
+        /// <summary>
+        /// 同步卸载场景（实际上是等待异步卸载完成）
+        /// </summary>
+        /// <param name="sceneName">场景名称</param>
+        /// <returns>是否成功卸载</returns>
+        public static bool UnloadScene(string sceneName)
+        {
+            if (IsLoading)
+            {
+                Debug.LogWarning($"正在异步加载场景，请勿同时调用卸载！");
+                return false;
+            }
+
+            return SceneManager.UnloadSceneAsync(sceneName).isDone;
+        }
+
+        /// <summary>
+        /// 异步卸载场景
+        /// </summary>
+        /// <param name="sceneName">场景名称</param>
+        /// <param name="onComplete">卸载完成回调</param>
+        public static void UnloadSceneAsync(string sceneName, Action<bool> onComplete = null)
+        {
+            if (IsLoading)
+            {
+                Debug.LogWarning($"已经在加载场景，请等待当前加载完成！");
+                onComplete?.Invoke(false);
+                return;
+            }
+
+            // 使用协程执行异步卸载
+            CoroutineHelper.StartCoroutine(UnloadSceneAsyncCoroutine(sceneName, onComplete));
+        }
+
+        //卸载场景协程
+        private static IEnumerator UnloadSceneAsyncCoroutine(string sceneName, Action<bool> onComplete)
+        {
+            // 检查场景是否已加载
+            Scene sceneToUnload = SceneManager.GetSceneByName(sceneName);
+            if (!sceneToUnload.IsValid())
+            {
+                Debug.LogWarning($"场景 {sceneName} 不存在或未加载，无法卸载！");
+                onComplete?.Invoke(false);
+                yield break;
+            }
+
+            currentAsyncOp = SceneManager.UnloadSceneAsync(sceneName);
+
+            // 等待卸载完成
+            while (currentAsyncOp != null && !currentAsyncOp.isDone)
+            {
+                yield return null;
+            }
+
+            currentAsyncOp = null;
+            onComplete?.Invoke(true);
+        }
     }
+
 
     // 协程辅助类(因为静态类不能继承MonoBehaviour)
     public static class CoroutineHelper
