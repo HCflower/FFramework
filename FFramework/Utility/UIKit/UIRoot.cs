@@ -5,6 +5,10 @@ namespace FFramework.Kit
     /// </summary>
     public class UIRoot : SingletonMono<UIRoot>
     {
-        UIRoot() => IsDontDestroyOnLoad = true;
+        protected override void Awake()
+        {
+            IsDontDestroyOnLoad = true;
+            base.Awake();
+        }
     }
 }

@@ -157,14 +157,14 @@ namespace FFramework.Kit
                 }
             }
             // 处理字典中可能存在的未在栈中的面板
-            foreach (var kvp in uiPanelDic)
+            foreach (var panel in uiPanelDic)
             {
-                if (kvp.Value != null)
+                if (panel.Value != null)
                 {
-                    kvp.Value.Close();
+                    panel.Value.Close();
                     if (destroyGameObjects)
                     {
-                        Object.Destroy(kvp.Value.gameObject);
+                        Object.Destroy(panel.Value.gameObject);
                     }
                 }
             }

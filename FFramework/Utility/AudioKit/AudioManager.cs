@@ -8,18 +8,20 @@ namespace FFramework.Kit
     public class AudioManager : SingletonMono<AudioManager>
     {
         [Header("音频组件")]
-        [SerializeField][Tooltip("BGM音频组件")] private AudioSource BGMAudioSource;
-        [SerializeField][Tooltip("SFX音频组件")] private AudioSource SFXAudioSource;
-        [SerializeField][Tooltip("音频数据SO文件")] public AudioClipSettingSO AudioClipSettings;
+        [Tooltip("BGM音频组件")] public AudioSource BGMAudioSource;
+        [Tooltip("SFX音频组件")] public AudioSource SFXAudioSource;
+        [Tooltip("音频数据SO文件")] public AudioClipSettingSO AudioClipSettings;
 
         protected override void Awake()
         {
+            IsDontDestroyOnLoad = true;
             base.Awake();
-            BGMAudioSource = new GameObject("BGM-AudioSource").AddComponent<AudioSource>();
-            BGMAudioSource.transform.SetParent(this.transform);
-            SFXAudioSource = new GameObject("SFX-AudioSource").AddComponent<AudioSource>();
-            SFXAudioSource.transform.SetParent(this.transform);
             Init();
+        }
+
+        void Start()
+        {
+            AudioKit.PlayAudio(BGMAudioSource, "BGM", true);
         }
 
         //初始化

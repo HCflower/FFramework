@@ -9,7 +9,6 @@ namespace FFramework
     {
         // 控制是否使用可以被销毁
         protected bool IsDontDestroyOnLoad = true;
-        private GameObject root;
         private static T mInstance;
         public static T Instance
         {
@@ -30,18 +29,8 @@ namespace FFramework
 
         protected virtual void Awake()
         {
-            if (mInstance == null)
-            {
-                mInstance = this as T;
-                root = GameObject.Find(IsDontDestroyOnLoad ? "DontDestroyRoot" : "CanDestroyRoot");
-                if (root == null)
-                {
-                    root = new GameObject(IsDontDestroyOnLoad ? "DontDestroyRoot" : "CanDestroyRoot");
-                    transform.SetParent(root.transform);
-                }
-                if (IsDontDestroyOnLoad) DontDestroyOnLoad(root);
-            }
-            else Destroy(this.GetComponent<T>());
+            if (IsDontDestroyOnLoad) DontDestroyOnLoad(this);
+            if (mInstance != null) DestroyImmediate(this.gameObject);
         }
 
         protected virtual void OnDestroy()
@@ -49,7 +38,6 @@ namespace FFramework
             if (mInstance == this)
             {
                 mInstance = null;
-                root = null;
             }
         }
     }

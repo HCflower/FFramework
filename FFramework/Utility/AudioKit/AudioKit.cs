@@ -10,10 +10,13 @@ namespace FFramework.Kit
     public static class AudioKit
     {
         //缓存音频Clip字典
-        public static Dictionary<string, AudioClipSetting> audioClipDic = new Dictionary<string, AudioClipSetting>();
+        private static Dictionary<string, AudioClipSetting> audioClipDic = new Dictionary<string, AudioClipSetting>();
         private static AudioMixer GetAudioMixer() => AudioManager.Instance.AudioClipSettings.AudioMixer;
         private static AudioClipSettingSO GetAudioClipSettings() => AudioManager.Instance.AudioClipSettings;
-
+        public static AudioSource GetBGMSource() => AudioManager.Instance.BGMAudioSource;
+        public static AudioSource GetSFXSource() => AudioManager.Instance.SFXAudioSource;
+        //数据是否初始化
+        private static bool isInitialized = false;
         //更新音量
         public static void UpdateVolume(string audioMixerGroup, float volume)
         {
@@ -44,10 +47,12 @@ namespace FFramework.Kit
         /// </summary>
         public static void InitAudioDic()
         {
+            if (isInitialized) return;
             foreach (var audioSetting in GetAudioClipSettings().AudioClipSettings)
             {
                 audioClipDic.Add(audioSetting.clipName, audioSetting);
             }
+            isInitialized = true;
         }
 
         ///<summary>

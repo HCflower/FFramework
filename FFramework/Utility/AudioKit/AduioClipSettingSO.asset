@@ -17,9 +17,9 @@ MonoBehaviour:
   sfxVolume: 0.8
   AudioMixer: {fileID: 24100000, guid: 858e26f244a7e3e4098ab73ad59aabfc, type: 2}
   AudioClipSettings:
-  - clipName: 
-    clip: {fileID: 0}
-    audioMixerGroup: {fileID: 0}
-    volume: 0
-    loop: 0
-    playOnAwake: 0
+  - clipName: BGM
+    clip: {fileID: 8300000, guid: 214361d6ad12f964298f750fc8dac645, type: 3}
+    audioMixerGroup: {fileID: 3934385039852107434, guid: 858e26f244a7e3e4098ab73ad59aabfc, type: 2}
+    volume: 0.8
+    loop: 1
+    playOnAwake: 1
