@@ -46,11 +46,25 @@ namespace FFramework
         private event Action<T> ValueChanged;
 
         /// <summary>
-        /// 注册事件
+        /// 注册事件 -> 自动清理
         /// </summary>
-        public void Register(Action<T> onValueChange)
+        public void Register(Action<T> onValueChange, bool autoUnRegister = true)
         {
             this.ValueChanged += onValueChange;
+            // 手动调用一次
+            ValueChanged?.Invoke(value);
+            // 自动注销
+            if (autoUnRegister && onValueChange?.Target is MonoBehaviour behaviour)
+            {
+                var target = behaviour.gameObject;
+                // 添加自动注销组件
+                var unregister = target.GetComponent<BindablePropertyAutoUnregister>();
+                if (unregister == null)
+                {
+                    unregister = target.AddComponent<BindablePropertyAutoUnregister>();
+                }
+                unregister.OnDestroyed += () => this.UnRegister(onValueChange);
+            }
         }
 
         /// <summary>
@@ -62,9 +76,9 @@ namespace FFramework
         }
 
         /// <summary>
-        /// 清理所有值修改事件 
+        /// 注销所有值修改事件 
         /// </summary>
-        public void ClearRegistrations()
+        public void UnregisterAll()
         {
             ValueChanged = null;
         }
@@ -79,6 +93,17 @@ namespace FFramework
         public override string ToString()
         {
             return Value?.ToString() ?? string.Empty;
+        }
+    }
+
+    // 自动注销组件
+    public class BindablePropertyAutoUnregister : MonoBehaviour
+    {
+        public event Action OnDestroyed;
+
+        private void OnDestroy()
+        {
+            OnDestroyed?.Invoke();
         }
     }
 }

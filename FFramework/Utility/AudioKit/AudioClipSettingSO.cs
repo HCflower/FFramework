@@ -50,6 +50,7 @@ namespace FFramework.Kit
         public void SaveData()
         {
             AssetDatabase.SaveAssetIfDirty(this);
+            Debug.Log("<color=green>AudioClip保存数据成功.</color>");
         }
 #endif
     }

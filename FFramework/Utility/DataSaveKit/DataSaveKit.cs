@@ -56,7 +56,7 @@ namespace FFramework.Kit
                 FileStream file = File.Open(savePath + fileName + ".dat", FileMode.Open);
                 T data = formatter.Deserialize(file) as T;
                 file.Close();
-                Debug.Log($"保存成功:{Application.persistentDataPath}/{fileName}.dat");
+                Debug.Log($"The save was successful:{Application.persistentDataPath}/{fileName}.dat");
                 return data;
             }
             catch (Exception ex)
@@ -174,7 +174,7 @@ namespace FFramework.Kit
             {
                 string json = JsonUtility.ToJson(data, prettyPrint);
                 File.WriteAllText(filePath, json);
-                Debug.Log($"保存成功:{Application.persistentDataPath}/{fileName}.json");
+                Debug.Log($"The save was successful:{Application.persistentDataPath}/{fileName}.json");
                 return true;
             }
             catch (Exception ex)
@@ -202,7 +202,7 @@ namespace FFramework.Kit
             {
                 string json = File.ReadAllText(filePath);
                 T data = JsonUtility.FromJson<T>(json);
-                Debug.Log($"数据加载成功:{Application.persistentDataPath}/{fileName}.json");
+                Debug.Log($"The data load is successful:{Application.persistentDataPath}/{fileName}.json");
                 return data;
             }
             catch (Exception ex)

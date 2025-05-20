@@ -28,7 +28,7 @@ namespace FFramework.Kit
         {
             if (IsLoading)
             {
-                Debug.LogWarning($"正在异步加载场景，请勿同时调用同步加载！");
+                Debug.LogWarning($"The scene is loading asynchronously, please do not call synchronous loading at the same time!");
                 return;
             }
 
@@ -47,7 +47,7 @@ namespace FFramework.Kit
         {
             if (IsLoading)
             {
-                Debug.LogWarning($"已经在加载场景，请等待当前加载完成！");
+                Debug.LogWarning($"The scene is already loading, please wait for the current load to complete!");
                 return;
             }
 
@@ -104,7 +104,7 @@ namespace FFramework.Kit
         {
             if (IsLoading)
             {
-                Debug.LogWarning($"正在异步加载场景，请勿同时调用卸载！");
+                Debug.LogWarning($"Loading the scene asynchronously, do not call uninstall at the same time!");
                 return false;
             }
 
@@ -120,7 +120,7 @@ namespace FFramework.Kit
         {
             if (IsLoading)
             {
-                Debug.LogWarning($"已经在加载场景，请等待当前加载完成！");
+                Debug.LogWarning($"The scene is already loading, please wait for the current load to complete!");
                 onComplete?.Invoke(false);
                 return;
             }
@@ -135,7 +135,7 @@ namespace FFramework.Kit
             Scene sceneToUnload = SceneManager.GetSceneByName(sceneName);
             if (!sceneToUnload.IsValid())
             {
-                Debug.LogWarning($"场景 {sceneName} 不存在或未加载，无法卸载！");
+                Debug.LogWarning($"Scene {sceneName} does not exist or is not loaded, cannot be uninstalled!！");
                 onComplete?.Invoke(false);
                 yield break;
             }

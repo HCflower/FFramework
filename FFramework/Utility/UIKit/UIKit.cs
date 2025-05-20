@@ -21,28 +21,29 @@ namespace FFramework.Kit
         /// </summary>
         /// <param name="uiPanelName">UI面板名称</param>
         /// <param name="isCache">是否缓存面板(默认true)</param>
-        public static T OpenUIFromRes<T>(string uiPanelName, bool isCache = true) where T : UIPanel
+        public static T OpenUIPanelFromRes<T>(bool isCache = true) where T : UIPanel
         {
-            if (!uiPanelDic.TryGetValue(uiPanelName, out UIPanel uiPanel))
+            string typeName = typeof(T).Name;
+            if (!uiPanelDic.TryGetValue(typeName, out UIPanel uiPanel))
             {
                 // 从Resources加载预设体
-                GameObject prefab = Resources.Load<GameObject>($"UI/{uiPanelName}");
+                GameObject prefab = Resources.Load<GameObject>($"UI/{typeName}");
                 if (prefab == null)
                 {
-                    Debug.LogError($"UI预制体不存在: UI/{uiPanelName}");
+                    Debug.LogError($"UI prefabs don't exist: UI/{typeName}");
                     return null;
                 }
                 // 实例化UI
                 GameObject ui = Object.Instantiate(prefab, GetUIRoot());
-                ui.name = uiPanelName;
+                ui.name = typeName;
                 uiPanel = ui.GetComponent<T>();
                 if (uiPanel == null)
                 {
-                    Debug.LogError($"UI预制体缺少{typeof(UIPanel)}组件: {uiPanelName}");
+                    Debug.LogError($"UI prefabs are missing {typeof(UIPanel)} component: {typeName}");
                     Object.Destroy(ui);
                     return null;
                 }
-                if (isCache) uiPanelDic.Add(uiPanelName, uiPanel);
+                if (isCache) uiPanelDic.Add(typeName, uiPanel);
             }
 
             // 锁定当前面板
@@ -61,11 +62,11 @@ namespace FFramework.Kit
         /// </summary>
         /// <param name="uiPrefab">UI预制体</param>
         /// <param name="isCache">是否缓存面板(默认true)</param>
-        public static T OpenUIFromAsset<T>(GameObject uiPrefab, bool isCache = true) where T : UIPanel
+        public static T OpenUIPanelFromAsset<T>(GameObject uiPrefab, bool isCache = true) where T : UIPanel
         {
             if (uiPrefab == null)
             {
-                Debug.LogError("UI预制体为空");
+                Debug.LogError("The UI prefab is empty");
                 return null;
             }
 
@@ -80,7 +81,7 @@ namespace FFramework.Kit
                 uiPanel = uiInstance.GetComponent<T>();
                 if (uiPanel == null)
                 {
-                    Debug.LogError($"UI预制体缺少{typeof(T)}组件: {panelName}");
+                    Debug.LogError($"UI prefabs are missing {typeof(T)} component: {panelName}");
                     Object.Destroy(uiInstance);
                     return null;
                 }
@@ -98,9 +99,9 @@ namespace FFramework.Kit
         }
 
         /// <summary>
-        /// 关闭当前UI
+        /// 关闭当前UI面板
         /// </summary>
-        public static void CloseCurrentUI()
+        public static void CloseCurrentUIPanel()
         {
             if (panelStack.Count == 0) return;
 
@@ -115,11 +116,12 @@ namespace FFramework.Kit
         }
 
         /// <summary>
-        /// 关闭指定UI
+        /// 关闭指定UI面板
         /// </summary>
-        public static void CloseUI(string uiName)
+        public static void CloseUIPanel<T>()
         {
-            if (uiPanelDic.TryGetValue(uiName, out UIPanel ui))
+            Debug.Log(typeof(T).Name);
+            if (uiPanelDic.TryGetValue(typeof(T).Name, out UIPanel ui))
             {
                 // 从栈中移除该面板(如果存在)
                 var tempStack = new Stack<UIPanel>();
@@ -144,7 +146,7 @@ namespace FFramework.Kit
         /// 清理所有UI面板
         /// </summary>
         /// <param name="destroyGameObjects">是否销毁GameObject对象</param>
-        public static void ClearAllUIPanel(bool destroyGameObjects = false)
+        public static void ClearAllUIPanel(bool destroyGameObjects = true)
         {
             // 关闭并清理栈中的面板
             while (panelStack.Count > 0)

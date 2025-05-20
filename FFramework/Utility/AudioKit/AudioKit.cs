@@ -52,9 +52,6 @@ namespace FFramework.Kit
             {
                 audioClipDic.Add(audioSetting.clipName, audioSetting);
             }
-#if UNITY_EDITOR
-            GetAudioClipSettings().SaveData();
-#endif
             isInitialized = true;
         }
 
@@ -163,6 +160,52 @@ namespace FFramework.Kit
             if (audioSource != null)
             {
                 if (audioSource.isPlaying) audioSource.Stop();
+            }
+        }
+
+        /// <summary>
+        /// 播放场景内音频
+        /// </summary>
+        public static void PlayAudioInScene(string audioName, Vector3 pos, bool isWait = false, bool is3D = false)
+        {
+            AudioSource audioSource = ObjectPoolKit.GetPoolObject<AudioSource>();
+            audioSource.transform.position = pos;
+            if (audioSource != null)
+            {
+                InitAudioClipSetting(audioSource, audioName);
+                audioSource.spatialBlend = is3D ? 1 : 0;
+                PlayAudio(audioSource, audioName, isWait, is3D);
+                // 添加MonoBehaviour组件来监听音频播放完成
+                if (!audioSource.TryGetComponent<AudioReturnToPool>(out var returnComponent))
+                    returnComponent = audioSource.gameObject.AddComponent<AudioReturnToPool>();
+                returnComponent.Initialize(audioSource);
+            }
+        }
+
+        /// <summary>
+        /// 监听音频播放完成并将对象放回对象池的组件
+        /// </summary>
+        public class AudioReturnToPool : MonoBehaviour
+        {
+            private AudioSource audioSource;
+            private bool initialized = false;
+
+            public void Initialize(AudioSource source)
+            {
+                audioSource = source;
+                initialized = true;
+            }
+
+            private void Update()
+            {
+                if (!initialized || audioSource == null) return;
+                // 检查音频是否播放完成
+                if (!audioSource.isPlaying)
+                {
+                    // 将对象放回对象池
+                    initialized = false;
+                    ObjectPoolKit.ReturnPool(gameObject);
+                }
             }
         }
     }

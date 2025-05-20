@@ -15,8 +15,7 @@ namespace FFramework
     /// </summary>
     public class ABResDownLoadManager : SingletonMono<ABResDownLoadManager>
     {
-        //切换场景时可以销毁
-        private ABResDownLoadManager() => IsDontDestroyOnLoad = false;
+        ABResDownLoadManager() => IsDontDestroyOnLoad = true;
         public string ResServerPath = "127.0.0.1";
         //远端AssetBundles信息字典
         private Dictionary<string, AssetBundleInfo> remoteAssetBundlesInfoDic = new Dictionary<string, AssetBundleInfo>();
@@ -44,6 +43,7 @@ namespace FFramework
 
         protected override void Awake()
         {
+            base.Awake();
             CheckResUpdate((resUpdateSuccess) =>
             {
                 if (resUpdateSuccess)

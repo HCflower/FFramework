@@ -82,6 +82,59 @@ namespace FFramework.Kit
             return component;
         }
 
+        //根据类型获取对象池中的对象 
+        public static T GetPoolObject<T>() where T : UnityEngine.Object
+        {
+            string typeName = typeof(T).Name;
+
+            // 检查是否已经有该类型的对象池
+            if (!poolDict.TryGetValue(typeName, out PoolData pool))
+            {
+                // 创建新的对象池
+                var parent = new GameObject($"{typeName}Pool").transform;
+                parent.SetParent(GetPoolRoot());
+
+                pool = new PoolData
+                {
+                    parent = parent,
+                    available = new Queue<GameObject>(),
+                    inUse = new HashSet<GameObject>()
+                };
+                poolDict.Add(typeName, pool);
+            }
+
+            GameObject obj;
+            if (pool.available.Count > 0)
+            {
+                obj = pool.available.Dequeue();
+            }
+            else
+            {
+                // 创建新对象并添加组件
+                obj = new GameObject(typeName);
+                if (typeof(Component).IsAssignableFrom(typeof(T)))
+                {
+                    obj.AddComponent(typeof(T));
+                }
+            }
+
+            obj.SetActive(true);
+            pool.inUse.Add(obj);
+            // 存储虚拟预制件键名
+            instanceToPrefabName[obj] = typeName;
+            obj.transform.SetParent(null);
+            SceneManager.MoveGameObjectToScene(obj, SceneManager.GetActiveScene());
+
+            if (typeof(GameObject) == typeof(T))
+            {
+                return obj as T;
+            }
+            else
+            {
+                return obj.GetComponent<T>();
+            }
+        }
+
         // 创建新对象
         private static GameObject CreateNewObject(GameObject prefab, Transform parent)
         {

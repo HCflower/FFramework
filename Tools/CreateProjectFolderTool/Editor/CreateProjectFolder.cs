@@ -28,7 +28,7 @@ namespace CreateProjectFolder
             CreateFolderByName("GameRes/Shader");
             CreateFolderByName("GameRes/Font");
             CreateFolderByName("GameRes/Material");
-            CreateFolderByName("GameRes/GameModel");
+            CreateFolderByName("GameRes/Model");
             CreateFolderByName("GameRes/VFX");
         }
 

@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using UnityEngine.Events;
 using System.Collections;
 using UnityEngine;
+using System.IO;
 
 namespace FFramework
 {
@@ -16,17 +17,65 @@ namespace FFramework
         //包依赖
         private AssetBundleManifest manifest = null;
         //AB加载路径
-        private string loadPathUrl => Application.persistentDataPath + "/";
+        private string loadPathUrl => Path.Combine(Application.persistentDataPath, "");
         //主包名
         public string mainAssetBundleName;
 
         //AssetBundle包管理字典
         private Dictionary<string, AssetBundleData> assetBundleDic = new Dictionary<string, AssetBundleData>();
 
+        //AssetBundle包数据类
         public class AssetBundleData
         {
-            public AssetBundle assetBundle;
-            public int referenceCount;
+            // 私有字段
+            private AssetBundle assetBundle;
+            private int referenceCount;
+            private float lastUsedTime;
+
+            // 公共属性
+            public AssetBundle AssetBundle => assetBundle;
+            public int ReferenceCount => referenceCount;
+            public float LastUsedTime => lastUsedTime;
+
+            // 构造函数
+            public AssetBundleData(AssetBundle assetBundle)
+            {
+                this.assetBundle = assetBundle;
+                referenceCount = 1;
+                lastUsedTime = Time.realtimeSinceStartup;
+            }
+
+            // 增加引用计数
+            public void AddReference()
+            {
+                referenceCount++;
+                lastUsedTime = Time.realtimeSinceStartup;
+            }
+
+            // 减少引用计数并返回是否可以卸载
+            public bool RemoveReference()
+            {
+                referenceCount--;
+                lastUsedTime = Time.realtimeSinceStartup;
+                return referenceCount <= 0;
+            }
+
+            // 卸载资源
+            public void Unload(bool unloadAllLoadedObjects)
+            {
+                if (assetBundle != null)
+                {
+                    assetBundle.Unload(unloadAllLoadedObjects);
+                    assetBundle = null;
+                }
+                referenceCount = 0;
+            }
+
+            // 检查是否可以卸载
+            public bool CanUnload()
+            {
+                return referenceCount <= 0;
+            }
         }
 
         //加载AssetBundle
@@ -47,26 +96,22 @@ namespace FFramework
                 if (!assetBundleDic.ContainsKey(dependency))
                 {
                     assetBundle = AssetBundle.LoadFromFile(loadPathUrl + dependency);
-                    assetBundleDic.Add(dependency, new AssetBundleData
-                    {
-                        assetBundle = assetBundle,
-                        referenceCount = 1
-                    });
+                    assetBundleDic.Add(dependency, new AssetBundleData(assetBundle));
                 }
                 else
                 {
-                    assetBundleDic[dependency].referenceCount++;
+                    assetBundleDic[dependency].AddReference();
                 }
             }
             //加载资源主包
             if (!assetBundleDic.ContainsKey(abName))
             {
                 assetBundle = AssetBundle.LoadFromFile(loadPathUrl + abName);
-                assetBundleDic.Add(abName, new AssetBundleData
-                {
-                    assetBundle = assetBundle,
-                    referenceCount = 1
-                });
+                assetBundleDic.Add(abName, new AssetBundleData(assetBundle));
+            }
+            else
+            {
+                assetBundleDic[abName].AddReference();
             }
         }
 
@@ -81,7 +126,7 @@ namespace FFramework
         {
             LoadAssetBundle(abName);
             //加载资源
-            Object obj = assetBundleDic[abName].assetBundle.LoadAsset(resName);
+            Object obj = assetBundleDic[abName].AssetBundle.LoadAsset(resName);
             return obj;
         }
 
@@ -95,7 +140,7 @@ namespace FFramework
         {
             LoadAssetBundle(abName);
             //加载资源
-            Object obj = assetBundleDic[abName].assetBundle.LoadAsset(resName, type);
+            Object obj = assetBundleDic[abName].AssetBundle.LoadAsset(resName, type);
             return obj;
         }
 
@@ -110,7 +155,7 @@ namespace FFramework
         {
             LoadAssetBundle(abName);
             //加载资源
-            T obj = assetBundleDic[abName].assetBundle.LoadAsset<T>(resName);
+            T obj = assetBundleDic[abName].AssetBundle.LoadAsset<T>(resName);
             return obj;
         }
 
@@ -134,7 +179,7 @@ namespace FFramework
         {
             LoadAssetBundle(abName);
             //加载资源
-            AssetBundleRequest requestObj = assetBundleDic[abName].assetBundle.LoadAssetAsync(resName);
+            AssetBundleRequest requestObj = assetBundleDic[abName].AssetBundle.LoadAssetAsync(resName);
             yield return requestObj;
             callBack(requestObj.asset);
         }
@@ -156,7 +201,7 @@ namespace FFramework
         {
             LoadAssetBundle(abName);
             //加载资源
-            AssetBundleRequest requestObj = assetBundleDic[abName].assetBundle.LoadAssetAsync(resName, type);
+            AssetBundleRequest requestObj = assetBundleDic[abName].AssetBundle.LoadAssetAsync(resName, type);
             yield return requestObj;
             callBack(requestObj.asset);
         }
@@ -178,7 +223,7 @@ namespace FFramework
         {
             LoadAssetBundle(abName);
             //加载资源
-            AssetBundleRequest requestObj = assetBundleDic[abName].assetBundle.LoadAssetAsync<T>(resName);
+            AssetBundleRequest requestObj = assetBundleDic[abName].AssetBundle.LoadAssetAsync<T>(resName);
             yield return requestObj;
             callBack(requestObj.asset as T);
         }
@@ -197,10 +242,9 @@ namespace FFramework
             if (assetBundleDic.ContainsKey(abName))
             {
                 // 减少主包的引用计数
-                assetBundleDic[abName].referenceCount--;
-                if (assetBundleDic[abName].referenceCount <= 0)
+                if (assetBundleDic[abName].RemoveReference())
                 {
-                    assetBundleDic[abName].assetBundle.Unload(false);
+                    assetBundleDic[abName].Unload(false);
                     assetBundleDic.Remove(abName);
                 }
 
@@ -210,10 +254,9 @@ namespace FFramework
                 {
                     if (assetBundleDic.ContainsKey(dependency))
                     {
-                        assetBundleDic[dependency].referenceCount--;
-                        if (assetBundleDic[dependency].referenceCount <= 0)
+                        if (assetBundleDic[dependency].RemoveReference())
                         {
-                            assetBundleDic[dependency].assetBundle.Unload(false);
+                            assetBundleDic[dependency].Unload(false);
                             assetBundleDic.Remove(dependency);
                         }
                     }

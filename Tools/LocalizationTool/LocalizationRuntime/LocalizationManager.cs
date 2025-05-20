@@ -8,7 +8,6 @@ namespace FFramework
     /// </summary>
     public class LocalizationManager : SingletonMono<LocalizationManager>
     {
-        LocalizationManager() => IsDontDestroyOnLoad = true;
         public event Action<LanguageType> OnLanguageChanged;
         public LocalizationData localizationData;
         [SerializeField] private LanguageType languageType;

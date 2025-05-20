@@ -19,11 +19,6 @@ namespace FFramework.Kit
             Init();
         }
 
-        void Start()
-        {
-            AudioKit.PlayAudio(BGMAudioSource, "BGM", true);
-        }
-
         //初始化
         private void Init()
         {
