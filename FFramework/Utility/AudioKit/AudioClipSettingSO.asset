@@ -26,13 +26,13 @@ MonoBehaviour:
   - clipName: Hit
     clip: {fileID: 8300000, guid: a2fb213c8a76ee641b91674426aea94a, type: 3}
     audioMixerGroup: {fileID: -2004538280658488627, guid: 858e26f244a7e3e4098ab73ad59aabfc, type: 2}
-    volume: 0.6
+    volume: 0.45
     loop: 0
     playOnAwake: 0
   - clipName: Dead
     clip: {fileID: 8300000, guid: 494ec178ecb4bae41a5419327f4fb0db, type: 3}
     audioMixerGroup: {fileID: -2004538280658488627, guid: 858e26f244a7e3e4098ab73ad59aabfc, type: 2}
-    volume: 0.6
+    volume: 0.4
     loop: 0
     playOnAwake: 0
   - clipName: Exp
@@ -57,5 +57,35 @@ MonoBehaviour:
     clip: {fileID: 8300000, guid: 2c4bc183a5df5aa4baf7c4fcf236a2de, type: 3}
     audioMixerGroup: {fileID: -2004538280658488627, guid: 858e26f244a7e3e4098ab73ad59aabfc, type: 2}
     volume: 0.5
+    loop: 0
+    playOnAwake: 0
+  - clipName: Melee
+    clip: {fileID: 8300000, guid: a2fb213c8a76ee641b91674426aea94a, type: 3}
+    audioMixerGroup: {fileID: -2004538280658488627, guid: 858e26f244a7e3e4098ab73ad59aabfc, type: 2}
+    volume: 0.8
+    loop: 0
+    playOnAwake: 0
+  - clipName: Dead_2
+    clip: {fileID: 8300000, guid: f630a15c705eec5478f890336f45a50e, type: 3}
+    audioMixerGroup: {fileID: -2004538280658488627, guid: 858e26f244a7e3e4098ab73ad59aabfc, type: 2}
+    volume: 0.3
+    loop: 0
+    playOnAwake: 0
+  - clipName: Hp
+    clip: {fileID: 8300000, guid: 6146c25b22f6afd4aaea4bec22fafa75, type: 3}
+    audioMixerGroup: {fileID: -2004538280658488627, guid: 858e26f244a7e3e4098ab73ad59aabfc, type: 2}
+    volume: 0.3
+    loop: 0
+    playOnAwake: 0
+  - clipName: Bomb
+    clip: {fileID: 8300000, guid: 53a8846b55eaaed44b07e3fb21859ca5, type: 3}
+    audioMixerGroup: {fileID: -2004538280658488627, guid: 858e26f244a7e3e4098ab73ad59aabfc, type: 2}
+    volume: 0.45
+    loop: 0
+    playOnAwake: 0
+  - clipName: Magnet
+    clip: {fileID: 8300000, guid: 4b294d59d2399014daa718b35c9de73b, type: 3}
+    audioMixerGroup: {fileID: -2004538280658488627, guid: 858e26f244a7e3e4098ab73ad59aabfc, type: 2}
+    volume: 0.45
     loop: 0
     playOnAwake: 0

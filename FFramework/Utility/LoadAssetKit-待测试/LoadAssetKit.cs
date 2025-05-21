@@ -45,7 +45,7 @@ namespace FFramework.Kit
         /// <typeparam name="T">资源类型</typeparam>
         /// <param name="resPath">资源路径</param>
         /// <param name="callback">完成后回调</param>
-        public static T LoadAssetFromRes<T>(string resPath, Action<T> callback = null, bool isCache = false) where T : UnityEngine.Object
+        public static T LoadAssetFromRes<T>(string resPath, Action<T> callback = null, bool isCache = true) where T : UnityEngine.Object
         {
             // 参数检查
             if (string.IsNullOrEmpty(resPath))
@@ -81,7 +81,7 @@ namespace FFramework.Kit
         }
 
         // 异步加载协程
-        private static IEnumerator LoadAssetAsync<T>(string resPath, Action<T> callback, bool isCache = false) where T : UnityEngine.Object
+        private static IEnumerator LoadAssetAsync<T>(string resPath, Action<T> callback, bool isCache = true) where T : UnityEngine.Object
         {
             ResourceRequest request = Resources.LoadAsync<T>(resPath);
             yield return request;

@@ -71,18 +71,23 @@ namespace FFramework.Kit
         }
 
         //根据类型获取对象池中的对象
-        public static T GetPoolObject<T>(GameObject prefab) where T : UnityEngine.Object
+        public static T GetPoolObject<T>(T prefab) where T : UnityEngine.Object
         {
-            GameObject obj = GetPoolObject(prefab);
-            T component = obj.GetComponent<T>();
-            if (component == null)
+            if (prefab is GameObject gameObject)
             {
-                Debug.LogWarning($"Object {prefab.name} 缺少组件: {typeof(T).Name}");
+                return GetPoolObject(gameObject) as T;
             }
-            return component;
+            else if (prefab is Component component)
+            {
+                GameObject obj = GetPoolObject(component.gameObject);
+                return obj.GetComponent<T>();
+            }
+
+            Debug.LogError($"Unsupported types: {typeof(T).Name}");
+            return null;
         }
 
-        //根据类型获取对象池中的对象 
+        //根据类型创建对象池中的对象 
         public static T GetPoolObject<T>() where T : UnityEngine.Object
         {
             string typeName = typeof(T).Name;

@@ -46,13 +46,16 @@ namespace FFramework
         private event Action<T> ValueChanged;
 
         /// <summary>
-        /// 注册事件 -> 自动清理
+        /// 注册事件  
+        /// onValueChange -> 值变化事件
+        /// isInit -> 是否初始化调用
+        /// autoUnRegister -> 是否自动注销
         /// </summary>
-        public void Register(Action<T> onValueChange, bool autoUnRegister = true)
+        public void Register(Action<T> onValueChange, bool isInit = true, bool autoUnRegister = true)
         {
             this.ValueChanged += onValueChange;
             // 手动调用一次
-            ValueChanged?.Invoke(value);
+            if (isInit) ValueChanged?.Invoke(value);
             // 自动注销
             if (autoUnRegister && onValueChange?.Target is MonoBehaviour behaviour)
             {

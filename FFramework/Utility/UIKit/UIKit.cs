@@ -24,6 +24,7 @@ namespace FFramework.Kit
         public static T OpenUIPanelFromRes<T>(bool isCache = true) where T : UIPanel
         {
             string typeName = typeof(T).Name;
+            Debug.Log($"Open UIPanel : <color=green>{typeName}.</color>");
             if (!uiPanelDic.TryGetValue(typeName, out UIPanel uiPanel))
             {
                 // 从Resources加载预设体
@@ -105,7 +106,8 @@ namespace FFramework.Kit
         {
             if (panelStack.Count == 0) return;
 
-            var currentPanel = panelStack.Pop();
+            UIPanel currentPanel = panelStack.Pop();
+            Debug.Log($"Close UIPanel : <color=yellow>{currentPanel.GetType().Name}.</color>");
             currentPanel.Close();
 
             // 显示上一个面板
@@ -120,8 +122,9 @@ namespace FFramework.Kit
         /// </summary>
         public static void CloseUIPanel<T>()
         {
-            Debug.Log(typeof(T).Name);
-            if (uiPanelDic.TryGetValue(typeof(T).Name, out UIPanel ui))
+            string typeName = typeof(T).Name;
+            Debug.Log($"Close UIPanel : <color=yellow>{typeName}.</color>");
+            if (uiPanelDic.TryGetValue(typeName, out UIPanel ui))
             {
                 // 从栈中移除该面板(如果存在)
                 var tempStack = new Stack<UIPanel>();
