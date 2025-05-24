@@ -40,7 +40,7 @@ namespace FFramework
         public void SendEvent<T>(T Event);
 
         //注册事件
-        public IUnRegister RegisterEvent<T>(Action<T> onEvent);
+        public IRemoveListener RegisterEvent<T>(Action<T> onEvent);
 
         //注销事件
         public void UnRegisterEvent<T>(Action<T> onEvent);
@@ -77,7 +77,7 @@ namespace FFramework
         //System - 系统列表
         private List<ISystem> systemList = new List<ISystem>();
         //事件系统             
-        private TypeEventSystem typeEventSystem = new TypeEventSystem();
+        private EventSystem typeEventSystem = new EventSystem();
 
         private static void MakeSureArchitecture()
         {
@@ -236,9 +236,9 @@ namespace FFramework
         /// 注册事件
         /// T -> 事件类型
         /// </summary>
-        public IUnRegister RegisterEvent<T>(Action<T> onEvent)
+        public IRemoveListener RegisterEvent<T>(Action<T> onEvent)
         {
-            return typeEventSystem.Register<T>(onEvent);
+            return typeEventSystem.AddListener<T>(onEvent);
         }
 
         ///<summary>
@@ -247,7 +247,7 @@ namespace FFramework
         /// </summary>
         public void UnRegisterEvent<T>(Action<T> onEvent)
         {
-            typeEventSystem.UnRegister<T>(onEvent);
+            typeEventSystem.RemoveListener<T>(onEvent);
         }
 
         //初始化方法,子类实现
@@ -492,7 +492,7 @@ namespace FFramework
     public interface IRegisterEvent : IGetArchitecture { }
     public static class RegisterEventExtension
     {
-        public static IUnRegister RegisterEvent<T>(this IRegisterEvent self, Action<T> onEvent)
+        public static IRemoveListener RegisterEvent<T>(this IRegisterEvent self, Action<T> onEvent)
         {
             return self.GetArchitecture().RegisterEvent<T>(onEvent);
         }

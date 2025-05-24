@@ -32,7 +32,7 @@ MonoBehaviour:
   - clipName: Dead
     clip: {fileID: 8300000, guid: 494ec178ecb4bae41a5419327f4fb0db, type: 3}
     audioMixerGroup: {fileID: -2004538280658488627, guid: 858e26f244a7e3e4098ab73ad59aabfc, type: 2}
-    volume: 0.4
+    volume: 0.45
     loop: 0
     playOnAwake: 0
   - clipName: Exp
@@ -41,8 +41,8 @@ MonoBehaviour:
     volume: 0.4
     loop: 0
     playOnAwake: 0
-  - clipName: Gold
-    clip: {fileID: 8300000, guid: 75db86edf8afac9438567ea960522822, type: 3}
+  - clipName: Coin
+    clip: {fileID: 8300000, guid: db8303f753f7c5642a8921cbc449b0ac, type: 3}
     audioMixerGroup: {fileID: -2004538280658488627, guid: 858e26f244a7e3e4098ab73ad59aabfc, type: 2}
     volume: 0.8
     loop: 0
@@ -68,7 +68,7 @@ MonoBehaviour:
   - clipName: Dead_2
     clip: {fileID: 8300000, guid: f630a15c705eec5478f890336f45a50e, type: 3}
     audioMixerGroup: {fileID: -2004538280658488627, guid: 858e26f244a7e3e4098ab73ad59aabfc, type: 2}
-    volume: 0.3
+    volume: 0.15
     loop: 0
     playOnAwake: 0
   - clipName: Hp
@@ -83,9 +83,15 @@ MonoBehaviour:
     volume: 0.45
     loop: 0
     playOnAwake: 0
-  - clipName: Magnet
-    clip: {fileID: 8300000, guid: 4b294d59d2399014daa718b35c9de73b, type: 3}
+  - clipName: ObtainProps
+    clip: {fileID: 8300000, guid: 36cd92ddcd8096d4791e3c354e62e07d, type: 3}
     audioMixerGroup: {fileID: -2004538280658488627, guid: 858e26f244a7e3e4098ab73ad59aabfc, type: 2}
     volume: 0.45
+    loop: 0
+    playOnAwake: 0
+  - clipName: Click
+    clip: {fileID: 8300000, guid: 6717f4248e67d6541b4e8a531b6e3634, type: 3}
+    audioMixerGroup: {fileID: -2004538280658488627, guid: 858e26f244a7e3e4098ab73ad59aabfc, type: 2}
+    volume: 1
     loop: 0
     playOnAwake: 0
