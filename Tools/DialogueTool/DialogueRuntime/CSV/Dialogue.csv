@@ -1,0 +1,13 @@
+Type,ID,Name,Icon,pos,Content,To,Action
+Dialogue,0,古月方源,,Left,出去吧，你。,1,
+Dialogue,1,古月族人,,Right,方源你都做了些什么？,2,
+Dialogue,2,古月方源,,Left,哦，你有意见。,3,DialogueDebug
+Branch,3,,,,将他也踢出去！,2,
+Branch,4,,,,沉默...,6,
+Branch,5,,,,我乃三转巅疯！,6,
+Dialogue,6,古月族人,,Right,没有了老族长，我们该如何对抗外敌！,7,
+Dialogue,7,古月方源,,Left,哼！,8,
+Branch,8,,,,你以为他恢复好了，会放过你们？,10,DialogueDebug
+Branch,9,,,,将多事的人踢出去。,11,DialogueDebug
+End,10,,,,,,
+Dialogue,11,古月方源,,Left,我乃是大爱仙尊！,10,
