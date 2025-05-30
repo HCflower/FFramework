@@ -1,5 +1,6 @@
+using System;
 using System.Collections.Generic;
-using OfficeOpenXml;
+using System.Text;
 using UnityEditor;
 using UnityEngine;
 using System.IO;
@@ -11,6 +12,25 @@ namespace LocalizationEditor
     /// </summary>
     public static class LocalizationEditorHandler
     {
+        /// <summary>
+        /// 获取所有启用的语言类型名称
+        /// </summary>
+        private static List<string> GetEnabledLanguageTypes()
+        {
+            List<string> languages = new List<string>();
+            var fields = typeof(LanguageType).GetFields(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static);
+
+            foreach (var field in fields)
+            {
+                // 跳过被注释掉的字段
+                if (!field.IsDefined(typeof(System.ObsoleteAttribute), false))
+                {
+                    languages.Add(field.Name);
+                }
+            }
+            return languages;
+        }
+
         /// <summary>
         /// 获取本地化数据SO列表
         /// </summary>
@@ -41,43 +61,38 @@ namespace LocalizationEditor
         /// </summary>
         /// <param name="dataSavePath">数据保存路径</param>
         /// <param name="excelSavePath">Excel文件保存路径</param>   
-        public static LocalizationData CreateLocalizationDataAndExcel(string dataName, string dataSavePath, string excelSavePath, bool isCreateExcel)
+        public static LocalizationData CreateLocalizationDataAndCSV(string dataName, string dataSavePath, string excelSavePath, bool isCreateCSV)
         {
             //创建本地化数据SO文件
             LocalizationData data = ScriptableObject.CreateInstance<LocalizationData>();
             data.name = dataName;
             string assetPath = $"{dataSavePath}/{dataName}.asset";
             AssetDatabase.CreateAsset(data, assetPath);
-            //创建Excel文件
-            if (isCreateExcel)
+            //创建CSV文件
+            if (isCreateCSV)
             {
-                using (var package = new ExcelPackage())
-                {
-                    var worksheet = package.Workbook.Worksheets.Add("Localization");
-                    string[] languageTypes = System.Enum.GetNames(typeof(LanguageType));
-                    // 设置表头
-                    worksheet.Cells[1, 1].Value = "Key";
-                    for (int i = 0; i < languageTypes.Length; i++)
-                    {
-                        worksheet.Cells[1, i + 2].Value = languageTypes[i];
-                    }
-                    // 确保目录存在
-                    if (!Directory.Exists(excelSavePath))
-                    {
-                        Directory.CreateDirectory(excelSavePath);
-                    }
+                string path = excelSavePath + "[Localization]Data.csv";
 
-                    // 保存Excel文件
-                    var fileInfo = new FileInfo($"{excelSavePath}/{dataName}.xlsx");
-                    package.SaveAs(fileInfo);
-                    // 设置 ExcelPath
-                    data.ExcelPath = $"{excelSavePath}/{dataName}.xlsx";
+                using (StreamWriter writer = new StreamWriter(path, false, Encoding.UTF8))
+                {
+                    var languages = GetEnabledLanguageTypes();
+                    string header = "Key," + string.Join(",", languages);
+                    writer.WriteLine(header);
+
                 }
+                AssetDatabase.Refresh();
+                data.localizationDataFile = AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(path) as TextAsset;
+                Debug.Log($"A localized data file has been created: {excelSavePath}");
             }
             else
             {
-                data.ExcelPath = string.Empty;
+                Debug.LogWarning($"The file already exists: {excelSavePath}");
             }
+            //聚焦到文件位置
+            var csvFile = AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(dataSavePath);
+
+            Selection.activeObject = csvFile;
+            EditorGUIUtility.PingObject(csvFile);
             AssetDatabase.SaveAssetIfDirty(data);
             AssetDatabase.Refresh();
             return data;
@@ -86,47 +101,105 @@ namespace LocalizationEditor
         /// <summary>
         /// 更新本地化数据SO
         /// </summary>
-        public static void ImportOrUpdateExcelToSO(LocalizationData data)
+        public static void ImportOrUpdateCSVToSO(LocalizationData data)
         {
-            using (ExcelPackage package = new ExcelPackage(new FileInfo(data.ExcelPath)))
+            if (data.localizationDataFile == null)
             {
-                data.localizationList.Clear();
-                //获取第一个工作表
-                ExcelWorksheet worksheet = package.Workbook.Worksheets[1];
-                //获取枚举类型
-                string[] languageTypes = System.Enum.GetNames(typeof(LanguageType));
-                for (int col = 2; col < languageTypes.Length; col++)
-                {
-                    LanguageType languageType = (LanguageType)System.Enum.Parse(typeof(LanguageType), worksheet.Cells[1, col].Text);
-                    List<LocalizationItem.LocalizationContent> contentList = new List<LocalizationItem.LocalizationContent>();
-                    for (int row = 2; row <= worksheet.Dimension.Rows; row++)
-                    {
-                        string key = worksheet.Cells[row, 1].Text;
-                        string content = worksheet.Cells[row, col].Text;
+                Debug.LogError("CSV TextAsset为空!");
+                return;
+            }
 
-                        // 如果 key 存在且内容不为空，将其添加到内容列表中
-                        if (!string.IsNullOrEmpty(key) && !string.IsNullOrEmpty(content))
+            try
+            {
+                // 直接从TextAsset读取CSV内容
+                string[] csvLines = data.localizationDataFile.text.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
+                if (csvLines.Length < 2) // 至少需要表头+1行数据
+                {
+                    Debug.LogWarning("CSV文件没有有效数据内容，跳过导入");
+                    return;
+                }
+
+                // 解析表头获取语言类型
+                string[] headers = csvLines[0].Split(',');
+                if (headers.Length < 2)
+                {
+                    Debug.LogError("CSV格式无效 - 缺少语言列");
+                    return;
+                }
+
+                bool hasValidData = false;
+                // 处理每一行数据
+                for (int i = 1; i < csvLines.Length; i++)
+                {
+                    string[] values = csvLines[i].Split(',');
+                    if (values.Length != headers.Length)
+                    {
+                        Debug.LogWarning($"Skipping invalid row {i}: column count mismatch");
+                        continue;
+                    }
+
+                    string key = values[0].Trim();
+                    if (string.IsNullOrEmpty(key))
+                    {
+                        continue; // 跳过空key的行
+                    }
+
+                    hasValidData = true;
+
+                    // 为每种语言添加数据
+                    for (int langIndex = 1; langIndex < headers.Length; langIndex++)
+                    {
+                        string content = values[langIndex].Trim();
+                        if (string.IsNullOrEmpty(content))
                         {
-                            contentList.Add(new LocalizationItem.LocalizationContent
+                            continue; // 跳过空内容的语言列
+                        }
+
+                        LanguageType languageType = (LanguageType)System.Enum.Parse(typeof(LanguageType), headers[langIndex]);
+                        // 添加到列表
+                        var langItem = data.localizationList.Find(x => x.languageType == languageType);
+                        if (langItem == null)
+                        {
+                            langItem = new LocalizationItem()
+                            {
+                                languageType = languageType,
+                                content = new List<LocalizationItem.LocalizationContent>()
+                            };
+                            data.localizationList.Add(langItem);
+                        }
+
+                        var contentItem = langItem.content.Find(x => x.key == key);
+                        if (contentItem == null)
+                        {
+                            contentItem = new LocalizationItem.LocalizationContent()
                             {
                                 key = key,
                                 content = content
-                            });
+                            };
+                            langItem.content.Add(contentItem);
+                        }
+                        else
+                        {
+                            contentItem.content = content;
                         }
                     }
-                    // 当内容列表不为空时，才将该语言类型创建到 localizationList 中
-                    if (contentList.Count > 0)
-                    {
-                        data.localizationList.Add(new LocalizationItem
-                        {
-                            languageType = languageType,
-                            content = contentList
-                        });
-                    }
+                }
+
+                if (hasValidData)
+                {
+                    EditorUtility.SetDirty(data);
+                    AssetDatabase.SaveAssetIfDirty(data);
+                    Debug.Log($"<color=yellow>{data.name}</color> 数据导入成功，共导入 {csvLines.Length - 1} 条记录");
+                }
+                else
+                {
+                    Debug.LogWarning("CSV中没有有效数据内容，跳过导入");
                 }
             }
-            AssetDatabase.SaveAssetIfDirty(data);
-            Debug.Log($"<color=yellow>{data.name}</color>数据载入成功.");
+            catch (Exception e)
+            {
+                Debug.LogError($"导入CSV失败: {e.Message}");
+            }
         }
     }
 }

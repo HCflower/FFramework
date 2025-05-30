@@ -3,8 +3,9 @@ using System.Collections.Generic;
 using UnityEngine.UI;
 using UnityEngine;
 using System;
+ 
 
-namespace DialogueTool
+namespace FFramework
 {
     /// <summary>
     /// 对话控制器
@@ -13,11 +14,16 @@ namespace DialogueTool
     {
         [Header("对话数据")]
         [Tooltip("对话数据文件")] public TextAsset dialogueDataFile;
-        [Tooltip("当前对话索引值")] public int dialogueIndex = 0;
-        [Tooltip("对话数据")] public List<DialogueSpriteData> dialogueDatas = new();
+        [Tooltip("对话数据")] public List<DialogueSpriteData> dialogueSpriteDatas = new();
         private Dictionary<string, Sprite> spriteDict = new();
-        //对话数据,按行分隔
-        private string[] dialogueRows;
+        [Tooltip("是否使用本地化数据")][SerializeField] private bool isUseLocalizedData;
+        [Tooltip("本地化数据(如果没有则获取全局本地化数据文件)")][SerializeField] private LocalizationData localizationData;
+        [Tooltip("当前对话索引值")] public int dialogueIndex = 0;
+        private string[] dialogueRows;                                                          //对话数据,按行分隔
+        private LanguageType languageType => LocalizationManager.Instance.LanguageType;         //语言类型
+        private string speaker;                                                                 //说话者
+        private string content;                                                                 //对话内容
+        private Dictionary<Button, string> branchButtonDict = new();                            //分支选项按钮
 
         [Header("UI")]
         [Tooltip("左侧Image")] public Image leftImage;
@@ -30,11 +36,28 @@ namespace DialogueTool
         [Tooltip("分支选项组")] public Transform branchGroup;
         [Tooltip("分支选项预制体")] public GameObject branchButtonPrefab;
 
+        private void Awake()
+        {
+            if (LocalizationManager.Instance != null)
+                LocalizationManager.Instance.Register(OnLanguageChanged);
+        }
+
+        private void OnDestroy()
+        {
+            if (LocalizationManager.Instance != null)
+                LocalizationManager.Instance.UnRegister(OnLanguageChanged);
+        }
+
         private void Start()
         {
             ReadDialogueDataFile(dialogueDataFile);
             ShowDialogueRow();
-            nextButton.onClick.AddListener(ShowDialogueRow);
+            //调用一次数据更新
+            OnLanguageChanged(languageType);
+            nextButton.onClick.AddListener(() =>
+            {
+                ShowDialogueRow();
+            });
         }
 
         /// <summary>
@@ -63,10 +86,25 @@ namespace DialogueTool
         }
 
         //更新对话文本
-        private void UpdateDialogueText(string name, string content)
+        private void OnLanguageChanged(LanguageType type)
         {
-            nameText.text = name;
-            dialogueContent.text = content;
+            if (isUseLocalizedData)
+            {
+                nameText.text = localizationData == null
+                    ? LocalizationManager.Instance.localizationData.GetTypeLanguageContent(languageType, speaker)
+                    : localizationData.GetTypeLanguageContent(languageType, speaker);
+                dialogueContent.text = localizationData == null
+                    ? LocalizationManager.Instance.localizationData.GetTypeLanguageContent(languageType, content)
+                    : localizationData.GetTypeLanguageContent(languageType, content);
+            }
+            else
+            {
+                nameText.text = speaker;
+                dialogueContent.text = content;
+            }
+
+            // 更新所有分支按钮的文本
+            UpdateAllBranchButtonsText();
         }
 
         //读取对话数据文件
@@ -77,7 +115,7 @@ namespace DialogueTool
             //按行读取数据
             dialogueRows = textAsset.text.Split('\n');
             //将对话数据添加到字典中
-            foreach (var item in dialogueDatas)
+            foreach (var item in dialogueSpriteDatas)
             {
                 spriteDict.Add(item.name, item.sprite);
             }
@@ -93,7 +131,8 @@ namespace DialogueTool
                 //是对话数据行
                 if (cols[0] == "Dialogue" && int.Parse(cols[1]) == dialogueIndex)
                 {
-                    UpdateDialogueText(cols[2], cols[5]);
+                    this.speaker = cols[2];
+                    this.content = cols[5];
                     UpdateImage(cols[2], cols[4]);
                     dialogueIndex = int.Parse(cols[6]);
                     nextButton.gameObject.SetActive(true);
@@ -125,8 +164,11 @@ namespace DialogueTool
             if (cols[0] == "Branch")
             {
                 Button branchButton = Instantiate(branchButtonPrefab, branchGroup).GetComponent<Button>();
-                //设置文本
-                branchButton.GetComponentInChildren<Text>().text = cols[5];
+                // 保存按钮引用和本地化键到字典中
+                string localizationKey = cols[5];
+                branchButtonDict[branchButton] = localizationKey;
+                // 设置当前语言下的文本
+                UpdateBranchButtonText(branchButton, localizationKey);
                 //注册点击事件
                 branchButton.onClick.AddListener(() =>
                 {
@@ -141,6 +183,35 @@ namespace DialogueTool
             }
         }
 
+        // 更新特定分支按钮的文本
+        private void UpdateBranchButtonText(Button button, string localizationKey)
+        {
+            if (isUseLocalizedData)
+            {
+                button.GetComponentInChildren<Text>().text = localizationData == null
+                   ? LocalizationManager.Instance.localizationData.GetTypeLanguageContent(languageType, localizationKey)
+                   : localizationData.GetTypeLanguageContent(languageType, localizationKey);
+            }
+            else
+            {
+                button.GetComponentInChildren<Text>().text = localizationKey;
+            }
+        }
+
+        // 更新所有分支按钮的文本
+        public void UpdateAllBranchButtonsText()
+        {
+            foreach (var pair in branchButtonDict)
+            {
+                Button button = pair.Key;
+                string key = pair.Value;
+
+                if (button != null)
+                {
+                    UpdateBranchButtonText(button, key);
+                }
+            }
+        }
 
         //根据id跳转到指定对话
         private void OnBranchClick(int id)
@@ -148,9 +219,10 @@ namespace DialogueTool
             dialogueIndex = id;
             ShowDialogueRow();
 
-            //TODO:隐藏分支选项
+            //TODO:缓存分支选项
             foreach (Transform child in branchGroup)
             {
+                branchButtonDict.Clear();
                 Destroy(child.gameObject);
             }
         }
@@ -222,12 +294,12 @@ namespace DialogueTool
 
 #if UNITY_EDITOR
 
-        [Button("添加对话数据")]
+        [Button("添加Sprite数据")]
         private void AddDialogueData()
         {
             string[] newDialogueRows;
             newDialogueRows = dialogueDataFile.text.Split('\n');
-            dialogueDatas.Clear();
+            dialogueSpriteDatas.Clear();
 
             // 如果对话行数据为空，则直接返回
             if (newDialogueRows == null || newDialogueRows.Length == 0)
@@ -249,7 +321,7 @@ namespace DialogueTool
 
                 // 如果列表中没有才添加
                 bool exists = false;
-                foreach (var item in dialogueDatas)
+                foreach (var item in dialogueSpriteDatas)
                 {
                     if (item.name == name)
                     {
@@ -261,7 +333,7 @@ namespace DialogueTool
                 if (!exists && cols[0] == "Dialogue")
                 {
                     DialogueSpriteData newData = new DialogueSpriteData(name, null);
-                    dialogueDatas.Add(newData);
+                    dialogueSpriteDatas.Add(newData);
                 }
             }
         }

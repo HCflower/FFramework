@@ -11,18 +11,18 @@ namespace FFramework
     /// </summary>
     public class LocalizationController : MonoBehaviour
     {
-        [SerializeField] private LocalizationData localizationData;
+        [Tooltip("本地化数据(如果没有则获取全局本地化数据文件)")][SerializeField] private LocalizationData localizationData;
         [SerializeField] private List<LocalizationControllerItem> localizationItemList;
 
-        private void OnEnable()
+        private void Awake()
         {
             if (LocalizationManager.Instance != null)
-                LocalizationManager.Instance.OnLanguageChanged += OnLanguageChanged;
+                LocalizationManager.Instance.Register(OnLanguageChanged);
         }
-        private void OnDisable()
+        private void OnDestroy()
         {
             if (LocalizationManager.Instance != null)
-                LocalizationManager.Instance.OnLanguageChanged -= OnLanguageChanged;
+                LocalizationManager.Instance.UnRegister(OnLanguageChanged);
         }
 
         private void Start()
@@ -41,24 +41,20 @@ namespace FFramework
         {
             foreach (var item in localizationItemList)
             {
-                item.text.gameObject.TryGetComponent<Text>(out var text);
-                if (text != null)
+                //尝试使用多态方式处理不同类型的文本组件
+                string localizedText = localizationData == null
+                    ? LocalizationManager.Instance.GetLocalizedContent(item.key)
+                    : localizationData.GetTypeLanguageContent(type, item.key);
+
+                //先尝试获取 Text 组件
+                if (item.textComponent.gameObject.TryGetComponent<Text>(out var textComponent))
                 {
-                    if (localizationData == null)
-                        text.text = LocalizationManager.Instance.GetLocalizedContent(item.key);
-                    else
-                        text.text = localizationData.GetLanguageContent(type, item.key);
+                    textComponent.text = localizedText;
                 }
-                if (text == null)
+                //再尝试获取 TextMeshProUGUI 组件
+                else if (item.textComponent.gameObject.TryGetComponent<TextMeshProUGUI>(out var tmpComponent))
                 {
-                    item.text.gameObject.TryGetComponent<TextMeshProUGUI>(out var textMeshProUGUI);
-                    if (textMeshProUGUI != null)
-                    {
-                        if (localizationData == null)
-                            textMeshProUGUI.text = LocalizationManager.Instance.GetLocalizedContent(item.key);
-                        else
-                            textMeshProUGUI.text = localizationData.GetLanguageContent(type, item.key);
-                    }
+                    tmpComponent.text = localizedText;
                 }
             }
         }
@@ -67,7 +63,7 @@ namespace FFramework
     [Serializable]
     public class LocalizationControllerItem
     {
-        public Component text;
+        public Component textComponent;
         public string key;
     }
 }

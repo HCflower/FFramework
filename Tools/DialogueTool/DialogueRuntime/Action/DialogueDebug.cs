@@ -1,5 +1,5 @@
 using UnityEngine;
-namespace DialogueTool
+namespace FFramework
 {
     public class DialogueDebug : IBranchAction
     {

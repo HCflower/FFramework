@@ -3,6 +3,7 @@ using UnityEngine.UIElements;
 using UnityEditor.UIElements;
 using UnityEditor;
 using UnityEngine;
+using System;
 
 namespace LocalizationEditor
 {
@@ -12,16 +13,16 @@ namespace LocalizationEditor
     public class LocalizationEditor : EditorWindow
     {
         private string currentDataName = "LocalizationData";       //当前localizationData文件名,默认为LocalizationData
-        private bool isCreateExcel = false;                        //是否创建Excel文件
+        private bool isCreateCSV = false;                          //是否创建CSV文件
         private string localizationDataSavePath = "Assets/";       //localizationData文件保存路径,默认为项目路径
-        private string excelSavePath = "Assets/";                  //excel文件保存路径,默认为项目路径
+        private string csvSavePath = "Assets/";                    //csv文件保存路径,默认为项目路径
         private LocalizationData currentLocalizationData;          //当前localizationData
         private List<LocalizationData> localizationDataList = new List<LocalizationData>();
         private TextField currentDataNameField;                    //数据文件名输入框
-        private TextField excelSaveField;                          //Excel文件保存路径
+        private TextField csvSaveField;                            //CSV文件保存路径
         private TextField dataSaveField;                           //数据文件保存路径
         private ScrollView scrollView;                             //数据列表
-        private ObjectField excelSelectField;                      //Excel文件选择框
+        private ObjectField csvSelectField;                        //CSV文件选择框
 
         [MenuItem("FFramework/LocalizationKit &E", priority = 1)]
         public static void SkillEditorCreateWindow()
@@ -37,9 +38,9 @@ namespace LocalizationEditor
             rootVisualElement.Clear();
             rootVisualElement.styleSheets.Add(Resources.Load<StyleSheet>("USS/LocalizationEditor"));
             DataNameField(rootVisualElement);
-            CreateExcelFileField(rootVisualElement);
+            CreateCSVFileField(rootVisualElement);
             DataSaveFolderField(rootVisualElement);
-            ExcelSaveFolderField(rootVisualElement);
+            CSVSaveFolderField(rootVisualElement);
             DataSOScrollview(rootVisualElement);
             ControlButtonContent(rootVisualElement);
             UpdateLocalizationDataSOItemView();
@@ -66,10 +67,10 @@ namespace LocalizationEditor
             currentDataNameField.AddToClassList("TextInputField");
             currentDataNameField.value = currentDataName;
             currentDataNameField.RegisterValueChangedCallback((evt) => { currentDataName = evt.newValue; });
-            Button createDataAddExcelButton = new Button();
-            createDataAddExcelButton.AddToClassList("ControlButton");
-            createDataAddExcelButton.AddToClassList("CreateDataAddExcelButton");
-            createDataAddExcelButton.clicked += () =>
+            Button createDataAddCSVButton = new Button();
+            createDataAddCSVButton.AddToClassList("ControlButton");
+            createDataAddCSVButton.AddToClassList("CreateDataAddCSVButton");
+            createDataAddCSVButton.clicked += () =>
             {
                 foreach (var item in localizationDataList)
                 {
@@ -79,106 +80,105 @@ namespace LocalizationEditor
                         return;
                     }
                 }
-                LocalizationData newData = LocalizationEditorHandler.CreateLocalizationDataAndExcel(currentDataName, localizationDataSavePath, excelSavePath, isCreateExcel);
+                LocalizationData newData = LocalizationEditorHandler.CreateLocalizationDataAndCSV(currentDataName, localizationDataSavePath, csvSavePath, isCreateCSV);
                 UpdateLocalizationDataSOItemView();
             };
             label.Add(title);
             label.Add(currentDataNameField);
-            label.Add(createDataAddExcelButton);
+            label.Add(createDataAddCSVButton);
             visual.Add(label);
         }
 
-        //创建Excel保存文件夹选择区域
-        private void ExcelSaveFolderField(VisualElement visual)
+        //创建CSV保存文件夹选择区域
+        private void CSVSaveFolderField(VisualElement visual)
         {
             Label label = new Label();
             label.AddToClassList("InputFieldContent");
 
             Label title = new Label();
             title.AddToClassList("LableTitle");
-            title.text = "Excel文件保存路径";
+            title.text = "CSV文件保存路径";
 
-            excelSaveField = new TextField();
-            excelSaveField.AddToClassList("TextInputField");
-            excelSaveField.value = excelSavePath;
-            excelSaveField.RegisterValueChangedCallback((evt) => { excelSavePath = evt.newValue; });
-            Button selectExcelSavePathButton = new Button();
-            selectExcelSavePathButton.AddToClassList("ControlButton");
-            selectExcelSavePathButton.AddToClassList("SelectFolderButton");
-            selectExcelSavePathButton.clicked += () => GetFolderPath(excelSaveField);
+            csvSaveField = new TextField();
+            csvSaveField.AddToClassList("TextInputField");
+            csvSaveField.value = csvSavePath;
+            csvSaveField.RegisterValueChangedCallback((evt) => { csvSavePath = evt.newValue; });
+            Button selectCSVSavePathButton = new Button();
+            selectCSVSavePathButton.AddToClassList("ControlButton");
+            selectCSVSavePathButton.AddToClassList("SelectFolderButton");
+            selectCSVSavePathButton.clicked += () => GetFolderPath(csvSaveField);
 
             label.Add(title);
-            label.Add(excelSaveField);
-            label.Add(selectExcelSavePathButton);
+            label.Add(csvSaveField);
+            label.Add(selectCSVSavePathButton);
             visual.Add(label);
         }
 
-        //创建Excel文件选择区域
-        private void CreateExcelFileField(VisualElement visual)
+        //创建CSV文件选择区域
+        private void CreateCSVFileField(VisualElement visual)
         {
             Label label = new Label();
             label.AddToClassList("InputFieldContent");
             Label title = new Label();
 
             title.AddToClassList("LableTitle");
-            title.text = "Excel文件";
+            title.text = "CSV文件";
 
-            Toggle isCreateExcelToggle = new Toggle();
-            isCreateExcelToggle.value = this.isCreateExcel;
-            isCreateExcelToggle.AddToClassList("ToggleButton");
-            isCreateExcelToggle.RegisterValueChangedCallback((evt) =>
+            Toggle isCreateCSVToggle = new Toggle();
+            isCreateCSVToggle.value = this.isCreateCSV;
+            isCreateCSVToggle.AddToClassList("ToggleButton");
+            isCreateCSVToggle.RegisterValueChangedCallback((evt) =>
             {
-                this.isCreateExcel = evt.newValue;
-                Debug.Log($"是否创建Excel文件:{isCreateExcel}");
+                this.isCreateCSV = evt.newValue;
+                Debug.Log($"是否创建CSV文件:{isCreateCSV}");
             });
-            title.Add(isCreateExcelToggle);
+            title.Add(isCreateCSVToggle);
 
-            excelSelectField = new ObjectField();
-            excelSelectField.AddToClassList("ExcelFileSelectField");
-            excelSelectField.objectType = typeof(UnityEngine.Object);
+            csvSelectField = new ObjectField();
+            csvSelectField.AddToClassList("CSVFileSelectField");
+            csvSelectField.objectType = typeof(UnityEngine.Object);
             // 监听ObjectField的值变化
-            excelSelectField.RegisterValueChangedCallback(evt =>
+            csvSelectField.RegisterValueChangedCallback(evt =>
             {
                 UnityEngine.Object selectedObject = evt.newValue as UnityEngine.Object;
                 if (selectedObject != null)
                 {
                     string assetPath = AssetDatabase.GetAssetPath(selectedObject);
-                    if (!assetPath.EndsWith(".xlsx") && !assetPath.EndsWith(".xls"))
+                    if (!assetPath.EndsWith(".csv"))
                     {
-                        Debug.Log("<color=yellow>请选择Excel文件</color> (.xlsx 或 .xls)");
-                        excelSelectField.value = null;
+                        Debug.Log("<color=yellow>请选择CSV文件</color> (.csv)");
+                        csvSelectField.value = null;
                     }
                 }
             });
-            Button ChangeSOExcelButton = new Button();
-            ChangeSOExcelButton.AddToClassList("ControlButton");
-            ChangeSOExcelButton.AddToClassList("ChangeExcelDataButton");
-            ChangeSOExcelButton.clicked += () =>
+            Button ChangeSOCSVButton = new Button();
+            ChangeSOCSVButton.AddToClassList("ControlButton");
+            ChangeSOCSVButton.AddToClassList("ChangeCSVDataButton");
+            ChangeSOCSVButton.clicked += () =>
             {
                 if (currentLocalizationData == null)
                 {
                     Debug.Log("<color=yellow>请先选择一个Data文件</color>");
                     return;
                 }
-                if (excelSelectField.value == null)
+                if (csvSelectField.value == null)
                 {
-                    Debug.Log("<color=yellow>请先选择一个Excel文件</color>");
+                    Debug.Log("<color=yellow>请先选择一个CSV文件</color>");
                     return;
                 }
 
-                if (!string.IsNullOrEmpty(excelSaveField.value))
+                if (!string.IsNullOrEmpty(csvSaveField.value))
                 {
-                    // 获取Excel文件路径
-                    string assetPath = AssetDatabase.GetAssetPath(excelSelectField.value);
-                    currentLocalizationData.ExcelPath = assetPath;
-                    Debug.Log($"{currentLocalizationData.name}文件的ExcelPath切换为-><color=yellow>{assetPath}</color>(请确保路径正确,且Excel文件存在!)");
+                    // 获取CSV文件路径
+                    string assetPath = AssetDatabase.GetAssetPath(csvSelectField.value);
+                    Debug.Log($"{currentLocalizationData.name}文件的CSVPath切换为-><color=yellow>{assetPath}</color>(请确保路径正确,且CSV文件存在!)");
                 }
                 UpdateLocalizationDataSOItemView();
             };
 
             label.Add(title);
-            label.Add(excelSelectField);
-            label.Add(ChangeSOExcelButton);
+            label.Add(csvSelectField);
+            label.Add(ChangeSOCSVButton);
             visual.Add(label);
         }
 
@@ -272,8 +272,8 @@ namespace LocalizationEditor
             soButton.AddToClassList("SelectSODataFileButton");
 
             string assetPath = AssetDatabase.GetAssetPath(data);
-            // 根据路径加载Excel文件
-            Object excelObject = AssetDatabase.LoadAssetAtPath<Object>(data.ExcelPath);
+            // 根据路径加载CSV文件
+            TextAsset csvObject = data.localizationDataFile;
 
             // 添加点击事件处理
             soButton.clicked += () =>
@@ -283,10 +283,11 @@ namespace LocalizationEditor
                 EditorGUIUtility.PingObject(data);
                 currentDataName = data.name;
                 currentDataNameField.value = data.name;
-                //加载Excel文件
-                if (excelObject != null) excelSelectField.value = excelObject;
-                else excelSelectField.value = null;
+                //加载CSV文件
+                if (csvObject != null) csvSelectField.value = csvObject;
+                else csvSelectField.value = null;
             };
+
             Label soTitle = new Label();
             soTitle.AddToClassList("ItemTitle");
             soTitle.text = data.name;
@@ -297,37 +298,37 @@ namespace LocalizationEditor
             Label linkIcon = new Label();
             linkIcon.AddToClassList("LinkIcon");
 
-            Label excelContent = new Label();
-            excelContent.AddToClassList("SelectItemButtonContent");
+            Label csvContent = new Label();
+            csvContent.AddToClassList("SelectItemButtonContent");
 
-            Button excelButton = new Button();
-            excelButton.AddToClassList("ControlButton");
-            excelButton.AddToClassList("SelectExcelFileButton");
-            excelButton.clicked += () =>
+            Button csvButton = new Button();
+            csvButton.AddToClassList("ControlButton");
+            csvButton.AddToClassList("SelectCSVFileButton");
+            csvButton.clicked += () =>
             {
                 // 聚焦到对象
-                EditorGUIUtility.PingObject(excelObject);
+                EditorGUIUtility.PingObject(csvObject);
             };
 
-            Label excelIcon = new Label();
-            excelIcon.AddToClassList("ExcelIcon");
+            Label csvIcon = new Label();
+            csvIcon.AddToClassList("CSVIcon");
 
-            Label excelTitle = new Label();
-            excelTitle.AddToClassList("ItemTitle");
-            if (excelObject == null) excelTitle.text = "Null";
-            else excelTitle.text = excelObject.name;
-            excelContent.Add(excelButton);
-            excelButton.Add(excelIcon);
-            excelButton.Add(excelTitle);
+            Label csvTitle = new Label();
+            csvTitle.AddToClassList("ItemTitle");
+            if (csvObject == null) csvTitle.text = "Null";
+            else csvTitle.text = csvObject.name;
+            csvContent.Add(csvButton);
+            csvButton.Add(csvIcon);
+            csvButton.Add(csvTitle);
 
             Button import = new Button();
             import.AddToClassList("ControlButton");
-            import.AddToClassList("ExcelImportToSOButton");
-            import.clicked += () => LocalizationEditorHandler.ImportOrUpdateExcelToSO(data);
+            import.AddToClassList("CSVImportToSOButton");
+            import.clicked += () => LocalizationEditorHandler.ImportOrUpdateCSVToSO(data);
 
             mainContent.Add(soContent);
             mainContent.Add(linkIcon);
-            mainContent.Add(excelContent);
+            mainContent.Add(csvContent);
             soContent.Add(import);
             visual.Add(mainContent);
         }
@@ -337,57 +338,52 @@ namespace LocalizationEditor
         {
             Label controlButtonContent = new Label();
             controlButtonContent.AddToClassList("ControlButtonContent");
-            SaveAllDataButton(controlButtonContent);
-            UpdateAllSODataButton(controlButtonContent);
-            UpdateItemViewButton(controlButtonContent);
-            visual.Add(controlButtonContent);
-        }
-
-        //刷新数据视图按钮
-        private void UpdateItemViewButton(VisualElement visual)
-        {
-            Button UpdateItemView = new Button();
-            UpdateItemView.AddToClassList("ControlDataButton");
-            UpdateItemView.text = "Refresh Data View";
-            UpdateItemView.clicked += () =>
-            {
-                UpdateLocalizationDataSOItemView();
-            };
-            visual.Add(UpdateItemView);
-        }
-
-        //刷新所有Data文件数据
-        private void UpdateAllSODataButton(VisualElement visual)
-        {
-            Button updateAllSOData = new Button();
-            updateAllSOData.AddToClassList("ControlDataButton");
-            updateAllSOData.text = "Update All Data";
-            updateAllSOData.clicked += () =>
+            //保存所有数据按钮
+            CreateControllerButton(controlButtonContent, "Save All Data",
+            () =>
             {
                 foreach (var item in localizationDataList)
                 {
-                    LocalizationEditorHandler.ImportOrUpdateExcelToSO(item);
-                }
-            };
-            visual.Add(updateAllSOData);
-        }
-
-        //保存存所有Data文件数据
-        private void SaveAllDataButton(VisualElement visual)
-        {
-            Button saveAllSOData = new Button();
-            saveAllSOData.AddToClassList("ControlDataButton");
-            saveAllSOData.text = "Save All Data";
-            saveAllSOData.clicked += () =>
-            {
-                foreach (var item in localizationDataList)
-                {
-                    EditorUtility.SetDirty(item);
                     AssetDatabase.SaveAssetIfDirty(item);
                     AssetDatabase.Refresh();
                 }
+            }, "Save");
+            //更新所有数据按钮
+            CreateControllerButton(controlButtonContent, "Update All Data",
+            () =>
+            {
+                foreach (var item in localizationDataList)
+                {
+                    LocalizationEditorHandler.ImportOrUpdateCSVToSO(item);
+                }
+            }, "Refresh");
+            //刷新视图按钮
+            CreateControllerButton(controlButtonContent, "Refresh View",
+            () =>
+            {
+                UpdateLocalizationDataSOItemView();
+            }, "Refresh");
+
+            visual.Add(controlButtonContent);
+        }
+
+        //创建控制按钮
+        private void CreateControllerButton(VisualElement visual, string buttonName, Action action, string iconPath)
+        {
+            Button controllerButton = new Button();
+            controllerButton.AddToClassList("ControlDataButton");
+            controllerButton.text = buttonName;
+            controllerButton.clicked += () =>
+            {
+                action?.Invoke();
             };
-            visual.Add(saveAllSOData);
+            //图标
+            Image buttonIcon = new Image();
+            buttonIcon.AddToClassList("ControllButtonIcon");
+            buttonIcon.style.backgroundImage = Resources.Load<Texture2D>($"Icon/{iconPath}");
+            controllerButton.Add(buttonIcon);
+
+            visual.Add(controllerButton);
         }
     }
 }

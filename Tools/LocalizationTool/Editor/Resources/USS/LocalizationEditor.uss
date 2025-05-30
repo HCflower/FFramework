@@ -33,8 +33,8 @@
 .ToggleButton{
     align-self:flex-end;
 }
-/* 创建Data数据和Excel文件 */
-.CreateDataAddExcelButton{
+/* 创建Data数据和CSV文件 */
+.CreateDataAddCSVButton{
     background-image: resource("Icon/FileAdd");
 }
 
@@ -56,8 +56,8 @@
     padding-right: 0px;
 }
 
-/* 选择Excel文件按钮 */
-.SelectExcelFileButton{
+/* 选择CSV文件按钮 */
+.SelectCSVFileButton{
     margin-left: 2px;
     width: 189px;
     
@@ -89,8 +89,8 @@
     align-items: center;
 }
 
-/* Excel文件导入SO按钮 - 数据刷新 */
-.ExcelImportToSOButton{
+/* CSV文件导入SO按钮 - 数据刷新 */
+.CSVImportToSOButton{
     background-color:#515151;
     background-image: resource("Icon/Refresh");
 }
@@ -100,13 +100,13 @@
     background-image: resource("Icon/SelectFolder");
 }
 
-/* Excel文件选择区域 */
-.ExcelFileSelectField{
+/* CSV文件选择区域 */
+.CSVFileSelectField{
     width: 300px;
 }
 
-/* 改变SO对应的Excel文件数据按钮 */
-.ChangeExcelDataButton{
+/* 改变SO对应的CSV文件数据按钮 */
+.ChangeCSVDataButton{
     background-image: resource("Icon/ChangeData");
 }
 
@@ -127,11 +127,9 @@
     -unity-font-style: bold;
     -unity-text-align: middle-center;
     margin-top: 5px;
+    justify-content: center;
 
-    border-top-left-radius: 3px;
-    border-top-right-radius: 3px;
-    border-bottom-left-radius: 3px;
-    border-bottom-right-radius:3px;
+    border-radius: 3px;
 }
 
 /* 数据滚动视图 */
@@ -142,10 +140,7 @@
     width: 440px;
     height:200px;
     background-color:#2A2A2A;
-    border-top-left-radius: 2px;
-    border-top-right-radius: 2px;
-    border-bottom-left-radius: 2px;
-    border-bottom-right-radius: 2px;
+    border-radius: 2px;
 }
 
 /* 链接图标 */
@@ -167,13 +162,20 @@
     background-image: resource("Icon/ScriptableObjectIcon");
 }
 
-/* Excel图标 */
-.ExcelIcon{
+/* CSV图标 */
+.CSVIcon{
     width: 18px;
     height: 18px;
-    left:2px;
-    background-size: 18px 16px;
-    background-image: resource("Icon/Excel");
+    left:0px;
+    background-size: 16px 16px;
+    background-image: resource("Icon/CSV");
+}
+
+/* 控制按钮图标 */
+.ControllButtonIcon{
+    width: 18px;
+    height: 18px;
+    left:0px;
 }
 
 /*数据显示项,主区域*/

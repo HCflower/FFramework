@@ -8,7 +8,7 @@ namespace FFramework
     /// </summary>
     public class LocalizationManager : SingletonMono<LocalizationManager>
     {
-        public event Action<LanguageType> OnLanguageChanged;
+        private event Action<LanguageType> OnLanguageChanged;
         public LocalizationData localizationData;
         [SerializeField] private LanguageType languageType;
         public LanguageType LanguageType
@@ -44,6 +44,19 @@ namespace FFramework
         }
 #endif
 
+        //注册语言类型修改事件
+        public void Register(Action<LanguageType> action)
+        {
+            OnLanguageChanged += action;
+        }
+
+        //取消注册语言类型修改事件
+        public void UnRegister(Action<LanguageType> action)
+        {
+            OnLanguageChanged -= action;
+        }
+
+
         //尝试获取指定语言类型的数据
         private void TryGetLanguageType()
         {
@@ -65,7 +78,7 @@ namespace FFramework
         {
             if (localizationData != null)
             {
-                return localizationData.GetLanguageContent(LanguageType, key);
+                return localizationData.GetTypeLanguageContent(LanguageType, key);
             }
             else return string.Empty;
         }

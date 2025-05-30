@@ -5,6 +5,7 @@ namespace CreateProjectFolder
 {
     /// <summary>
     /// 创建项目文件夹
+    /// TODO:加入HybridCLR支持后,需要修改目录结构
     /// </summary>
     public class CreateProjectFolder : EditorWindow
     {
@@ -30,6 +31,7 @@ namespace CreateProjectFolder
             CreateFolderByName("GameRes/Material");
             CreateFolderByName("GameRes/Model");
             CreateFolderByName("GameRes/VFX");
+            CreateFolderByName("Test");
         }
 
         //创建文件夹

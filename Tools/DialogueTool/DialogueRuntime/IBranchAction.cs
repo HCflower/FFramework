@@ -1,4 +1,4 @@
-namespace DialogueTool
+namespace FFramework
 {
     /// <summary>
     /// 分支事件接口
