@@ -9,7 +9,7 @@ namespace FFramework
     public class LocalizationManager : SingletonMono<LocalizationManager>
     {
         private event Action<LanguageType> OnLanguageChanged;
-        public LocalizationData localizationData;
+        public LocalizationData GlobalLocalizationData;
         [SerializeField] private LanguageType languageType;
         public LanguageType LanguageType
         {
@@ -23,13 +23,6 @@ namespace FFramework
                     OnLanguageChanged?.Invoke(languageType);
                 }
             }
-        }
-
-
-        protected override void OnDestroy()
-        {
-            if (OnLanguageChanged == null)
-                base.OnDestroy();
         }
 
 #if UNITY_EDITOR
@@ -56,15 +49,14 @@ namespace FFramework
             OnLanguageChanged -= action;
         }
 
-
         //尝试获取指定语言类型的数据
         private void TryGetLanguageType()
         {
-            if (localizationData != null)
+            if (GlobalLocalizationData != null)
             {
-                if (!localizationData.TryGetLanguageType(languageType))
+                if (!GlobalLocalizationData.TryGetLanguageType(languageType))
                 {
-                    Debug.Log($"<color=yellow>没有{languageType}语言的数据!</color>");
+                    Debug.Log($"<color=yellow>No {languageType} language data!!</color>");
                 }
             }
         }
@@ -76,9 +68,9 @@ namespace FFramework
         /// <returns></returns>
         public string GetLocalizedContent(string key)
         {
-            if (localizationData != null)
+            if (GlobalLocalizationData != null)
             {
-                return localizationData.GetTypeLanguageContent(LanguageType, key);
+                return GlobalLocalizationData.GetTypeLanguageContent(LanguageType, key);
             }
             else return string.Empty;
         }

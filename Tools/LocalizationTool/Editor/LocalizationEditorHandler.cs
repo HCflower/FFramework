@@ -128,6 +128,8 @@ namespace LocalizationEditor
                 }
 
                 bool hasValidData = false;
+                // //清理旧数据
+                // data.localizationList.Clear();
                 // 处理每一行数据
                 for (int i = 1; i < csvLines.Length; i++)
                 {
@@ -145,7 +147,6 @@ namespace LocalizationEditor
                     }
 
                     hasValidData = true;
-
                     // 为每种语言添加数据
                     for (int langIndex = 1; langIndex < headers.Length; langIndex++)
                     {

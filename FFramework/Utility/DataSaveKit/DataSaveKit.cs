@@ -157,15 +157,15 @@ namespace FFramework.Kit
 
         #endregion
 
-
         #region JSON
 
         ///<summary>
         /// 保存数据到Json文件
-        /// T -> 数据类型
         /// fileName -> 文件名称
+        /// T -> 数据类型
+        /// prettyPrint -> 是否格式化输出
         /// </summary>
-        public static bool SaveDataToJson<T>(string fileName, T data, bool prettyPrint = false)
+        public static bool SaveDataToJson<T>(string fileName, T data, bool prettyPrint = true)
         {
             if (data == null) return false;
 
@@ -253,7 +253,7 @@ namespace FFramework.Kit
         /// T -> 数据类型
         /// data -> 要转换的对象
         /// </summary>
-        public static string SerializeToJson<T>(T data, bool prettyPrint = false)
+        public static string SerializeToJson<T>(T data, bool prettyPrint = true)
         {
             return JsonUtility.ToJson(data, prettyPrint);
         }

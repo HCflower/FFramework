@@ -75,13 +75,13 @@ namespace FFramework.Kit
             // 异步加载模式
             else
             {
-                CoroutineRunner.StartStaticCoroutine(LoadAssetAsync(resPath, callback, isCache));
+                CoroutineRunner.StartStaticCoroutine(LoadAssetAsyncFromRes(resPath, callback, isCache));
                 return null;
             }
         }
 
         // 异步加载协程
-        private static IEnumerator LoadAssetAsync<T>(string resPath, Action<T> callback, bool isCache = true) where T : UnityEngine.Object
+        private static IEnumerator LoadAssetAsyncFromRes<T>(string resPath, Action<T> callback, bool isCache = true) where T : UnityEngine.Object
         {
             ResourceRequest request = Resources.LoadAsync<T>(resPath);
             yield return request;
@@ -408,6 +408,7 @@ namespace FFramework.Kit
         }
 
         #endregion
+
         #endregion
     }
 }

@@ -1,35 +1,46 @@
 using System.Text.RegularExpressions;
 using System.Collections.Generic;
+using System.Collections;
 using UnityEngine.UI;
 using UnityEngine;
+using System.Text;
 using System;
- 
 
 namespace FFramework
 {
     /// <summary>
     /// 对话控制器
+    /// TODO:实现自动播放
     /// </summary>
     public class DialogueController : MonoBehaviour
     {
         [Header("对话数据")]
         [Tooltip("对话数据文件")] public TextAsset dialogueDataFile;
-        [Tooltip("对话数据")] public List<DialogueSpriteData> dialogueSpriteDatas = new();
+        [Tooltip("Sprite数据")] public List<DialogueSpriteData> dialogueSpriteDatas = new();
         private Dictionary<string, Sprite> spriteDict = new();
         [Tooltip("是否使用本地化数据")][SerializeField] private bool isUseLocalizedData;
         [Tooltip("本地化数据(如果没有则获取全局本地化数据文件)")][SerializeField] private LocalizationData localizationData;
-        [Tooltip("当前对话索引值")] public int dialogueIndex = 0;
+        private LocalizationManager LocalizationManager => LocalizationManager.Instance;        //本地化管理器
+        public LocalizationData LocalizationData => localizationData != null ?
+                                localizationData : LocalizationManager.GlobalLocalizationData;
+        [Tooltip("当前对话索引值")]
+        public int dialogueIndex = 0;
         private string[] dialogueRows;                                                          //对话数据,按行分隔
-        private LanguageType languageType => LocalizationManager.Instance.LanguageType;         //语言类型
         private string speaker;                                                                 //说话者
         private string content;                                                                 //对话内容
         private Dictionary<Button, string> branchButtonDict = new();                            //分支选项按钮
+
+        [Header("打字效果设置")]
+        private StringBuilder displayedText = new StringBuilder(128);
+        [Tooltip("每秒字符数")] public int typingSpeed = 10;
+        private Coroutine typingCoroutine;                                                      // 保存对协程的引用
 
         [Header("UI")]
         [Tooltip("左侧Image")] public Image leftImage;
         [Tooltip("右侧Image")] public Image rightImage;
         [Tooltip("名称文本")] public Text nameText;
         [Tooltip("对话文本显示区域")] public Text dialogueContent;
+        [Tooltip("自动播放按钮")] public Button autoplayButton;
         [Tooltip("下一个段对话按钮")] public Button nextButton;
 
         [Header("分支选项")]
@@ -38,27 +49,44 @@ namespace FFramework
 
         private void Awake()
         {
-            if (LocalizationManager.Instance != null)
-                LocalizationManager.Instance.Register(OnLanguageChanged);
+            if (LocalizationManager != null)
+                LocalizationManager.Register(OnLanguageChanged);
         }
 
         private void OnDestroy()
         {
-            if (LocalizationManager.Instance != null)
-                LocalizationManager.Instance.UnRegister(OnLanguageChanged);
+            if (LocalizationManager != null)
+                LocalizationManager.UnRegister(OnLanguageChanged);
+
+            //清理协程
+            if (typingCoroutine != null)
+            {
+                StopCoroutine(typingCoroutine);
+                typingCoroutine = null;
+            }
         }
 
         private void Start()
         {
             ReadDialogueDataFile(dialogueDataFile);
             ShowDialogueRow();
+
             //调用一次数据更新
-            OnLanguageChanged(languageType);
+            OnLanguageChanged(LocalizationManager.LanguageType);
+            //下一段对话
             nextButton.onClick.AddListener(() =>
             {
                 ShowDialogueRow();
             });
+            //自动播放
+            autoplayButton.onClick.AddListener(() =>
+            {
+                //TODO:实现自动播放
+                Debug.Log("自动播放");
+            });
         }
+
+        #region 数据更新
 
         /// <summary>
         /// 更新图片
@@ -88,24 +116,88 @@ namespace FFramework
         //更新对话文本
         private void OnLanguageChanged(LanguageType type)
         {
+            //更新文本
+            UpdateText(speaker, content);
+            // 更新所有分支按钮的文本
+            UpdateAllBranchButtonsText();
+        }
+
+        //更新文本显示
+        private void UpdateText(string speaker, string content)
+        {
             if (isUseLocalizedData)
             {
-                nameText.text = localizationData == null
-                    ? LocalizationManager.Instance.localizationData.GetTypeLanguageContent(languageType, speaker)
-                    : localizationData.GetTypeLanguageContent(languageType, speaker);
-                dialogueContent.text = localizationData == null
-                    ? LocalizationManager.Instance.localizationData.GetTypeLanguageContent(languageType, content)
-                    : localizationData.GetTypeLanguageContent(languageType, content);
+                nameText.text = LocalizationData.GetTypeLanguageContent(LocalizationManager.LanguageType, speaker);
+                StartTypingEffect(LocalizationData.GetTypeLanguageContent(LocalizationManager.LanguageType, content));
             }
             else
             {
                 nameText.text = speaker;
                 dialogueContent.text = content;
             }
-
-            // 更新所有分支按钮的文本
-            UpdateAllBranchButtonsText();
         }
+
+        #endregion
+
+        #region 打字效果
+
+        // 启动打字机效果协程
+        public void StartTypingEffect(string content)
+        {
+            // 如果已有协程在运行，先停止它
+            if (typingCoroutine != null)
+            {
+                StopCoroutine(typingCoroutine);
+                typingCoroutine = null;
+            }
+
+            // 启动新协程并保存引用
+            typingCoroutine = StartCoroutine(TypeText(content));
+        }
+
+        //打字机效果协程
+        private IEnumerator TypeText(string content)
+        {
+            displayedText.Clear();
+            foreach (char text in content)
+            {
+                displayedText.Append(text);
+                dialogueContent.text = displayedText.ToString();
+                yield return new WaitForSeconds(1f / typingSpeed);
+            }
+        }
+
+        // 更新特定分支按钮的文本
+        private void UpdateBranchButtonText(Button button, string localizationKey)
+        {
+            if (isUseLocalizedData)
+            {
+                button.GetComponentInChildren<Text>().text = LocalizationData.GetTypeLanguageContent(LocalizationManager.LanguageType, localizationKey);
+            }
+            else
+            {
+                button.GetComponentInChildren<Text>().text = localizationKey;
+            }
+        }
+
+        // 更新所有分支按钮的文本
+        public void UpdateAllBranchButtonsText()
+        {
+            foreach (var pair in branchButtonDict)
+            {
+                Button button = pair.Key;
+                string key = pair.Value;
+
+                if (button != null)
+                {
+                    UpdateBranchButtonText(button, key);
+                }
+            }
+        }
+
+        #endregion
+
+        #region 数据读取
 
         //读取对话数据文件
         private void ReadDialogueDataFile(TextAsset textAsset)
@@ -133,6 +225,9 @@ namespace FFramework
                 {
                     this.speaker = cols[2];
                     this.content = cols[5];
+                    //更新文本
+                    UpdateText(cols[2], cols[5]);
+                    //更新图片
                     UpdateImage(cols[2], cols[4]);
                     dialogueIndex = int.Parse(cols[6]);
                     nextButton.gameObject.SetActive(true);
@@ -183,36 +278,6 @@ namespace FFramework
             }
         }
 
-        // 更新特定分支按钮的文本
-        private void UpdateBranchButtonText(Button button, string localizationKey)
-        {
-            if (isUseLocalizedData)
-            {
-                button.GetComponentInChildren<Text>().text = localizationData == null
-                   ? LocalizationManager.Instance.localizationData.GetTypeLanguageContent(languageType, localizationKey)
-                   : localizationData.GetTypeLanguageContent(languageType, localizationKey);
-            }
-            else
-            {
-                button.GetComponentInChildren<Text>().text = localizationKey;
-            }
-        }
-
-        // 更新所有分支按钮的文本
-        public void UpdateAllBranchButtonsText()
-        {
-            foreach (var pair in branchButtonDict)
-            {
-                Button button = pair.Key;
-                string key = pair.Value;
-
-                if (button != null)
-                {
-                    UpdateBranchButtonText(button, key);
-                }
-            }
-        }
-
         //根据id跳转到指定对话
         private void OnBranchClick(int id)
         {
@@ -226,6 +291,10 @@ namespace FFramework
                 Destroy(child.gameObject);
             }
         }
+
+        #endregion
+
+        #region 效果执行
 
         //执行Action
         private void ExecuteAction(string action)
@@ -241,7 +310,7 @@ namespace FFramework
         private IBranchAction FindEffectAction(string action)
         {
             //使用缓存检查类型是否已找到过
-            string fullTypeName = $"DialogueTool.{action}";
+            string fullTypeName = $"FFramework.{action}";
             Type type = null;
             if (!DialogueActionCache.typeCache.TryGetValue(fullTypeName, out type))
             {
@@ -291,6 +360,8 @@ namespace FFramework
             //执行操作
             return branchAction;
         }
+
+        #endregion
 
 #if UNITY_EDITOR
 
