@@ -2,7 +2,7 @@
 
 Game development Framework。
 
-Reference：QFramework [*https://github.com/liangxiegame/QFramework]()*
+Reference：QFramework [https://github.com/liangxiegame/QFramework]
 
 一、架构规范：
 
