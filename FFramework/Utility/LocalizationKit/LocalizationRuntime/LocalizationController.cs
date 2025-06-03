@@ -4,7 +4,7 @@ using UnityEngine;
 using System;
 using TMPro;
 
-namespace FFramework
+namespace FFramework.Kit
 {
     /// <summary>
     /// 本地化控制器
@@ -16,24 +16,17 @@ namespace FFramework
 
         private void Awake()
         {
-            if (LocalizationManager.Instance != null)
-                LocalizationManager.Instance.Register(OnLanguageChanged);
+            LocalizationKit.Register(OnLanguageChanged);
         }
         private void OnDestroy()
         {
-            if (LocalizationManager.Instance != null)
-                LocalizationManager.Instance.UnRegister(OnLanguageChanged);
+            LocalizationKit.UnRegister(OnLanguageChanged);
         }
 
         private void Start()
         {
-            InitializeLanguage();
-        }
-
-        // 初始化语言
-        private void InitializeLanguage()
-        {
-            OnLanguageChanged(LocalizationManager.Instance.LanguageType);
+            //开始时调用一次语言改变事件
+            OnLanguageChanged(GlobalSetting.Instance.LanguageType);
         }
 
         //接收语言改变事件
@@ -43,7 +36,7 @@ namespace FFramework
             {
                 //尝试使用多态方式处理不同类型的文本组件
                 string localizedText = localizationData == null
-                    ? LocalizationManager.Instance.GetLocalizedContent(item.key)
+                    ? LocalizationKit.GetTypeLanguageContent(GlobalSetting.Instance.GlobalLocalizationData, item.key)
                     : localizationData.GetTypeLanguageContent(type, item.key);
 
                 //先尝试获取 Text 组件

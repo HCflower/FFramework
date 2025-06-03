@@ -1,9 +1,10 @@
-using System;
 using System.Collections.Generic;
+using FFramework.Kit;
 using System.Text;
 using UnityEditor;
 using UnityEngine;
 using System.IO;
+using System;
 
 namespace LocalizationEditor
 {

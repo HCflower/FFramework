@@ -1,4 +1,4 @@
-namespace FFramework
+namespace FFramework.Kit
 {
     /// <summary>
     /// 分支事件接口

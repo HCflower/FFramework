@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System;
 
-namespace FFramework
+namespace FFramework.Kit
 {
     /// <summary>
     /// 对话系统事件数据

@@ -11,10 +11,18 @@ namespace FFramework.Kit
     {
         //缓存音频Clip字典
         private static Dictionary<string, AudioClipSetting> audioClipDic = new Dictionary<string, AudioClipSetting>();
-        private static AudioMixer GetAudioMixer() => AudioManager.Instance.AudioClipSettings.AudioMixer;
-        private static AudioClipSettingSO GetAudioClipSettings() => AudioManager.Instance.AudioClipSettings;
-        public static AudioSource GetBGMSource() => AudioManager.Instance.BGMAudioSource;
-        public static AudioSource GetSFXSource() => AudioManager.Instance.SFXAudioSource;
+        //获取音频混响器
+        private static AudioMixer GetAudioMixer()
+        {
+            return GlobalSetting.Instance.AudioClipSetting.AudioMixer == null ? null : GlobalSetting.Instance.AudioClipSetting.AudioMixer;
+        }
+        //获取音频设置
+        private static AudioClipSettingSO GetAudioClipSettings()
+        {
+            return GlobalSetting.Instance.AudioClipSetting == null ? null : GlobalSetting.Instance.AudioClipSetting;
+        }
+        public static AudioSource GetBGMSource() => AudioRoot.Instance.BGMAudioSource;
+        public static AudioSource GetSFXSource() => AudioRoot.Instance.SFXAudioSource;
         //数据是否初始化
         private static bool isInitialized = false;
         //更新音量
@@ -48,7 +56,7 @@ namespace FFramework.Kit
         public static void InitAudioDic()
         {
             if (isInitialized) return;
-            foreach (var audioSetting in GetAudioClipSettings().AudioClipSettings)
+            foreach (var audioSetting in GetAudioClipSettings().AudioClipsSetting)
             {
                 audioClipDic.Add(audioSetting.clipName, audioSetting);
             }

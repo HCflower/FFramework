@@ -6,7 +6,7 @@ using UnityEngine;
 using System.Text;
 using System;
 
-namespace FFramework
+namespace FFramework.Kit
 {
     /// <summary>
     /// 对话控制器
@@ -20,9 +20,9 @@ namespace FFramework
         private Dictionary<string, Sprite> spriteDict = new();
         [Tooltip("是否使用本地化数据")][SerializeField] private bool isUseLocalizedData;
         [Tooltip("本地化数据(如果没有则获取全局本地化数据文件)")][SerializeField] private LocalizationData localizationData;
-        private LocalizationManager LocalizationManager => LocalizationManager.Instance;        //本地化管理器
         public LocalizationData LocalizationData => localizationData != null ?
-                                localizationData : LocalizationManager.GlobalLocalizationData;
+                                localizationData : GlobalSetting.Instance.GlobalLocalizationData;
+
         [Tooltip("当前对话索引值")]
         public int dialogueIndex = 0;
         private string[] dialogueRows;                                                          //对话数据,按行分隔
@@ -49,14 +49,12 @@ namespace FFramework
 
         private void Awake()
         {
-            if (LocalizationManager != null)
-                LocalizationManager.Register(OnLanguageChanged);
+            LocalizationKit.Register(OnLanguageChanged);
         }
 
         private void OnDestroy()
         {
-            if (LocalizationManager != null)
-                LocalizationManager.UnRegister(OnLanguageChanged);
+            LocalizationKit.UnRegister(OnLanguageChanged);
 
             //清理协程
             if (typingCoroutine != null)
@@ -72,7 +70,7 @@ namespace FFramework
             ShowDialogueRow();
 
             //调用一次数据更新
-            OnLanguageChanged(LocalizationManager.LanguageType);
+            OnLanguageChanged(GlobalSetting.Instance.LanguageType);
             //下一段对话
             nextButton.onClick.AddListener(() =>
             {
@@ -127,8 +125,8 @@ namespace FFramework
         {
             if (isUseLocalizedData)
             {
-                nameText.text = LocalizationData.GetTypeLanguageContent(LocalizationManager.LanguageType, speaker);
-                StartTypingEffect(LocalizationData.GetTypeLanguageContent(LocalizationManager.LanguageType, content));
+                nameText.text = LocalizationData.GetTypeLanguageContent(GlobalSetting.Instance.LanguageType, speaker);
+                StartTypingEffect(LocalizationData.GetTypeLanguageContent(GlobalSetting.Instance.LanguageType, content));
             }
             else
             {
@@ -172,7 +170,7 @@ namespace FFramework
         {
             if (isUseLocalizedData)
             {
-                button.GetComponentInChildren<Text>().text = LocalizationData.GetTypeLanguageContent(LocalizationManager.LanguageType, localizationKey);
+                button.GetComponentInChildren<Text>().text = LocalizationData.GetTypeLanguageContent(GlobalSetting.Instance.LanguageType, localizationKey);
             }
             else
             {
@@ -310,7 +308,7 @@ namespace FFramework
         private IBranchAction FindEffectAction(string action)
         {
             //使用缓存检查类型是否已找到过
-            string fullTypeName = $"FFramework.{action}";
+            string fullTypeName = $"FFramework.Kit.{action}";
             Type type = null;
             if (!DialogueActionCache.typeCache.TryGetValue(fullTypeName, out type))
             {

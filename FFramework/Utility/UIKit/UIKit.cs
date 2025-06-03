@@ -11,9 +11,38 @@ namespace FFramework.Kit
         private static Dictionary<string, UIPanel> uiPanelDic = new Dictionary<string, UIPanel>();
         private static Stack<UIPanel> panelStack = new Stack<UIPanel>();
 
-        private static Transform GetUIRoot()
+        private static UIRoot GetUIRoot()
         {
-            return UIRoot.Instance.transform;
+            return UIRoot.Instance;
+        }
+
+        //设置UI层级
+        private static Transform SetUILayer(UILayer layer)
+        {
+            Transform uilayer;
+            switch (layer)
+            {
+                case UILayer.BackgroundLayer:
+                    uilayer = GetUIRoot().BackgroundLayer;
+                    break;
+                case UILayer.ContentLayer:
+                    uilayer = GetUIRoot().ContentLayer;
+                    break;
+                case UILayer.GuideLayer:
+                    uilayer = GetUIRoot().GuideLayer;
+                    break;
+                case UILayer.PopupLayer:
+                    uilayer = GetUIRoot().PopupLayer;
+                    break;
+                case UILayer.DebugLayer:
+                    uilayer = GetUIRoot().DebugLayer;
+                    break;
+                default:
+                    uilayer = GetUIRoot().DebugLayer;
+                    break;
+            }
+
+            return uilayer;
         }
 
         /// <summary>
@@ -21,7 +50,7 @@ namespace FFramework.Kit
         /// </summary>
         /// <param name="uiPanelName">UI面板名称</param>
         /// <param name="isCache">是否缓存面板(默认true)</param>
-        public static T OpenUIPanelFromRes<T>(bool isCache = true) where T : UIPanel
+        public static T OpenUIPanelFromRes<T>(bool isCache = true, UILayer layer = UILayer.DebugLayer) where T : UIPanel
         {
             string typeName = typeof(T).Name;
             Debug.Log($"Open UIPanel : <color=green>{typeName}.</color>");
@@ -35,7 +64,7 @@ namespace FFramework.Kit
                     return null;
                 }
                 // 实例化UI
-                GameObject ui = Object.Instantiate(prefab, GetUIRoot());
+                GameObject ui = Object.Instantiate(prefab, SetUILayer(layer));
                 ui.name = typeName;
                 uiPanel = ui.GetComponent<T>();
                 if (uiPanel == null)
@@ -63,7 +92,7 @@ namespace FFramework.Kit
         /// </summary>
         /// <param name="uiPrefab">UI预制体</param>
         /// <param name="isCache">是否缓存面板(默认true)</param>
-        public static T OpenUIPanelFromAsset<T>(GameObject uiPrefab, bool isCache = true) where T : UIPanel
+        public static T OpenUIPanelFromAsset<T>(GameObject uiPrefab, bool isCache = true, UILayer layer = UILayer.DebugLayer) where T : UIPanel
         {
             if (uiPrefab == null)
             {
@@ -75,7 +104,7 @@ namespace FFramework.Kit
             if (!uiPanelDic.TryGetValue(panelName, out UIPanel uiPanel))
             {
                 // 实例化UI
-                GameObject uiInstance = Object.Instantiate(uiPrefab, GetUIRoot());
+                GameObject uiInstance = Object.Instantiate(uiPrefab, SetUILayer(layer));
                 uiInstance.name = panelName;
 
                 // 获取UIPanel组件

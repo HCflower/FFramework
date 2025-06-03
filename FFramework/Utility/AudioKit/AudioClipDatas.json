@@ -1,0 +1,100 @@
+{
+    "AudioClipsSetting": [
+        {
+            "name": "BGM",
+            "clip": "031_arpent",
+            "audioMixerGroup": "BGM",
+            "volume": 0.5,
+            "loop": true,
+            "playOnAwake": true
+        },
+        {
+            "name": "Bomb",
+            "clip": "037_bomb",
+            "audioMixerGroup": "SFX",
+            "volume": 0.3499999940395355,
+            "loop": false,
+            "playOnAwake": false
+        },
+        {
+            "name": "Coin",
+            "clip": "CollectGold",
+            "audioMixerGroup": "SFX",
+            "volume": 0.44999998807907107,
+            "loop": false,
+            "playOnAwake": false
+        },
+        {
+            "name": "ObtainProps",
+            "clip": "ObtainProps",
+            "audioMixerGroup": "SFX",
+            "volume": 0.5,
+            "loop": false,
+            "playOnAwake": false
+        },
+        {
+            "name": "Exp",
+            "clip": "032-033_exp",
+            "audioMixerGroup": "SFX",
+            "volume": 0.5,
+            "loop": false,
+            "playOnAwake": false
+        },
+        {
+            "name": "Hp",
+            "clip": "038_hp",
+            "audioMixerGroup": "SFX",
+            "volume": 0.5,
+            "loop": false,
+            "playOnAwake": false
+        },
+        {
+            "name": "Dead_2",
+            "clip": "BrokenGlass_2",
+            "audioMixerGroup": "SFX",
+            "volume": 0.5,
+            "loop": false,
+            "playOnAwake": false
+        },
+        {
+            "name": "Hit",
+            "clip": "032-033_hit",
+            "audioMixerGroup": "SFX",
+            "volume": 0.5,
+            "loop": false,
+            "playOnAwake": false
+        },
+        {
+            "name": "Melee",
+            "clip": "032-033_hit",
+            "audioMixerGroup": "SFX",
+            "volume": 0.5,
+            "loop": false,
+            "playOnAwake": false
+        },
+        {
+            "name": "GameWin",
+            "clip": "Win",
+            "audioMixerGroup": "SFX",
+            "volume": 0.5,
+            "loop": false,
+            "playOnAwake": false
+        },
+        {
+            "name": "GameOver",
+            "clip": "031_arpent",
+            "audioMixerGroup": "BGM",
+            "volume": 0.5,
+            "loop": true,
+            "playOnAwake": true
+        },
+        {
+            "name": "Click",
+            "clip": "Click",
+            "audioMixerGroup": "SFX",
+            "volume": 0.5,
+            "loop": false,
+            "playOnAwake": false
+        }
+    ]
+}

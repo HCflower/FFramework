@@ -21,9 +21,9 @@ namespace CreateProjectFolder
             CreateFolderByName("Scripts/Utility");
             CreateFolderByName("GameRes/Resources");
             CreateFolderByName("GameRes/Resources/UI");
+            CreateFolderByName("GameRes/Resources/Audio");
             CreateFolderByName("GameRes/Prefab");
             CreateFolderByName("GameRes/Image");
-            CreateFolderByName("GameRes/Audio");
             CreateFolderByName("GameRes/Animation");
             CreateFolderByName("GameRes/Scene");
             CreateFolderByName("GameRes/Shader");

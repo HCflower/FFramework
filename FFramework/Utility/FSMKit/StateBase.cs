@@ -10,11 +10,11 @@ namespace FFramework.Kit
         protected T owner;                          // 状态持有者
 
         /// <summary>
-        /// 状态初始化方法
+        /// 构造函数
+        /// stateMachine：状态机控制器
+        /// owner：状态所属
         /// </summary>
-        /// <param name="stateMachine">状态机控制器</param>
-        /// <param name="owner">状态所属</param>
-        public virtual void Init(FSMStateMachine stateMachine, T owner)
+        public StateBase(FSMStateMachine stateMachine, T owner)
         {
             this.stateMachine = stateMachine;
             this.owner = owner;
