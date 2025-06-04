@@ -72,7 +72,7 @@ namespace LocalizationEditor
             //创建CSV文件
             if (isCreateCSV)
             {
-                string path = excelSavePath + "[Localization]Data.csv";
+                string path = excelSavePath + $"{dataName}.csv";
 
                 using (StreamWriter writer = new StreamWriter(path, false, Encoding.UTF8))
                 {
@@ -129,8 +129,8 @@ namespace LocalizationEditor
                 }
 
                 bool hasValidData = false;
-                // //清理旧数据
-                // data.localizationList.Clear();
+                //清理旧数据
+                data.localizationList.Clear();
                 // 处理每一行数据
                 for (int i = 1; i < csvLines.Length; i++)
                 {

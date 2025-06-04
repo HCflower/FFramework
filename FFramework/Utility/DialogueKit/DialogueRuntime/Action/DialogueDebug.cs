@@ -5,7 +5,7 @@ namespace FFramework.Kit
     {
         public void Execute()
         {
-            Debug.Log("大爱仙尊!");
+            Debug.Log("对话事件!");
         }
     }
 }

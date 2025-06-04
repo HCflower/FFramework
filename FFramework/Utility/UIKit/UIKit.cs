@@ -25,6 +25,9 @@ namespace FFramework.Kit
                 case UILayer.BackgroundLayer:
                     uilayer = GetUIRoot().BackgroundLayer;
                     break;
+                case UILayer.PostProcessingLayer:
+                    uilayer = GetUIRoot().PostProcessingLayer;
+                    break;
                 case UILayer.ContentLayer:
                     uilayer = GetUIRoot().ContentLayer;
                     break;

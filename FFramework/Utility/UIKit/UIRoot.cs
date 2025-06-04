@@ -10,6 +10,7 @@ namespace FFramework.Kit
         #region UI层级  
 
         public Transform BackgroundLayer;       //背景层 - 静态背景
+        public Transform PostProcessingLayer;   //后期处理层 - 后期处理效果
         public Transform ContentLayer;          //内容层 - 主要UI功能
         public Transform PopupLayer;            //弹窗层 - 消息弹窗
         public Transform GuideLayer;            //引导层 - 引导玩家操作    
@@ -21,6 +22,7 @@ namespace FFramework.Kit
     public enum UILayer
     {
         BackgroundLayer,
+        PostProcessingLayer,
         ContentLayer,
         PopupLayer,
         GuideLayer,

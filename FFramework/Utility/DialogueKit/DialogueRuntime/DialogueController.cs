@@ -245,6 +245,7 @@ namespace FFramework.Kit
                 {
                     Debug.Log("对话结束");
                     nextButton.gameObject.SetActive(false);
+                    this.gameObject.SetActive(false);
                 }
             }
         }

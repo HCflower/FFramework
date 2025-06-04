@@ -19,8 +19,8 @@ namespace DialogueToolEditor
                 using (StreamWriter writer = new StreamWriter(path, false, Encoding.UTF8))
                 {
                     writer.WriteLine("Type,ID,Name,Icon,pos,Content,To,Action");
-                    writer.WriteLine("Dialogue,0,,,,,");
-                    writer.WriteLine("Branch,1,,,,,");
+                    writer.WriteLine("Dialogue,0,,,Left,1,");
+                    writer.WriteLine("Branch,1,,,Right,2,");
                     writer.WriteLine("End,2,,,,,");
                 }
                 AssetDatabase.Refresh();
