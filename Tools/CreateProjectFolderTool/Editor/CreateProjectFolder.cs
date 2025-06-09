@@ -12,6 +12,7 @@ namespace CreateProjectFolder
         [MenuItem("FFramework/CreateGemeFolder #A", priority = 2)]
         public static void DoCreateProjectFolder()
         {
+            //代码
             CreateFolderByName("Scripts/Command");
             CreateFolderByName("Scripts/ViewController");
             CreateFolderByName("Scripts/ViewController/UI");
@@ -19,18 +20,23 @@ namespace CreateProjectFolder
             CreateFolderByName("Scripts/System");
             CreateFolderByName("Scripts/Command");
             CreateFolderByName("Scripts/Utility");
+            //游戏资源
             CreateFolderByName("GameRes/Resources");
             CreateFolderByName("GameRes/Resources/UI");
             CreateFolderByName("GameRes/Resources/Audio");
             CreateFolderByName("GameRes/Prefab");
             CreateFolderByName("GameRes/Image");
             CreateFolderByName("GameRes/Animation");
-            CreateFolderByName("GameRes/Scene");
+            CreateFolderByName("GameRes/Scenes");
             CreateFolderByName("GameRes/Shader");
             CreateFolderByName("GameRes/Font");
             CreateFolderByName("GameRes/Material");
+            CreateFolderByName("GameRes/Texture");
             CreateFolderByName("GameRes/Model");
             CreateFolderByName("GameRes/VFX");
+            //可热更新资源
+            CreateFolderByName("HotUpdate/AssetBundles");
+            //测试
             CreateFolderByName("Test");
         }
 
