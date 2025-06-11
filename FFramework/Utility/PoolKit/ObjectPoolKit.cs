@@ -52,39 +52,45 @@ namespace FFramework.Kit
             PoolData pool = GetOrCreatePool(prefab);
             for (int i = 0; i < size; i++)
             {
-                GameObject obj = CreateNewObject(prefab, pool.parent);
+                GameObject obj = CreateNewObject(prefab);
                 pool.available.Enqueue(obj);
             }
         }
 
         //从对象池中获取对象
-        public static GameObject GetPoolObject(GameObject prefab)
+        public static GameObject GetPoolObject(GameObject prefab, Transform transform = null)
         {
             PoolData pool = GetOrCreatePool(prefab);
-            GameObject obj = pool.available.Count > 0 ? pool.available.Dequeue() : CreateNewObject(prefab, pool.parent);
-            obj.SetActive(true);
-            pool.inUse.Add(obj);
-            instanceToPrefabName[obj] = prefab.name; // 存储预制件名称
+            GameObject obj = pool.available.Count > 0 ? pool.available.Dequeue() : CreateNewObject(prefab);
             obj.transform.SetParent(null);
+            obj.transform.position = transform == null ? Vector3.zero : transform.position;
             SceneManager.MoveGameObjectToScene(obj, SceneManager.GetActiveScene());
+            pool.inUse.Add(obj);
+            // 存储预制件名称
+            instanceToPrefabName[obj] = prefab.name;
+            obj.SetActive(true);
             return obj;
         }
 
         //根据类型获取对象池中的对象
-        public static T GetPoolObject<T>(T prefab) where T : UnityEngine.Object
+        public static T GetPoolObject<T>(T prefab, Transform transform = null) where T : UnityEngine.Object
         {
+            GameObject obj;
             if (prefab is GameObject gameObject)
             {
-                return GetPoolObject(gameObject) as T;
+                obj = GetPoolObject(gameObject, transform);
+                return obj as T;
             }
             else if (prefab is Component component)
             {
-                GameObject obj = GetPoolObject(component.gameObject);
+                obj = GetPoolObject(component.gameObject, transform);
                 return obj.GetComponent<T>();
             }
-
-            Debug.LogError($"Unsupported types: {typeof(T).Name}");
-            return null;
+            else
+            {
+                Debug.LogError($"Unsupported types: {typeof(T).Name}");
+                return null;
+            }
         }
 
         //根据类型创建对象池中的对象 
@@ -141,11 +147,11 @@ namespace FFramework.Kit
         }
 
         // 创建新对象
-        private static GameObject CreateNewObject(GameObject prefab, Transform parent)
+        private static GameObject CreateNewObject(GameObject prefab)
         {
-            GameObject obj = UnityEngine.Object.Instantiate(prefab, parent);
-            obj.name = prefab.name;
+            GameObject obj = UnityEngine.Object.Instantiate(prefab);
             obj.SetActive(false);
+            obj.name = prefab.name;
             return obj;
         }
 
