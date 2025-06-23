@@ -10,7 +10,7 @@ namespace DialogueToolEditor
     /// </summary>
     public class DialogueTool : EditorWindow
     {
-        [MenuItem("FFramework/CreateDialogueDataFile &D", priority = 2)]
+        [MenuItem("FFramework/💬CreateDialogueDataFile &D", priority = 2)]
         public static void CreateDialogueDataFile()
         {
             string path = "Assets/[Dialogue]Data.csv";

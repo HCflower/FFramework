@@ -61,6 +61,9 @@ namespace FFramework
         [Tooltip("音频数据JSON文件")] public TextAsset audioClipsDataFile;
         [Tooltip("音频数据SO文件")] public AudioClipSettingSO AudioClipSetting;
 
+        [Header("RedDotSystem")]
+        public RedDotKitConfig redDotSystemConfig;
+
         [Header("Root Nodes Prefab")]
         [Tooltip("有子对象或需要面板赋值的根节点")]
         [SerializeField] private List<GameObject> rootNodeList = new List<GameObject>();

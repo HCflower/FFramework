@@ -3,13 +3,13 @@ using UnityEngine;
 using UnityEditor;
 
 /// <summary>
-/// This class contain custom drawer for ReadOnly attribute.
+/// 此类包含 ReadOnly 属性的自定义抽屉。
 /// </summary>
 [CustomPropertyDrawer(typeof(ShowOnlyAttribute))]
 public class ShowOnlyDrawer : PropertyDrawer
 {
     /// <summary>
-    /// Unity method for drawing GUI in Editor
+    /// 在 Editor 中绘制 GUI 的 Unity 方法
     /// </summary>
     /// <param name="position">Position.</param>
     /// <param name="property">Property.</param>

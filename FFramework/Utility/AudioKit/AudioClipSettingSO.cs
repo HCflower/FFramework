@@ -10,7 +10,7 @@ namespace FFramework.Kit
     /// <summary>
     /// 音频数据SO类
     /// </summary>
-    [CreateAssetMenu(fileName = "AduioDataSO", menuName = "Aduio/AduioData", order = 0)]
+    [CreateAssetMenu(fileName = "AduioDataSO", menuName = "FFramework/AduioData", order = 0)]
     public class AudioClipSettingSO : ScriptableObject
     {
         [Header("音频组件")][Tooltip("音频混音器")] public AudioMixer AudioMixer;

@@ -1,0 +1,38 @@
+/* 编辑器面板根节点 */
+.RootView{
+    height: 100%;
+    width: 100%;
+
+    flex-direction: row;
+}
+
+/* 编辑器控制视图区域 */
+.ControlAreaView{
+    height: 100%;
+    width: auto;
+
+    flex-grow: 1;               
+    flex-shrink: 1;             
+    flex-basis: 0%;
+
+    background-color:rgb(58, 58, 58);
+}
+
+/* 编辑器控制视图区域标题 */
+.ControlAreaViewTitle{
+    height: 20px;
+    width: auto;
+
+    margin-left:1px;
+    margin-right:1px;
+
+    -unity-font-size: 14px;
+    -unity-font-style: bold;
+    -unity-text-align: middle-center;
+
+    background-color:rgb(205, 142, 75);
+}
+
+.DataScrollView{
+    background-color:rgb(187, 96, 63);
+}

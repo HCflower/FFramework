@@ -25,7 +25,7 @@ namespace LocalizationEditor
         private ScrollView scrollView;                             //数据列表
         private ObjectField csvSelectField;                        //CSV文件选择框
 
-        [MenuItem("FFramework/LocalizationKit &E", priority = 1)]
+        [MenuItem("FFramework/🌐LocalizationKit &E", priority = 1)]
         public static void SkillEditorCreateWindow()
         {
             LocalizationEditor window = GetWindow<LocalizationEditor>();

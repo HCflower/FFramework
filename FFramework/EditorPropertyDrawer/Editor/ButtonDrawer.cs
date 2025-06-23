@@ -1,7 +1,7 @@
+#if UNITY_EDITOR
 using System.Reflection;
 using UnityEditor;
 using UnityEngine;
-
 /// <summary>
 /// 绘制按钮
 /// </summary>
@@ -24,10 +24,13 @@ public class ButtonDrawer : Editor
                     ? method.Name
                     : attr.ButtonName;
 
+                var originalColor = GUI.color;
+                GUI.color = attr.ButtonColor;
                 if (GUILayout.Button(buttonName))
                 {
                     method.Invoke(script, null);
                 }
+                GUI.color = originalColor;
             }
         }
     }
@@ -52,11 +55,15 @@ public class InspectorButtonSOEditor : Editor
                     ? method.Name
                     : attr.ButtonName;
 
+                var originalColor = GUI.color;
+                GUI.color = attr.ButtonColor;
                 if (GUILayout.Button(buttonName))
                 {
                     method.Invoke(script, null);
                 }
+                GUI.color = originalColor;
             }
         }
     }
 }
+#endif
