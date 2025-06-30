@@ -15,7 +15,7 @@
     flex-shrink: 1;             
     flex-basis: 0%;
 
-    background-color:rgb(58, 58, 58);
+    /* background-color:rgb(172, 172, 172); */
 }
 
 /* 编辑器控制视图区域标题 */
@@ -23,6 +23,7 @@
     height: 20px;
     width: auto;
 
+    margin-top:1px;
     margin-left:1px;
     margin-right:1px;
 
@@ -30,9 +31,108 @@
     -unity-font-style: bold;
     -unity-text-align: middle-center;
 
-    background-color:rgb(205, 142, 75);
+    background-color:rgb(238, 164, 96);
 }
 
-.DataScrollView{
-    background-color:rgb(187, 96, 63);
+.ScrollView{
+    margin-top:2px;
+    margin-left:1px;
+    margin-right:1px;
+
+    border-radius:2px;
+    width:auto;
+    flex-grow: 1;
+    flex-shrink: 1;
+    min-width: 100px;
+    overflow: hidden;
+
+    /*  background-color:rgb(238, 164, 96); */
+}
+
+/* 控制区域标题 */
+.ControlContentTitle{
+    width:auto;
+    align-self: center;
+    -unity-font-style: bold;
+}
+
+/* 控制区域 */
+.ControlContent{
+    width:100%;
+    height: auto;
+
+    padding-right:1px;
+    margin-top:2px;
+
+    flex-direction: row;
+    flex-shrink: 1;
+    flex-wrap: nowrap;
+    overflow: hidden;
+
+    align-items: center;
+}
+
+/* 配置选择 */
+.ConfigDataField{
+    margin:0px;
+    width:auto;
+    flex-grow: 1;
+    flex-shrink: 1;
+    min-width: 100px;
+    overflow: hidden;
+}
+
+/* 红点树创建名称输入 */
+.TreeNameTextField{
+    margin:0px;
+    width:auto;
+    flex-grow: 1;
+    flex-shrink: 1;
+    min-width: 100px;
+    overflow: hidden;
+}
+
+/* 红点树创建按钮 */
+.Button{
+    width:20px;
+    height:20px;
+
+    padding:0px;    
+    margin:0px;
+    margin-left:1px;
+}
+
+/* 滚动视图项 */
+.ScrollViewItemButton{
+    width:auto;
+    height:20px;
+
+    padding:0px;
+    margin:1px;
+    margin-right:0px;
+
+    border-width:0px;
+    border-top-right-radius:0px;
+    border-bottom-right-radius:0px;
+
+    flex-grow: 1;
+    flex-shrink: 1;
+    min-width: 100px;
+    overflow: hidden;
+
+    background-color:rgb(238, 164, 96);
+}
+
+/* 滚动视图项删除按钮 */
+.ScrollViewItemDeleteButton{
+    width:20px;
+    height:20px;
+
+    padding:0px;
+    margin:0px;
+    border:0px;
+
+    border-width:0px;
+    border-top-left-radius:0px;
+    border-bottom-left-radius:0px;
 }

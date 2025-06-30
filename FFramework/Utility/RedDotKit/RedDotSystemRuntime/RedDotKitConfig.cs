@@ -28,7 +28,7 @@ namespace FFramework.Kit
         {
             public string treeName;
             public RedDotKey rootKey;
-            public List<NodeRelation> nodeRelations = new List<NodeRelation>();
+            [Tooltip("当前树的所有节点关系")] public List<NodeRelation> nodeRelations = new List<NodeRelation>();
         }
 
 #if UNITY_EDITOR

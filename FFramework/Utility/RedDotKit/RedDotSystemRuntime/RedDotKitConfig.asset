@@ -15,12 +15,9 @@ MonoBehaviour:
   redDotSystemConfigJson: {fileID: 4900000, guid: 64354317eca555349b886336ffae0561, type: 3}
   redDotSystemConfigJsonPath: Assets/RedDotSystemConfig.json
   RedDotTrees:
-  - treeName: Tree_0
-    rootKey: 1
-    nodeRelations:
-    - nodeKey: 3
-      redDotCount: 1
-      parentKeys: 02000000
-    - nodeKey: 2
-      redDotCount: 1
-      parentKeys: 01000000
+  - treeName: 001
+    rootKey: 0
+    nodeRelations: []
+  - treeName: 002
+    rootKey: 0
+    nodeRelations: []
