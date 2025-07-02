@@ -16,8 +16,21 @@ MonoBehaviour:
   redDotSystemConfigJsonPath: Assets/RedDotSystemConfig.json
   RedDotTrees:
   - treeName: 001
-    rootKey: 0
-    nodeRelations: []
-  - treeName: 002
-    rootKey: 0
-    nodeRelations: []
+    rootKey: 1
+    nodeRelations:
+    - nodeKey: 1
+      redDotCount: 0
+      isShowRedDotCount: 0
+      parentKeys: 
+    - nodeKey: 2
+      redDotCount: 0
+      isShowRedDotCount: 1
+      parentKeys: 01000000
+    - nodeKey: 3
+      redDotCount: 1
+      isShowRedDotCount: 1
+      parentKeys: 02000000
+    - nodeKey: 4
+      redDotCount: 1
+      isShowRedDotCount: 1
+      parentKeys: 02000000

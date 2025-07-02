@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using System;
+using System.Linq;
 
 namespace FFramework.Kit
 {
@@ -11,6 +12,53 @@ namespace FFramework.Kit
     {
         private static Dictionary<string, RedDotTree> trees = new Dictionary<string, RedDotTree>();
         private static Dictionary<RedDotKey, RedDotNode> allNodes = new Dictionary<RedDotKey, RedDotNode>();
+
+        /// <summary>
+        /// 初始化红点树
+        /// </summary>
+        public static void InitRedDotTree(RedDotKitConfig redDotKitConfig)
+        {
+            // 清空现有数据
+            Clear();
+            // 遍历所有树定义
+            foreach (var treeDef in redDotKitConfig.RedDotTrees)
+            {
+                if (string.IsNullOrEmpty(treeDef.treeName))
+                {
+                    Debug.LogWarning("[RedDotSystem] Tree name is empty, skipped");
+                    continue;
+                }
+
+                // 创建树
+                var tree = CreateTree(treeDef.treeName, treeDef.rootKey);
+
+                // 第一步：创建所有节点并建立父子关系
+                foreach (var relation in treeDef.nodeRelations)
+                {
+                    var node = GetOrCreateNode(relation.nodeKey);
+                    SetRedDotDisplayMode(relation.nodeKey, relation.isShowRedDotCount);
+
+                    foreach (var parentKey in relation.parentKeys)
+                    {
+                        AddParent(relation.nodeKey, parentKey);
+                    }
+                }
+
+                // 第二步：统一设置红点数量（从叶子节点开始）
+                var processedNodes = new HashSet<RedDotKey>();
+                foreach (var relation in treeDef.nodeRelations.OrderByDescending(r => r.parentKeys.Count))
+                {
+                    var node = GetNode(relation.nodeKey);
+                    if (node != null && !processedNodes.Contains(relation.nodeKey))
+                    {
+                        node.SetCount(relation.redDotCount);
+                        processedNodes.Add(relation.nodeKey);
+                    }
+                }
+
+                Debug.Log($"[RedDotSystem] Initialized tree: {treeDef.treeName} with {treeDef.nodeRelations.Count} nodes");
+            }
+        }
 
         public static RedDotTree CreateTree(string treeName, RedDotKey rootKey)
         {
@@ -45,47 +93,6 @@ namespace FFramework.Kit
             childNode.AddParent(parentNode);
         }
 
-        public static void RemoveParent(RedDotKey childKey, RedDotKey parentKey)
-        {
-            if (allNodes.TryGetValue(childKey, out var childNode) &&
-                allNodes.TryGetValue(parentKey, out var parentNode))
-            {
-                childNode.RemoveParent(parentNode);
-            }
-        }
-
-        public static void RemoveNode(RedDotKey key)
-        {
-            if (allNodes.TryGetValue(key, out var node))
-            {
-                // 断开与父节点的连接
-                var parentsCopy = new List<RedDotNode>(node.Parents);
-                foreach (var parent in parentsCopy)
-                {
-                    node.RemoveParent(parent);
-                }
-
-                // 断开与子节点的连接
-                var childrenCopy = new List<RedDotNode>(node.Children);
-                foreach (var child in childrenCopy)
-                {
-                    child.RemoveParent(node);
-                }
-
-                // 从所有树中移除
-                var treesCopy = new List<RedDotTree>(node.Trees);
-                foreach (var tree in treesCopy)
-                {
-                    tree.RemoveNode(node);
-                }
-
-                // 从节点字典中移除
-                allNodes.Remove(key);
-
-                Debug.Log($"[RedDotSystem] Removed node {key}");
-            }
-        }
-
         public static void ChangeRedDotCount(RedDotKey key, int count)
         {
             if (allNodes.TryGetValue(key, out var node))
@@ -99,6 +106,7 @@ namespace FFramework.Kit
             }
         }
 
+        //设置是否显示红点数量
         public static void SetRedDotDisplayMode(RedDotKey key, bool isShowCount)
         {
             if (allNodes.TryGetValue(key, out var node))
@@ -109,6 +117,18 @@ namespace FFramework.Kit
             {
                 Debug.LogWarning($"[RedDotSystem] Node {key} not found when trying to set display mode");
             }
+        }
+
+        /// <summary>
+        /// 获取是否显示红点数量
+        /// </summary>
+        public static bool GetRedDotDisplayMode(RedDotKey key)
+        {
+            if (allNodes.TryGetValue(key, out var node))
+            {
+                return node.GetDisplayMode();
+            }
+            return true; // 默认显示数量
         }
 
         public static RedDotNode GetNode(RedDotKey key)
@@ -123,11 +143,6 @@ namespace FFramework.Kit
             return tree;
         }
 
-        public static bool HasNode(RedDotKey key)
-        {
-            return allNodes.ContainsKey(key);
-        }
-
         public static int GetNodeCount(RedDotKey key)
         {
             if (allNodes.TryGetValue(key, out var node))
@@ -135,71 +150,6 @@ namespace FFramework.Kit
                 return node.Count;
             }
             return 0;
-        }
-
-        public static IEnumerable<RedDotKey> GetAllNodeKeys()
-        {
-            return allNodes.Keys;
-        }
-
-        public static IEnumerable<RedDotNode> GetAllNodes()
-        {
-            return allNodes.Values;
-        }
-
-        // 批量操作支持
-        public static void BatchAddParents(RedDotKey childKey, params RedDotKey[] parentKeys)
-        {
-            var childNode = GetOrCreateNode(childKey);
-            foreach (var parentKey in parentKeys)
-            {
-                var parentNode = GetOrCreateNode(parentKey);
-                childNode.AddParent(parentNode);
-            }
-        }
-
-        public static void BatchRemoveParents(RedDotKey childKey, params RedDotKey[] parentKeys)
-        {
-            if (allNodes.TryGetValue(childKey, out var childNode))
-            {
-                foreach (var parentKey in parentKeys)
-                {
-                    if (allNodes.TryGetValue(parentKey, out var parentNode))
-                    {
-                        childNode.RemoveParent(parentNode);
-                    }
-                }
-            }
-        }
-
-        // 获取节点的所有父节点Key
-        public static IEnumerable<RedDotKey> GetParentKeys(RedDotKey key)
-        {
-            if (allNodes.TryGetValue(key, out var node))
-            {
-                var parentKeys = new List<RedDotKey>();
-                foreach (var parent in node.Parents)
-                {
-                    parentKeys.Add(parent.Key);
-                }
-                return parentKeys;
-            }
-            return new List<RedDotKey>();
-        }
-
-        // 获取节点的所有子节点Key
-        public static IEnumerable<RedDotKey> GetChildrenKeys(RedDotKey key)
-        {
-            if (allNodes.TryGetValue(key, out var node))
-            {
-                var childKeys = new List<RedDotKey>();
-                foreach (var child in node.Children)
-                {
-                    childKeys.Add(child.Key);
-                }
-                return childKeys;
-            }
-            return new List<RedDotKey>();
         }
 
         public static void Clear()

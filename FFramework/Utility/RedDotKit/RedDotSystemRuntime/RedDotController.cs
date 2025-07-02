@@ -38,6 +38,9 @@ namespace FFramework.Kit
             // 从红点系统中同步当前节点的实际数值到Inspector显示
             SyncRedDotCountFromSystem();
 
+            // 同步显示模式设置
+            isShowRedDotCount = RedDotKit.GetRedDotDisplayMode(redDotKey);
+
             // 获取并缓存父节点列表
             RefreshParentsList();
 
@@ -60,7 +63,7 @@ namespace FFramework.Kit
                 redDotCount = node.BaseCount;
                 lastRedDotCount = redDotCount;
 
-                Debug.Log($"[RedDotController] Synced RedDotCount from system: {redDotKey} = {redDotCount}");
+                Debug.Log($"[RedDotController] 从系统同步 RedDotCount: {redDotKey} = {redDotCount}");
             }
             else
             {
@@ -107,8 +110,11 @@ namespace FFramework.Kit
             // 控制红点显示/隐藏
             gameObject.SetActive(shouldShowRedDot);
 
+            // 获取当前显示模式
+            bool shouldShowCount = RedDotKit.GetRedDotDisplayMode(redDotKey);
+
             // 更新数量文本
-            if (shouldShowRedDot && isShowRedDotCount)
+            if (shouldShowRedDot && shouldShowCount)
             {
                 string countText = displayCount > 99 ? "99+" : displayCount.ToString();
 
@@ -177,7 +183,7 @@ namespace FFramework.Kit
 #if UNITY_EDITOR
         private void OnValidate()
         {
-            // 编辑器下验证配置并检测RedDotCount变化
+            // 编辑器下验证配置并检测变化
             if (Application.isPlaying && isInitialized)
             {
                 // 确保数值在有效范围内
@@ -191,6 +197,15 @@ namespace FFramework.Kit
                     // 更新红点系统数据（只更新BaseCount，不影响子节点聚合值）
                     RedDotKit.ChangeRedDotCount(redDotKey, redDotCount);
                     Debug.Log($"[RedDotController] RedDotCount changed to {redDotCount} for {redDotKey}");
+                }
+
+                // 检测显示模式是否发生变化
+                bool currentMode = RedDotKit.GetRedDotDisplayMode(redDotKey);
+                if (isShowRedDotCount != currentMode)
+                {
+                    // 同步显示模式到系统
+                    RedDotKit.SetRedDotDisplayMode(redDotKey, isShowRedDotCount);
+                    Debug.Log($"[RedDotController] DisplayMode changed to {isShowRedDotCount} for {redDotKey}");
                 }
 
                 // 更新UI显示

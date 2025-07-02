@@ -13,7 +13,7 @@ namespace FFramework.Kit
         public int Count { get; private set; }
         public int BaseCount { get; private set; } // 节点自身设置值
         public int ChildrenSum { get; private set; } // 子节点聚合值
-        public bool IsShowCount { get; private set; }
+        public bool IsShowRedDotCount { get; private set; }
 
         // 所属树集合（一个节点可以属于多棵树）
         public HashSet<RedDotTree> Trees { get; } = new HashSet<RedDotTree>();
@@ -32,7 +32,7 @@ namespace FFramework.Kit
         {
             Key = key;
             Count = 0;
-            IsShowCount = true;
+            IsShowRedDotCount = true;
         }
 
         // 添加父节点
@@ -118,11 +118,16 @@ namespace FFramework.Kit
 
         public void SetDisplayMode(bool isShowCount)
         {
-            if (IsShowCount != isShowCount)
+            if (IsShowRedDotCount != isShowCount)
             {
-                IsShowCount = isShowCount;
+                IsShowRedDotCount = isShowCount;
                 OnStateChanged?.Invoke(this);
             }
+        }
+
+        public bool GetDisplayMode()
+        {
+            return IsShowRedDotCount;
         }
 
         // 更新所有父节点
@@ -134,7 +139,7 @@ namespace FFramework.Kit
             }
         }
 
-        internal void UpdateFromChildren()
+        public void UpdateFromChildren()
         {
             int newChildrenSum = 0;
             Debug.Log($"[RedDotNode] Updating children sum for {Key}:");
@@ -155,64 +160,6 @@ namespace FFramework.Kit
                 OnStateChanged?.Invoke(this);
                 UpdateParents();
             }
-        }
-
-        // 检查是否是指定节点的祖先
-        public bool IsAncestorOf(RedDotNode node)
-        {
-            var nodesToCheck = new Queue<RedDotNode>();
-            var visited = new HashSet<RedDotNode>();
-
-            nodesToCheck.Enqueue(node);
-            visited.Add(node);
-
-            while (nodesToCheck.Count > 0)
-            {
-                var current = nodesToCheck.Dequeue();
-
-                foreach (var parent in current.parents)
-                {
-                    if (parent == this)
-                        return true;
-
-                    if (!visited.Contains(parent))
-                    {
-                        visited.Add(parent);
-                        nodesToCheck.Enqueue(parent);
-                    }
-                }
-            }
-
-            return false;
-        }
-
-        // 获取所有后代节点
-        public HashSet<RedDotNode> GetAllDescendants()
-        {
-            var descendants = new HashSet<RedDotNode>();
-            var nodesToCheck = new Queue<RedDotNode>();
-
-            foreach (var child in children)
-            {
-                nodesToCheck.Enqueue(child);
-                descendants.Add(child);
-            }
-
-            while (nodesToCheck.Count > 0)
-            {
-                var current = nodesToCheck.Dequeue();
-
-                foreach (var child in current.children)
-                {
-                    if (!descendants.Contains(child))
-                    {
-                        descendants.Add(child);
-                        nodesToCheck.Enqueue(child);
-                    }
-                }
-            }
-
-            return descendants;
         }
     }
 }

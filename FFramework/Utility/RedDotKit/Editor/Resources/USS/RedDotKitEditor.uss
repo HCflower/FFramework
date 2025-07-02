@@ -31,7 +31,7 @@
     -unity-font-style: bold;
     -unity-text-align: middle-center;
 
-    background-color:rgb(238, 164, 96);
+    background-color:rgb(226, 159, 97);
 }
 
 .ScrollView{
@@ -46,13 +46,16 @@
     min-width: 100px;
     overflow: hidden;
 
-    /*  background-color:rgb(238, 164, 96); */
+    /* 设置竖向排列 */
+    flex-direction: column;
+
+    background-color:rgb(50, 50, 50);
 }
 
 /* 控制区域标题 */
 .ControlContentTitle{
     width:auto;
-    align-self: center;
+    align-self: left;
     -unity-font-style: bold;
 }
 
@@ -61,8 +64,8 @@
     width:100%;
     height: auto;
 
-    padding-right:1px;
-    margin-top:2px;
+    padding:0px;
+    margin-top:1px;
 
     flex-direction: row;
     flex-shrink: 1;
@@ -72,23 +75,13 @@
     align-items: center;
 }
 
-/* 配置选择 */
-.ConfigDataField{
-    margin:0px;
+/* 选择区域 */
+.Field{
+    height: 20px;
     width:auto;
+    margin:0px;
     flex-grow: 1;
     flex-shrink: 1;
-    min-width: 100px;
-    overflow: hidden;
-}
-
-/* 红点树创建名称输入 */
-.TreeNameTextField{
-    margin:0px;
-    width:auto;
-    flex-grow: 1;
-    flex-shrink: 1;
-    min-width: 100px;
     overflow: hidden;
 }
 
@@ -102,6 +95,16 @@
     margin-left:1px;
 }
 
+/* 但选框 */
+.Toggle{
+    width:18px;
+    height:18px;
+
+    padding:0px;
+    margin:0px;
+
+}
+
 /* 滚动视图项 */
 .ScrollViewItemButton{
     width:auto;
@@ -109,7 +112,7 @@
 
     padding:0px;
     margin:1px;
-    margin-right:0px;
+    margin-right:1px;
 
     border-width:0px;
     border-top-right-radius:0px;
@@ -120,7 +123,17 @@
     min-width: 100px;
     overflow: hidden;
 
-    background-color:rgb(238, 164, 96);
+    background-color:rgb(95, 95, 95);
+}
+
+/* 滚动视图项按钮悬停 */
+.ScrollViewItemButton:hover{
+    background-color:rgb(226, 159, 97);
+}
+
+/* 滚动视图项按钮选中 */
+.ScrollViewItemButton-Select{
+    background-color:rgb(226, 159, 97);
 }
 
 /* 滚动视图项删除按钮 */
@@ -135,4 +148,9 @@
     border-width:0px;
     border-top-left-radius:0px;
     border-bottom-left-radius:0px;
+
+    background-color:rgb(217, 64, 64);
+
 }
+
+

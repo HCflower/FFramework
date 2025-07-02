@@ -19,7 +19,8 @@ namespace FFramework.Kit
         public class NodeRelation
         {
             [Tooltip("当前节点Key")] public RedDotKey nodeKey;
-            [Tooltip("红点数量"), Min(0)] public int redDotCount = 1;
+            [Tooltip("红点数量"), Min(0)] public int redDotCount = 0;
+            [Tooltip("是否显示数量")] public bool isShowRedDotCount = true;
             [Tooltip("当前节点的父节点Key")] public List<RedDotKey> parentKeys = new List<RedDotKey>();
         }
 
@@ -32,8 +33,16 @@ namespace FFramework.Kit
         }
 
 #if UNITY_EDITOR
+
+        [Button("保存数据", "yellow")]
+        public void SaveData()
+        {
+            UnityEditor.EditorUtility.SetDirty(this);
+            UnityEditor.AssetDatabase.SaveAssets();
+        }
+
         [Button("保存数据到Json文件", "yellow")]
-        private void SaveToJson()
+        public void SaveToJson()
         {
             try
             {
@@ -47,9 +56,7 @@ namespace FFramework.Kit
                 Debug.LogError($"保存红点系统配置失败: {e.Message}");
             }
         }
-#endif
 
-#if UNITY_EDITOR
         [Button("从Json文件中加载数据", "yellow")]
         public void LoadFromJson()
         {
