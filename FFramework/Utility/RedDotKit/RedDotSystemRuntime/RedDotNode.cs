@@ -100,6 +100,9 @@ namespace FFramework.Kit
             }
         }
 
+        /// <summary>
+        /// 设置节点值
+        /// </summary>
         public void SetCount(int count)
         {
             if (BaseCount != count)
@@ -111,11 +114,13 @@ namespace FFramework.Kit
             }
         }
 
+        // 更新节点总数
         private void UpdateTotalCount()
         {
             Count = BaseCount + ChildrenSum;
         }
 
+        // 设置显示模式
         public void SetDisplayMode(bool isShowCount)
         {
             if (IsShowRedDotCount != isShowCount)
@@ -125,6 +130,7 @@ namespace FFramework.Kit
             }
         }
 
+        // 获取显示模式
         public bool GetDisplayMode()
         {
             return IsShowRedDotCount;
@@ -139,6 +145,9 @@ namespace FFramework.Kit
             }
         }
 
+        /// <summary>
+        /// 更新子节点聚合值
+        /// </summary>
         public void UpdateFromChildren()
         {
             int newChildrenSum = 0;

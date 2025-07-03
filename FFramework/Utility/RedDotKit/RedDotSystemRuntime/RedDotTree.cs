@@ -20,27 +20,33 @@ namespace FFramework.Kit
         // 节点数量统计
         public int NodeCount => nodes.Count;
 
+        /// <summary>
+        /// 红点树构造函数
+        /// </summary>
         public RedDotTree(string treeName, RedDotKey rootKey)
         {
             if (string.IsNullOrEmpty(treeName))
-                throw new ArgumentException("Tree name cannot be null or empty", nameof(treeName));
+                throw new ArgumentException("树名称不能为null或为空.", nameof(treeName));
 
             if (rootKey == RedDotKey.None)
-                throw new ArgumentException("Root key cannot be None", nameof(rootKey));
+                throw new ArgumentException("根键不能为None.", nameof(rootKey));
 
             TreeName = treeName;
             Root = new RedDotNode(rootKey);
             AddNode(Root);
             Root.Trees.Add(this);
 
-            Debug.Log($"[RedDotTree] Created tree '{treeName}' with root key '{rootKey}'");
+            Debug.Log($"[RedDotTree] 已创建根键为'{rootKey}'的红点树'{treeName}.");
         }
 
+        /// <summary>
+        /// 添加节点    
+        /// </summary>
         public void AddNode(RedDotNode node)
         {
             if (node == null)
             {
-                Debug.LogWarning("[RedDotTree] Cannot add null node to tree");
+                Debug.LogWarning("[RedDotTree] 无法将 null 节点添加到树中.");
                 return;
             }
 
@@ -48,41 +54,46 @@ namespace FFramework.Kit
             {
                 nodes.Add(node.Key, node);
                 node.Trees.Add(this);
-                Debug.Log($"[RedDotTree] Added node '{node.Key}' to tree '{TreeName}'");
+                Debug.Log($"[RedDotTree] 添加节点 '{node.Key}' 到树 '{TreeName}'");
             }
             else
             {
-                Debug.LogWarning($"[RedDotTree] Node '{node.Key}' already exists in tree '{TreeName}'");
+                Debug.LogWarning($"[RedDotTree] 节点 '{node.Key}' 已存在于树中 '{TreeName}'");
             }
         }
 
+        /// <summary>
+        /// 移除节点
+        /// </summary>
         public void RemoveNode(RedDotNode node)
         {
             if (node == null)
             {
-                Debug.LogWarning("[RedDotTree] Cannot remove null node from tree");
+                Debug.LogWarning("[RedDotTree] 无法从树中删除 null 节点.");
                 return;
             }
 
             if (node == Root)
             {
-                Debug.LogWarning($"[RedDotTree] Cannot remove root node from tree '{TreeName}'");
+                Debug.LogWarning($"[RedDotTree] 无法从树中删除根节点 '{TreeName}'.");
                 return;
             }
 
             if (nodes.Remove(node.Key))
             {
                 node.Trees.Remove(this);
-                Debug.Log($"[RedDotTree] Removed node '{node.Key}' from tree '{TreeName}'");
+                Debug.Log($"[RedDotTree] 从树'{TreeName}'中移除节点 '{node.Key}'.");
             }
         }
 
+        // 获取节点
         public RedDotNode GetNode(RedDotKey key)
         {
             nodes.TryGetValue(key, out var node);
             return node;
         }
 
+        // 更新节点的红点数量
         public void ChangeRedDotCount(RedDotKey key, int count)
         {
             if (nodes.TryGetValue(key, out var node))
@@ -91,6 +102,7 @@ namespace FFramework.Kit
             }
         }
 
+        // 设置节点的显示模式
         public void SetRedDotDisplayMode(RedDotKey key, bool isShowCount)
         {
             if (nodes.TryGetValue(key, out var node))
@@ -105,64 +117,7 @@ namespace FFramework.Kit
             return nodes.ContainsKey(key);
         }
 
-        // 获取所有节点Key
-        public IEnumerable<RedDotKey> GetAllNodeKeys()
-        {
-            return nodes.Keys;
-        }
-
-        // 获取所有节点
-        public IEnumerable<RedDotNode> GetAllNodes()
-        {
-            return nodes.Values;
-        }
-
-        // 批量操作 - 设置多个节点的数量
-        public void BatchChangeRedDotCount(Dictionary<RedDotKey, int> keyCountPairs)
-        {
-            if (keyCountPairs == null) return;
-
-            foreach (var kvp in keyCountPairs)
-            {
-                ChangeRedDotCount(kvp.Key, kvp.Value);
-            }
-        }
-
-        // 调试功能 - 打印树结构
-        public void PrintTreeStructure()
-        {
-            Debug.Log($"=== Tree Structure: {TreeName} ===");
-            Debug.Log($"Total Nodes: {NodeCount}");
-            Debug.Log($"Root: {Root.Key} (Count: {Root.Count})");
-
-            PrintNodeHierarchy(Root, 0);
-        }
-
-        private void PrintNodeHierarchy(RedDotNode node, int depth)
-        {
-            string indent = new string(' ', depth * 2);
-            Debug.Log($"{indent}- {node.Key}: Count={node.Count} (Base:{node.BaseCount}, Children:{node.ChildrenSum})");
-
-            foreach (var child in node.Children)
-            {
-                PrintNodeHierarchy(child, depth + 1);
-            }
-        }
-
-        // 获取树的统计信息
-        public TreeStatistics GetStatistics()
-        {
-            var stats = new TreeStatistics
-            {
-                TreeName = TreeName,
-                TotalNodes = NodeCount,
-                TotalRedDotCount = nodes.Values.Sum(n => n.Count),
-                MaxDepth = GetMaxDepth(Root, 0)
-            };
-
-            return stats;
-        }
-
+        // 获取树的最大深度
         private int GetMaxDepth(RedDotNode node, int currentDepth)
         {
             if (node.Children.Count == 0)
@@ -187,21 +142,32 @@ namespace FFramework.Kit
             }
 
             Root.SetCount(0);
-            Debug.Log($"[RedDotTree] Cleared tree '{TreeName}', kept root node");
+            Debug.Log($"[RedDotTree] 清除了树 '{TreeName}'，保留了根节点.");
         }
 
-        // 树统计信息结构
-        public struct TreeStatistics
+#if UNITY_EDITOR
+        // 调试功能 - 打印树结构
+        public void PrintTreeStructure()
         {
-            public string TreeName;
-            public int TotalNodes;
-            public int TotalRedDotCount;
-            public int MaxDepth;
+            Debug.Log($"=== 树结构: {TreeName} ===");
+            Debug.Log($"节点总数量: {NodeCount}");
+            Debug.Log($"根节点: {Root.Key} (数量: {Root.Count})");
 
-            public override string ToString()
+            PrintNodeHierarchy(Root, 0);
+        }
+
+        // 调试功能 - 打印树统计信息
+        private void PrintNodeHierarchy(RedDotNode node, int depth)
+        {
+            string indent = new string(' ', depth * 2);
+            Debug.Log($"{indent}- {node.Key}: Count={node.Count} (Base:{node.BaseCount}, Children:{node.ChildrenSum})");
+
+            foreach (var child in node.Children)
             {
-                return $"Tree: {TreeName}, Nodes: {TotalNodes}, Total Count: {TotalRedDotCount}, Max Depth: {MaxDepth}";
+                PrintNodeHierarchy(child, depth + 1);
             }
         }
+#endif
+
     }
 }

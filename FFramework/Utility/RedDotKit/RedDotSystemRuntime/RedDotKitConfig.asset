@@ -20,10 +20,10 @@ MonoBehaviour:
     nodeRelations:
     - nodeKey: 1
       redDotCount: 0
-      isShowRedDotCount: 0
+      isShowRedDotCount: 1
       parentKeys: 
     - nodeKey: 2
-      redDotCount: 0
+      redDotCount: 1
       isShowRedDotCount: 1
       parentKeys: 01000000
     - nodeKey: 3
@@ -33,4 +33,4 @@ MonoBehaviour:
     - nodeKey: 4
       redDotCount: 1
       isShowRedDotCount: 1
-      parentKeys: 02000000
+      parentKeys: 03000000

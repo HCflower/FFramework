@@ -62,8 +62,7 @@ namespace FFramework.Kit
                 // 同步BaseCount（节点自身设置的值）到Inspector显示
                 redDotCount = node.BaseCount;
                 lastRedDotCount = redDotCount;
-
-                Debug.Log($"[RedDotController] 从系统同步 RedDotCount: {redDotKey} = {redDotCount}");
+                Debug.Log($"[RedDotController] 从系统同步红点数量: {redDotKey} = {redDotCount}.");
             }
             else
             {
@@ -89,6 +88,7 @@ namespace FFramework.Kit
             }
         }
 
+        // 当节点状态发生变化时调用
         private void OnNodeStateChanged(RedDotNode node)
         {
             UpdateUI();
@@ -105,7 +105,7 @@ namespace FFramework.Kit
             int displayCount = node.Count;
             bool shouldShowRedDot = displayCount > 0;
 
-            Debug.Log($"[RedDotController] UpdateUI for {redDotKey}: Count={displayCount}, Show={shouldShowRedDot}");
+            Debug.Log($"[RedDotController] 更新 {redDotKey} UI: 数量=>{displayCount}, 显示=>{shouldShowRedDot}.");
 
             // 控制红点显示/隐藏
             gameObject.SetActive(shouldShowRedDot);
@@ -143,10 +143,8 @@ namespace FFramework.Kit
         public void UpdateRedDotState()
         {
             if (!isInitialized) return;
-
             // 刷新父节点列表
             RefreshParentsList();
-
             // 更新UI显示
             UpdateUI();
         }
@@ -158,8 +156,7 @@ namespace FFramework.Kit
         {
             if (!isInitialized) return;
 
-            RedDotKit.ChangeRedDotCount(redDotKey, count);
-            // UI会通过OnStateChanged事件自动更新，无需手动调用UpdateUI
+            RedDotKit.SetRedDotCount(redDotKey, count);
         }
 
         /// <summary>
@@ -195,8 +192,8 @@ namespace FFramework.Kit
                     lastRedDotCount = redDotCount;
 
                     // 更新红点系统数据（只更新BaseCount，不影响子节点聚合值）
-                    RedDotKit.ChangeRedDotCount(redDotKey, redDotCount);
-                    Debug.Log($"[RedDotController] RedDotCount changed to {redDotCount} for {redDotKey}");
+                    RedDotKit.SetRedDotCount(redDotKey, redDotCount);
+                    Debug.Log($"[RedDotController] 将 {redDotKey} 的 RedDotCount 更改为 {redDotCount}.");
                 }
 
                 // 检测显示模式是否发生变化
@@ -205,7 +202,7 @@ namespace FFramework.Kit
                 {
                     // 同步显示模式到系统
                     RedDotKit.SetRedDotDisplayMode(redDotKey, isShowRedDotCount);
-                    Debug.Log($"[RedDotController] DisplayMode changed to {isShowRedDotCount} for {redDotKey}");
+                    Debug.Log($"[RedDotController] {redDotKey} 的 DisplayMode 已更改为 {isShowRedDotCount}.");
                 }
 
                 // 更新UI显示

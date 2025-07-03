@@ -63,17 +63,15 @@ namespace RedDotKitEditor
             //创建设置区域
             CreateSettingAreaView(rootView);
 
-            //数据加载
-            if (redDotKitConfig)
-            {
-                redDotKitConfigField.value = redDotKitConfig;
-                RefreshView();
-            }
+            //数据刷新
+            RefreshView();
         }
 
         // 刷新视图区域
         private void RefreshView()
         {
+            //载入配置文件
+            if (redDotKitConfig) redDotKitConfigField.value = redDotKitConfig;
             //清理并刷新树选择滚动视图
             treeSelectScrollView.Clear();
             if (redDotKitConfig != null)
@@ -124,7 +122,7 @@ namespace RedDotKitEditor
 
             //清理并刷新设置滚动视图
             settingScrollView.Clear();
-            if (redDotKitConfig != null && redDotTreeName != null && currentSelectedRedDotKey != RedDotKey.None)
+            if (redDotKitConfig != null)
             {
                 //创建设置内容
                 CreateSettingControlContent();
@@ -290,6 +288,12 @@ namespace RedDotKitEditor
             addNodeButton.clicked += () =>
             {
                 var nodeKey = (RedDotKey)addNodeEnumField.value;
+                // 检查是否为 None 节点
+                if (nodeKey == RedDotKey.None)
+                {
+                    Debug.LogWarning("不能添加 None 节点");
+                    return;
+                }
                 var tree = redDotKitConfig?.RedDotTrees?.Find(t => t.treeName == redDotTreeName);
 
                 if (tree == null)
@@ -315,6 +319,13 @@ namespace RedDotKitEditor
             deleteControlButton.style.backgroundColor = new Color(0.85f, 0.25f, 0.25f, 1f);
             deleteControlButton.clicked += () =>
             {
+                var nodeKey = (RedDotKey)addNodeEnumField.value;
+                // 检查是否为 None 节点
+                if (nodeKey == RedDotKey.None)
+                {
+                    Debug.LogWarning("不能删除 None 节点");
+                    return;
+                }
                 if (!EditorUtility.DisplayDialog("确认删除", $"确定删除节点Key: '{addNodeEnumField.value.ToString()}' ?", "是", "否"))
                     return;
                 RedDotKitEditorHandler.DeleteNodeKey(addNodeEnumField.value.ToString());
@@ -605,6 +616,12 @@ namespace RedDotKitEditor
             {
                 if (tree != null)
                 {
+                    // 检查是否为 None 节点
+                    if ((RedDotKey)setRootKeyEnumField.value == RedDotKey.None)
+                    {
+                        Debug.LogWarning("根节点不可设置为:None.");
+                        return;
+                    }
                     tree.rootKey = (RedDotKey)setRootKeyEnumField.value;
                     EditorUtility.SetDirty(redDotKitConfig);
                     AssetDatabase.SaveAssets();
@@ -630,8 +647,10 @@ namespace RedDotKitEditor
             }
             //创建文本输入框
             CreateTextField(setCountControlContent, ref redDotCountTextField);
-            if (redDotKitConfig != null && redDotTreeName != null)
+            if (redDotTreeName != null && currentSelectedRedDotKey != RedDotKey.None && nodeRelation != null && redDotCountTextField != null)
+            {
                 redDotCountTextField.value = nodeRelation.redDotCount.ToString();
+            }
             //创建按钮
             CreateControlButton(setCountControlContent, ">", out Button setRedDotCountButton);
             setRedDotCountButton.clicked += () =>

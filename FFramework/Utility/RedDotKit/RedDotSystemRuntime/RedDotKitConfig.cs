@@ -16,6 +16,14 @@ namespace FFramework.Kit
         public List<TreeDefinition> RedDotTrees = new List<TreeDefinition>();
 
         [Serializable]
+        public class TreeDefinition
+        {
+            public string treeName;
+            public RedDotKey rootKey;
+            [Tooltip("当前树的所有节点关系")] public List<NodeRelation> nodeRelations = new List<NodeRelation>();
+        }
+
+        [Serializable]
         public class NodeRelation
         {
             [Tooltip("当前节点Key")] public RedDotKey nodeKey;
@@ -25,11 +33,15 @@ namespace FFramework.Kit
         }
 
         [Serializable]
-        public class TreeDefinition
+        private class SerializedData
         {
-            public string treeName;
-            public RedDotKey rootKey;
-            [Tooltip("当前树的所有节点关系")] public List<NodeRelation> nodeRelations = new List<NodeRelation>();
+            public List<TreeDefinition> RedDotTrees;
+        }
+
+        [Serializable]
+        private class Wrapper
+        {
+            public List<TreeDefinition> RedDotTrees;
         }
 
 #if UNITY_EDITOR
@@ -79,19 +91,8 @@ namespace FFramework.Kit
                 Debug.LogError($"加载红点系统配置失败: {e.Message}");
             }
         }
+
 #endif
-
-        [Serializable]
-        private class SerializedData
-        {
-            public List<TreeDefinition> RedDotTrees;
-        }
-
-        [Serializable]
-        private class Wrapper
-        {
-            public List<TreeDefinition> RedDotTrees;
-        }
 
     }
 }
