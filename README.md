@@ -70,7 +70,7 @@ Reference：QFramework [https://github.com/liangxiegame/QFramework]
 
 三、编辑器工具：
 
-1.AssetBundleTool：
+1.AssetBundleTool（待优化）：
 
 
 
