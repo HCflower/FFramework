@@ -9,7 +9,7 @@ namespace CreateProjectFolder
     /// </summary>
     public class CreateProjectFolder : EditorWindow
     {
-        [MenuItem("FFramework/CreateGemeFolder #A", priority = 2)]
+        [MenuItem("FFramework/📁CreateGemeFolder #A", priority = 2)]
         public static void DoCreateProjectFolder()
         {
             //代码
@@ -36,6 +36,10 @@ namespace CreateProjectFolder
             CreateFolderByName("GameRes/VFX");
             //可热更新资源
             CreateFolderByName("HotUpdate/AssetBundles");
+            //设置
+            CreateFolderByName("Settings");
+            //数据保存
+            CreateFolderByName("StreamingAssets");
             //测试
             CreateFolderByName("Test");
         }
@@ -76,11 +80,14 @@ namespace CreateProjectFolder
                         return;
                     }
                     AssetDatabase.Refresh();
+                    Debug.Log($"<color=green>文件夹创建成功:</color> {nextPath}");
+                }
+                else
+                {
+                    Debug.Log($"<color=yellow>文件夹已存在:</color> {nextPath}");
                 }
                 currentPath = nextPath;
             }
-
-            Debug.Log($"<color=green>文件夹创建成功:</color>{gameRootPath}/{folderPath}");
         }
     }
 }
