@@ -40,6 +40,8 @@ namespace AssetBundleToolEditor
 
         private void OnDisable()
         {
+            //保存所有数据
+            AssetBundleEditorData.currentABConfig.SaveData();
             rootVisualElement.Clear();
         }
 

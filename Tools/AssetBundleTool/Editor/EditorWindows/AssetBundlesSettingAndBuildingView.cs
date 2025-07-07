@@ -1,8 +1,9 @@
 using UnityEngine.UIElements;
 using UnityEditor;
 using UnityEngine;
-using System;
 using FFramework;
+using System.IO;
+using System;
 
 namespace AssetBundleToolEditor
 {
@@ -24,7 +25,7 @@ namespace AssetBundleToolEditor
             mainContent = new VisualElement();
             mainContent.styleSheets.Add(Resources.Load<StyleSheet>("USS/AssetBundlesSettingAndBuildingView"));
             mainContent.AddToClassList("MainContent");
-
+            //创建设置区域
             CreateLocalSettingContent(mainContent);
             CreateRemoteSettingContent(mainContent);
             CreateGlobalSettingContent(mainContent);
@@ -43,8 +44,10 @@ namespace AssetBundleToolEditor
             Label contentTitle = new Label("LocalSetting");
             contentTitle.AddToClassList("ContentTitle");
             localSettingContent.Add(contentTitle);
-            //保存路径显示
-            AssetBundleSavePath(localSettingContent, "LocalSavePath:", AssetBundleEditorData.currentABConfig.LocalSavePath);
+            // 本地路径
+            AssetBundleSavePath(localSettingContent, "LocalSavePath:",
+                AssetBundleEditorData.currentABConfig.LocalSavePath,
+                (newPath) => AssetBundleEditorData.currentABConfig.LocalSavePath = newPath);
 
             //构建本地AssetBundles
             CreateButton(localSettingContent, () =>
@@ -86,21 +89,10 @@ namespace AssetBundleToolEditor
             contentTitle.AddToClassList("ContentTitle");
             remoteSettingContent.Add(contentTitle);
 
-            //保存路径显示
-            AssetBundleSavePath(remoteSettingContent, "UpdateResPath:", AssetBundleEditorData.currentABConfig.RemoteSavePath);
-
-            //压缩格式选择
-            CreateEnumField(remoteSettingContent, "压缩格式选择",
-            AssetBundleEditorData.currentABConfig.RemoteCompressionType, (newvalue) =>
-            {
-                AssetBundleEditorData.currentABConfig.RemoteCompressionType = (CompressionType)newvalue;
-            });
-
-            //构建依赖文件
-            CreateButton(remoteSettingContent, () =>
-            {
-                Debug.Log("(资源可寻址加载)施工中~");
-            }, "创建依赖关系文件", "TextAssetIcon");
+            // 远程路径  
+            AssetBundleSavePath(remoteSettingContent, "UpdateResPath:",
+                AssetBundleEditorData.currentABConfig.RemoteSavePath,
+                (newPath) => AssetBundleEditorData.currentABConfig.RemoteSavePath = newPath);
 
             //构建远端AssetBundles
             CreateButton(remoteSettingContent, () =>
@@ -116,6 +108,12 @@ namespace AssetBundleToolEditor
             {
                 AssetBundleEditorData.currentABConfig.CreateRemoteAssetBundleInfoFile();
             }, "创建远端资源对比文件", "TextAssetIcon");
+
+            //构建依赖文件
+            CreateButton(remoteSettingContent, () =>
+            {
+                Debug.Log("(资源可寻址加载)施工中~");
+            }, "创建依赖关系文件", "TextAssetIcon");
 
             visual.Add(remoteSettingContent);
         }
@@ -148,6 +146,13 @@ namespace AssetBundleToolEditor
                 {
                     assetBundlesSavePathField.text = AssetBundleEditorData.currentABConfig.RemoteSavePath;
                 }
+            });
+
+            //压缩格式选择
+            CreateEnumField(globalSettingContent, "AB包压缩格式选择",
+            AssetBundleEditorData.currentABConfig.CompressionType, (newvalue) =>
+            {
+                AssetBundleEditorData.currentABConfig.CompressionType = (CompressionType)newvalue;
             });
 
             //构建AssetBundle包时是否清理文件夹
@@ -292,41 +297,81 @@ namespace AssetBundleToolEditor
 
         #region  Common
 
-        //资源保存路径
-        private Label AssetBundleSavePath(VisualElement visual, string titleText, string pathText)
+        // 资源保存路径
+        private Label AssetBundleSavePath(VisualElement visual, string titleText, string pathText, System.Action<string> updateAction)
         {
             VisualElement pathContent = new VisualElement();
             pathContent.AddToClassList("SettingItemContent");
+
             //titleButton
             Button titleButton = new Button();
             titleButton.text = titleText;
             titleButton.AddToClassList("Title");
             pathContent.Add(titleButton);
+
             //content
-            assetBundlesSavePathField = new Label();
-            assetBundlesSavePathField.text = pathText;
-            assetBundlesSavePathField.AddToClassList("PathViewContent");
-            pathContent.Add(assetBundlesSavePathField);
-            //点击事件=>打开文件夹
+            Label pathField = new Label();
+            pathField.text = pathText;
+            pathField.AddToClassList("PathViewContent");
+            pathContent.Add(pathField);
+
+            //点击事件=>选择文件夹
             titleButton.clicked += () =>
             {
-                Debug.Log($"打开文件夹{pathText}");
-                // 转换为完整Asset路径
-                string assetPath = $"Assets/{pathText.TrimStart('/')}";
-                // 获取文件夹对象
-                UnityEngine.Object folderObj = AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(assetPath);
-                if (folderObj != null)
+                //如果文件夹正确则从当前文件夹开始
+                string selectedPath = SelectAssetFolder(pathText);
+                if (!string.IsNullOrEmpty(selectedPath))
                 {
-                    // 聚焦并选中文件夹
-                    EditorUtility.FocusProjectWindow();
-                    Selection.activeObject = folderObj;
-                    EditorGUIUtility.PingObject(folderObj);
+                    pathField.text = selectedPath;
+                    updateAction(selectedPath); // 直接调用更新函数
+                    EditorUtility.SetDirty(AssetBundleEditorData.currentABConfig);
+                }
+            };
+
+            visual.Add(pathContent);
+            return pathField;
+        }
+
+        // 文件夹选择
+        private string SelectAssetFolder(string currentPath = "")
+        {
+            // 确定起始路径,默认从Assets开始
+            string startPath = Application.dataPath;
+
+            // 如果当前路径不为空且是Assets开头，尝试转换为绝对路径
+            if (!string.IsNullOrEmpty(currentPath) && currentPath.StartsWith("Assets"))
+            {
+                string absolutePath = currentPath.Replace("Assets", Application.dataPath);
+                if (Directory.Exists(absolutePath))
+                {
+                    // 路径存在就用这个作为起始路径
+                    startPath = absolutePath;
+                }
+            }
+
+            // 使用Unity内置的资源选择器
+            string selectedPath = EditorUtility.OpenFolderPanel(
+                "选择AssetBundle保存路径",
+                startPath,
+                ""
+            );
+
+            if (!string.IsNullOrEmpty(selectedPath))
+            {
+                // 转换为Unity项目相对路径
+                if (selectedPath.StartsWith(Application.dataPath))
+                {
+                    string relativePath = "Assets" + selectedPath.Substring(Application.dataPath.Length);
+                    Debug.Log($"<color=green>已选择路径: {relativePath}</color>");
+                    return relativePath;
                 }
                 else
-                    Debug.LogWarning($"文件夹不存在: {assetPath}");
-            };
-            visual.Add(pathContent);
-            return assetBundlesSavePathField;
+                {
+                    EditorUtility.DisplayDialog("路径错误", "请选择项目Assets文件夹内的目录!", "确定");
+                }
+            }
+
+            return string.Empty;
         }
 
         //创建控制按钮

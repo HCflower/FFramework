@@ -151,6 +151,7 @@ namespace AssetBundleToolEditor
             visual.Add(selectSavePathButton);
         }
 
+        //创建取消按钮
         private void CreateCancelButton(VisualElement visual)
         {
 
@@ -225,6 +226,7 @@ namespace AssetBundleToolEditor
                     AssetBundleEditorData.ClearData();
                 }
                 AssetBundleEditorData.currentABConfig = data;
+                Debug.Log("当前选中配置项:" + data.name);
                 UpdateConfigureItemView();
             };
             visual.Add(assetBundleConfigItem);

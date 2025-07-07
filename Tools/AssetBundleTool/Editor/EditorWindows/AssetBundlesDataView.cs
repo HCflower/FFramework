@@ -4,6 +4,7 @@ using UnityEngine;
 using UnityEditor;
 using System.Linq;
 using System.IO;
+using System;
 
 namespace AssetBundleToolEditor
 {
@@ -20,6 +21,9 @@ namespace AssetBundleToolEditor
         private ScrollView assetBundlesScrollView;
         private ScrollView assetBundleItemScrollView;
         private EnumField typeEnumField;
+
+        //当前AssetBundle中所有资源大小
+        private Label assetBundleSizeField;
 
         #endregion
 
@@ -218,7 +222,9 @@ namespace AssetBundleToolEditor
         {
             assetBundleItemScrollView = new ScrollView();
             assetBundleItemScrollView.AddToClassList("ABItemScrollView");
+            // 设置滚动条隐藏
             assetBundleItemScrollView.horizontalScrollerVisibility = ScrollerVisibility.Hidden;
+            assetBundleItemScrollView.verticalScrollerVisibility = ScrollerVisibility.Hidden;
 
             // 设置拖拽接收
             assetBundleItemScrollView.RegisterCallback<DragUpdatedEvent>(evt =>
@@ -289,11 +295,11 @@ namespace AssetBundleToolEditor
             {
                 string groupNames = string.Join(", ",
                     existingGroups.Select(g => $"{g.assetBundleName}"));
-                Debug.LogWarning($"资源已存在于以下AB包中: {assetPath}\n所在AB包: {groupNames}");
+                Debug.LogWarning($"资源:{assetPath}<color=yellow>已存在.</color>\n所在AB包组-> {groupNames}");
                 return;
             }
 
-            var asset = AssetDatabase.LoadAssetAtPath<Object>(assetPath);
+            var asset = AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(assetPath);
             var newAsset = new AssetBundleAssetsData
             {
                 assetName = asset.name,
@@ -309,19 +315,21 @@ namespace AssetBundleToolEditor
         {
             Label dataInfo = new Label();
             dataInfo.AddToClassList("ABItemDataInfoBar");
-            DataInfoItem(dataInfo, "Asset");
-            DataInfoItem(dataInfo, "Size");
-            DataInfoItem(dataInfo, "Path");
-            DataInfoItem(dataInfo, "Type");
-            DataInfoItem(dataInfo, "Controller");
+            DataInfoItem(dataInfo, "Asset Name", out Label _);
+            DataInfoItem(dataInfo, "Size", out assetBundleSizeField, GetTotalAssetsSize());
+            DataInfoItem(dataInfo, "Path", out Label _);
+            DataInfoItem(dataInfo, "Type", out Label _);
+            DataInfoItem(dataInfo, "Controller", out Label _);
             visual.Add(dataInfo);
         }
 
         //数据信息项
-        private void DataInfoItem(VisualElement visual, string dataName)
+        private void DataInfoItem(VisualElement visual, string dataName, out Label dataInfo, string attach = null)
         {
-            Label dataInfo = new Label();
-            dataInfo.text = dataName;
+            dataInfo = new Label();
+            //title
+            if (attach != null) dataInfo.text = $"{dataName}: {attach}";
+            else dataInfo.text = dataName;
             dataInfo.AddToClassList("ABItemDataInfo");
             visual.Add(dataInfo);
         }
@@ -363,6 +371,8 @@ namespace AssetBundleToolEditor
             delete.AddToClassList("DeleteABGroupButton");
             delete.clicked += () =>
             {
+                if (!EditorUtility.DisplayDialog("确认删除", $"确定删除AssetBundle组: '{assetBundleGroup.assetBundleName}' ?", "是", "否"))
+                    return;
                 AssetBundleEditorData.currentABConfig.AssetBundleList.Remove(assetBundleGroup);
                 UpdateAssetBundlesItem();
             };
@@ -407,43 +417,152 @@ namespace AssetBundleToolEditor
         private void AddAssetBundleGroup(VisualElement visual)
         {
             Button addABGroupButton = new Button();
+            addABGroupButton.text = "+";
             addABGroupButton.AddToClassList("AddABGroupButton");
             addABGroupButton.clicked += () =>
             {
+                // 避免重复添加输入框
+                if (addABGroupButton.Q<TextField>() != null)
+                    return;
+
                 TextField groupName = new TextField();
                 groupName.AddToClassList("AddABGroupInput");
-                addABGroupButton.Add(groupName);
+                groupName.tooltip = "请输入AssetBundle组名";
+                groupName.value = ""; // 确保初始值为空
 
                 Button sureAddABGroup = new Button();
                 sureAddABGroup.AddToClassList("AddABGroupSureButton");
+                sureAddABGroup.text = "+"; // 设置按钮文本
+
+                Button cancelAddABGroup = new Button();
+                cancelAddABGroup.AddToClassList("CancelABGroupButton");
+                cancelAddABGroup.text = "Cancel"; // 设置取消按钮文本
+
+                // 确认按钮事件
                 sureAddABGroup.clicked += () =>
                 {
-                    //确定后移出,文本输入框和确认按钮
-                    addABGroupButton.Remove(groupName);
-                    addABGroupButton.Remove(sureAddABGroup);
-                    //检查是否存在同名ABGroup或空名
-                    if (string.IsNullOrWhiteSpace(groupName.text))
-                    {
-                        Debug.Log("<color=yellow>AB包组名称不能为空!</color>");
-                    }
-                    else if (AssetBundleEditorData.currentABConfig != null && AssetBundleEditorData.currentABConfig.AssetBundleList.Any(x => x.assetBundleName == groupName.text))
-                    {
-                        Debug.Log("<color=red>已经存在同名AssetBundleGroup!</color>");
-                    }
-                    else
-                    {
-                        AssetBundleEditorData.currentABConfig.AssetBundleList.Add(new AssetBundleGroup
-                        {
-                            assetBundleName = groupName.text
-                        });
-                        UpdateAssetBundlesItem();
-                        AssetDatabase.Refresh();
-                    }
-                    AssetDatabase.Refresh();
+                    HandleAddAssetBundleGroup(addABGroupButton, groupName, sureAddABGroup, cancelAddABGroup);
                 };
+
+                // 取消按钮事件
+                cancelAddABGroup.clicked += () =>
+                {
+                    RemoveInputElements(addABGroupButton, groupName, sureAddABGroup, cancelAddABGroup);
+                };
+
+                // 回车键确认
+                groupName.RegisterCallback<KeyDownEvent>(evt =>
+                {
+                    if (evt.keyCode == KeyCode.Return || evt.keyCode == KeyCode.KeypadEnter)
+                    {
+                        HandleAddAssetBundleGroup(addABGroupButton, groupName, sureAddABGroup, cancelAddABGroup);
+                        evt.StopPropagation();
+                    }
+                    else if (evt.keyCode == KeyCode.Escape)
+                    {
+                        RemoveInputElements(addABGroupButton, groupName, sureAddABGroup, cancelAddABGroup);
+                        evt.StopPropagation();
+                    }
+                });
+
+                addABGroupButton.Add(groupName);
                 addABGroupButton.Add(sureAddABGroup);
+                addABGroupButton.Add(cancelAddABGroup);
+
+                // 聚焦到输入框
+                groupName.Focus();
             };
+
             visual.Add(addABGroupButton);
+        }
+
+        /// <summary>
+        /// 处理添加AssetBundle组的逻辑
+        /// </summary>
+        private void HandleAddAssetBundleGroup(Button addButton, TextField groupName, Button sureButton, Button cancelButton)
+        {
+            try
+            {
+                string groupNameText = groupName.value?.Trim();
+
+                // 移除UI元素
+                RemoveInputElements(addButton, groupName, sureButton, cancelButton);
+
+                // 验证输入
+                if (string.IsNullOrWhiteSpace(groupNameText))
+                {
+                    Debug.LogWarning("<color=yellow>AB包组名称不能为空!</color>");
+                    return;
+                }
+
+                // 检查配置是否存在
+                if (AssetBundleEditorData.currentABConfig == null)
+                {
+                    Debug.LogError("<color=red>当前AB配置为空!</color>");
+                    return;
+                }
+
+                // 初始化AssetBundleList（如果为null）
+                if (AssetBundleEditorData.currentABConfig.AssetBundleList == null)
+                {
+                    AssetBundleEditorData.currentABConfig.AssetBundleList = new List<AssetBundleGroup>();
+                }
+
+                // 检查是否存在同名组
+                if (AssetBundleEditorData.currentABConfig.AssetBundleList.Any(x =>
+                    string.Equals(x.assetBundleName, groupNameText, StringComparison.OrdinalIgnoreCase)))
+                {
+                    Debug.LogWarning($"<color=red>已经存在同名AssetBundleGroup: {groupNameText}</color>");
+                    return;
+                }
+
+                // 创建新的AssetBundle组
+                var newGroup = new AssetBundleGroup
+                {
+                    assetBundleName = groupNameText,
+                    assets = new List<AssetBundleAssetsData>() // 初始化assets列表
+                };
+
+                AssetBundleEditorData.currentABConfig.AssetBundleList.Add(newGroup);
+
+                // 标记配置为已修改（如果有这个功能）
+                EditorUtility.SetDirty(AssetBundleEditorData.currentABConfig);
+
+                // 更新UI
+                UpdateAssetBundlesItem();
+
+                Debug.Log($"<color=green>成功添加AssetBundle组: {groupNameText}</color>");
+            }
+            catch (System.Exception ex)
+            {
+                Debug.LogError($"<color=red>添加AssetBundle组时发生错误: {ex.Message}</color>");
+                Debug.LogException(ex);
+            }
+            finally
+            {
+                // 确保刷新资源数据库
+                AssetDatabase.Refresh();
+            }
+        }
+
+        /// <summary>
+        /// 移除输入相关的UI元素
+        /// </summary>
+        private void RemoveInputElements(Button addButton, TextField groupName, Button sureButton, Button cancelButton)
+        {
+            try
+            {
+                if (addButton.Contains(groupName))
+                    addButton.Remove(groupName);
+                if (addButton.Contains(sureButton))
+                    addButton.Remove(sureButton);
+                if (addButton.Contains(cancelButton))
+                    addButton.Remove(cancelButton);
+            }
+            catch (System.Exception ex)
+            {
+                Debug.LogError($"移除UI元素时发生错误: {ex.Message}");
+            }
         }
 
         //AB包数据
@@ -466,11 +585,11 @@ namespace AssetBundleToolEditor
             AssetDataInfo(assetBundlesDataItemContent, asset.assetName);
             //资源大小
             FileInfo fileInfo = new FileInfo(asset.assetPath);
-            AssetDataInfo(assetBundlesDataItemContent, FormatFileSize(fileInfo.Length));
+            AssetDataInfo(assetBundlesDataItemContent, FormatFileSize(fileInfo.Length), true);
             //资源路径
             AssetDataInfo(assetBundlesDataItemContent, asset.assetPath);
             //资源类型
-            AssetDataInfo(assetBundlesDataItemContent, asset.AssetsObject.GetType().Name);
+            AssetDataInfo(assetBundlesDataItemContent, asset.AssetsObject.GetType().Name, true);
             //资源控制器
             AddAssetController(assetBundlesDataItemContent, asset);
             visual.Add(assetBundlesDataItemContent);
@@ -479,76 +598,86 @@ namespace AssetBundleToolEditor
         //更新AB包数据项
         private void UpdateAssetBundlesDataItem(string searchText = null)
         {
-            if (assetBundleItemScrollView == null) return;
+            if (assetBundleItemScrollView == null || AssetBundleEditorData.currentABConfig == null) return;
             assetBundleItemScrollView.Clear();
+            // 获取要显示的资源集合
+            var assetsToShow = GetAssetsToShow();
+            if (assetsToShow == null) return;
+            // 应用过滤条件
+            var filteredAssets = ApplyFilters(assetsToShow, searchText);
+            // 添加元素到UI
+            AddAssetsToScrollView(filteredAssets);
 
-            if (AssetBundleEditorData.currentABConfig != null)
+            //更新AB包资源大小
+            assetBundleSizeField.text = "Size:" + GetTotalAssetsSize();
+        }
+
+        /// <summary>
+        /// 根据搜索范围类型获取要显示的资源
+        /// </summary>
+        private IEnumerable<AssetBundleAssetsData> GetAssetsToShow()
+        {
+            return AssetBundleEditorData.currentABItemSearchType == ABItemSearchType.All
+                ? AssetBundleEditorData.currentABConfig.AssetBundleList?.SelectMany(group => group.assets)
+                : AssetBundleEditorData.currentAssetBundleGroup?.assets;
+        }
+
+        /// <summary>
+        /// 应用类型和搜索过滤条件
+        /// </summary>
+        private IEnumerable<AssetBundleAssetsData> ApplyFilters(IEnumerable<AssetBundleAssetsData> assets, string searchText)
+        {
+            if (assets == null) return Enumerable.Empty<AssetBundleAssetsData>();
+
+            var result = assets;
+
+            // 应用类型过滤
+            if (AssetBundleEditorData.currentABItemShowType != ABItemShowType.All)
             {
-                IEnumerable<AssetBundleAssetsData> assetsToShow;
+                result = result.Where(asset => IsAssetTypeMatch(asset));
+            }
 
-                // 根据搜索范围类型决定显示哪些资源
-                if (AssetBundleEditorData.currentABItemSearchType == ABItemSearchType.All)
-                {
-                    // 显示所有AB包组的资源
-                    assetsToShow = AssetBundleEditorData.currentABConfig.AssetBundleList
-                        .SelectMany(group => group.assets);
-                }
-                else
-                {
-                    // 只显示当前AB包组的资源
-                    if (AssetBundleEditorData.currentAssetBundleGroup == null) return;
-                    assetsToShow = AssetBundleEditorData.currentAssetBundleGroup.assets;
-                }
+            // 应用搜索过滤
+            if (!string.IsNullOrEmpty(searchText))
+            {
+                result = result.Where(asset =>
+                    asset.assetName.IndexOf(searchText, StringComparison.OrdinalIgnoreCase) >= 0);
+            }
 
-                // 根据搜索范围类型决定显示哪些资源
-                if (AssetBundleEditorData.currentABItemSearchType == ABItemSearchType.All)
-                {
-                    // 显示所有AB包组的资源
-                    assetsToShow = AssetBundleEditorData.currentABConfig.AssetBundleList
-                        .SelectMany(group => group.assets);
-                }
-                else
-                {
-                    // 只显示当前AB包组的资源
-                    if (AssetBundleEditorData.currentAssetBundleGroup == null) return;
-                    assetsToShow = AssetBundleEditorData.currentAssetBundleGroup.assets;
-                }
+            return result;
+        }
 
-                // 应用类型过滤（limitTypeEnumField）
-                if (AssetBundleEditorData.currentABItemShowType != ABItemShowType.All)
-                {
-                    assetsToShow = assetsToShow.Where(asset =>
-                    {
-                        string assetType = asset.AssetsObject.GetType().Name;
-                        return System.Enum.TryParse(assetType, out ABItemShowType showType) &&
-                               showType == AssetBundleEditorData.currentABItemShowType;
-                    });
-                }
+        /// <summary>
+        /// 检查资源类型是否匹配
+        /// </summary>
+        private bool IsAssetTypeMatch(AssetBundleAssetsData asset)
+        {
+            if (asset?.AssetsObject == null) return false;
 
-                // 应用搜索过滤（完全独立于typeEnumField）
-                if (!string.IsNullOrEmpty(searchText))
-                {
-                    assetsToShow = assetsToShow.Where(asset =>
-                        asset.assetName.IndexOf(searchText, System.StringComparison.OrdinalIgnoreCase) >= 0);
-                }
+            string assetType = asset.AssetsObject.GetType().Name;
+            return Enum.TryParse(assetType, out ABItemShowType showType) &&
+                   showType == AssetBundleEditorData.currentABItemShowType;
+        }
 
-                // 添加元素
-                foreach (AssetBundleAssetsData asset in assetsToShow)
-                {
-                    if (asset == AssetBundleEditorData.currentAsset)
-                        AddAssetBundlesDataItem(assetBundleItemScrollView, asset, true);
-                    else
-                        AddAssetBundlesDataItem(assetBundleItemScrollView, asset);
-                }
+        /// <summary>
+        /// 将资源添加到滚动视图
+        /// </summary>
+        private void AddAssetsToScrollView(IEnumerable<AssetBundleAssetsData> assets)
+        {
+            foreach (var asset in assets)
+            {
+                bool isSelected = asset == AssetBundleEditorData.currentAsset;
+                AddAssetBundlesDataItem(assetBundleItemScrollView, asset, isSelected);
             }
         }
 
         //资源数据信息
-        private void AssetDataInfo(VisualElement visual, string dataName)
+        private void AssetDataInfo(VisualElement visual, string dataName, bool isCenter = false)
         {
             Label dataInfo = new Label();
             dataInfo.text = dataName;
             dataInfo.AddToClassList("AssetBundlesDataItemInfo");
+            dataInfo.style.unityTextAlign = isCenter ? TextAnchor.MiddleCenter : TextAnchor.MiddleLeft;
             visual.Add(dataInfo);
         }
 
@@ -563,28 +692,104 @@ namespace AssetBundleToolEditor
             dataInfo.Add(removeAsset);
             removeAsset.clicked += () =>
             {
+                if (!EditorUtility.DisplayDialog("确认删除", $"确定删除资源: '{asset.assetName}' ?", "是", "否"))
+                    return;
                 AssetBundleEditorData.currentAssetBundleGroup.assets.Remove(asset);
                 UpdateAssetBundlesDataItem();
             };
             visual.Add(dataInfo);
         }
 
-        // 格式化文件大小
+        #region 资源大小
+
+        /// <summary>
+        /// 获取所有资源的总大小（格式化显示）
+        /// </summary>
+        private string GetTotalAssetsSize()
+        {
+            try
+            {
+                long totalBytes = CalculateTotalAssetsSize();
+                return FormatFileSize(totalBytes);
+            }
+            catch (System.Exception ex)
+            {
+                Debug.LogError($"计算资源总大小时出错: {ex.Message}");
+                return "Unknown";
+            }
+        }
+
+        /// <summary>
+        /// 计算资源总大小（字节）
+        /// </summary>
+        private long CalculateTotalAssetsSize()
+        {
+            if (AssetBundleEditorData.currentABConfig?.AssetBundleList == null)
+                return 0;
+
+            long totalSize = 0;
+            var processedAssets = new HashSet<string>(); // 防止重复计算同一资源
+
+            // 根据当前搜索类型决定计算范围
+            IEnumerable<AssetBundleAssetsData> assetsToCalculate;
+
+            if (AssetBundleEditorData.currentABItemSearchType == ABItemSearchType.All)
+            {
+                // 计算所有AB包组的资源
+                assetsToCalculate = AssetBundleEditorData.currentABConfig.AssetBundleList
+                    .SelectMany(group => group.assets);
+            }
+            else
+            {
+                // 只计算当前AB包组的资源
+                if (AssetBundleEditorData.currentAssetBundleGroup?.assets == null)
+                    return 0;
+                assetsToCalculate = AssetBundleEditorData.currentAssetBundleGroup.assets;
+            }
+
+            // 直接统计所有资源，不应用过滤条件
+            foreach (var asset in assetsToCalculate)
+            {
+                if (asset?.AssetsObject == null) continue;
+
+                string assetPath = AssetDatabase.GetAssetPath(asset.AssetsObject);
+                if (string.IsNullOrEmpty(assetPath) || processedAssets.Contains(assetPath))
+                    continue;
+
+                processedAssets.Add(assetPath);
+
+                // 获取资源文件大小
+                var fileInfo = new System.IO.FileInfo(assetPath);
+                if (fileInfo.Exists)
+                {
+                    totalSize += fileInfo.Length;
+                }
+            }
+
+            return totalSize;
+        }
+
+        /// <summary>
+        /// 格式化文件大小显示
+        /// </summary>
         private string FormatFileSize(long bytes)
         {
-            const int KB = 1024;
-            const int MB = KB * 1024;
-            const int GB = MB * 1024;
+            if (bytes == 0) return "0 B";
 
-            if (bytes >= GB)
-                return $"{(bytes / (float)GB):0.00}GB";
-            if (bytes >= MB)
-                return $"{(bytes / (float)MB):0.00}MB";
-            if (bytes >= KB)
-                return $"{(bytes / (float)KB):0.00}KB";
+            string[] units = { "B", "KB", "MB", "GB", "TB" };
+            double size = bytes;
+            int unitIndex = 0;
 
-            return $"{bytes}B";
+            while (size >= 1024 && unitIndex < units.Length - 1)
+            {
+                size /= 1024;
+                unitIndex++;
+            }
+
+            return $"{size:F2} {units[unitIndex]}";
         }
+
+        #endregion
     }
 }
 

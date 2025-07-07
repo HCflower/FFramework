@@ -52,6 +52,8 @@
     margin-right:0px;
     margin-bottom:0px;
 
+    align-items: center;
+
     padding-left: 1px;
     padding-right: 1px;
     flex-direction: row;
@@ -60,28 +62,37 @@
     background-image: resource("Icon/Add");
 }
 
+/* 添加AB包组 */
 .AddABGroupInput{
-    width: 168px;
+    width: 120px;
     height: 20px;
 
     margin-left:1px;
-    margin-right:2px;
+    margin-right:1px;
     margin-bottom:0px;
 }
 
+/* 确认添加AB包组 */
 .AddABGroupSureButton{
     width:20px;
     height: 20px;
 
-    margin-left:1px;
-    margin-right:2px;
+    margin:0px;
+    margin-right:1px;
 
-    padding-left:0px;
-    padding-right:0px;
+    padding:0px;
 
     background-color:#585858; 
     background-size: 60% 60%;
-    background-image: resource("Icon/Add");
+}
+
+/* 取消添加AB包组 */
+.CancelABGroupButton{
+    width: 50px;
+    height: 20px;
+
+    margin:0px;
+    padding: 1px;
 }
 
 /* AB包元素下拉列表 */
@@ -252,7 +263,7 @@
     border-left-width: 0px;
     border-right-width: 0px;
 
-    background-color:#585858; 
+    background-color:  #D94040;
     background-size: 80% 80%;
     background-image: resource("Icon/CancelButton");
 }
@@ -343,7 +354,7 @@
     position:absolute;
     right:0px;
 
-    background-color:  rgba(255, 255, 255, 0);
+    background-color:  #D94040;
     background-size: 80% 80%;
     background-image: resource("Icon/CancelButton");
 }

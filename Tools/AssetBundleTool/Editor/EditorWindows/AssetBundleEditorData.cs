@@ -76,7 +76,6 @@ namespace AssetBundleToolEditor
         Scene,       //场景
         Asset,       //资源
         GameObject,  //游戏对象
-        Prefab,      //预制体
         Texture2D,   //贴图
         AudioClip,   //音频
         Animation,   //动画

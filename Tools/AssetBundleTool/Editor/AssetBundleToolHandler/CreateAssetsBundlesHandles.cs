@@ -84,13 +84,22 @@ namespace AssetBundleToolEditor
         /// <param name="ftpPwd">FTP密码</param>
         public static void UploadAllAssetBundlesFile(string assetsPath, string resServerPath, NetworkProtocolsType networkProtocolsType, string ftpUser, string ftpPwd)
         {
-            string path = Path.Combine(Application.dataPath, assetsPath);
+            string path = assetsPath;
             // 确保目录存在
             if (!Directory.Exists(path))
             {
                 Debug.LogError($"目录不存在: {path}");
                 return;
             }
+
+            // 先检测服务器连接
+            if (!TestServerConnection(resServerPath, networkProtocolsType, ftpUser, ftpPwd))
+            {
+                Debug.LogError($"<color=red>服务器连接失败，无法上传资源！</color>");
+                return;
+            }
+
+            Debug.Log($"<color=green>服务器连接成功，开始上传资源...</color>");
 
             // 获取所有文件
             var files = Directory.GetFiles(path);
@@ -112,8 +121,36 @@ namespace AssetBundleToolEditor
                     Debug.Log("<color=yellow>HTTP上传施工中~请使用FTP网络协议.</color>");
                     break;
             }
-
         }
+
+        /// <summary>
+        /// 简化版服务器连接测试
+        /// </summary>
+        private static bool TestServerConnection(string serverPath, NetworkProtocolsType networkType, string userName, string password)
+        {
+            try
+            {
+                if (networkType == NetworkProtocolsType.FTP)
+                {
+                    // 简单的FTP连接测试
+                    FtpWebRequest request = (FtpWebRequest)WebRequest.Create(serverPath);
+                    request.Method = WebRequestMethods.Ftp.ListDirectory;
+                    request.Credentials = new NetworkCredential(userName, password);
+                    request.Timeout = 5000; // 5秒超时
+
+                    using (var response = request.GetResponse())
+                    {
+                        return true;
+                    }
+                }
+                return false; // TODO:其他协议暂时返回false
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
 
         // FTP上传文件
         private static void FtpUploadFile(string assetsPath, string fileName, string resServerPath, string ftpUser, string ftpPwd)

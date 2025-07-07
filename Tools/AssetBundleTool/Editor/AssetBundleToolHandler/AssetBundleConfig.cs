@@ -16,7 +16,7 @@ namespace AssetBundleToolEditor
         [Header("Setting")]
         [Tooltip("本地AssetBundle包保存路径")][ShowOnly] public string LocalSavePath = "StreamingAssets";
         [Tooltip("热更新AssetBundle包保存路径")][ShowOnly] public string RemoteSavePath;
-        [Tooltip("AssetBundle包压缩格式")] public CompressionType RemoteCompressionType = CompressionType.Lz4;
+        [Tooltip("AssetBundle包压缩格式")] public CompressionType CompressionType = CompressionType.Lz4;
         [Tooltip("AssetBundle包构建平台")] public BuildTarget BuildTarget = BuildTarget.Windows;
 
         [Header("ResServer")]
@@ -74,7 +74,7 @@ namespace AssetBundleToolEditor
         //清理本地AssetBundles文件夹
         public void ClearLocalAssetBundlesFolder()
         {
-            ClearDirectory(Path.Combine(Application.dataPath, LocalSavePath));
+            ClearDirectory(LocalSavePath);
         }
 
         //清理远端AssetBundles文件夹
@@ -87,7 +87,7 @@ namespace AssetBundleToolEditor
         public void CreateLocalAssetBundle()
         {
             // 确保输出目录存在
-            string outputPath = Path.Combine(Application.dataPath, LocalSavePath);
+            string outputPath = LocalSavePath;
             if (!Directory.Exists(outputPath))
             {
                 Directory.CreateDirectory(outputPath);
@@ -133,20 +133,20 @@ namespace AssetBundleToolEditor
 
                 BuildAssetBundleOptions options = BuildAssetBundleOptions.None;
                 // 只有远端包才应用压缩设置
-                if (pathType == BuildPathType.Remote)
+                // if (pathType == BuildPathType.Remote)
+                // {
+                switch (CompressionType)
                 {
-                    switch (RemoteCompressionType)
-                    {
-                        case CompressionType.None:
-                            options |= BuildAssetBundleOptions.UncompressedAssetBundle;
-                            break;
-                        case CompressionType.Lzma:
-                            break;
-                        case CompressionType.Lz4:
-                            options |= BuildAssetBundleOptions.ChunkBasedCompression;
-                            break;
-                    }
+                    case CompressionType.None:
+                        options |= BuildAssetBundleOptions.UncompressedAssetBundle;
+                        break;
+                    case CompressionType.Lzma:
+                        break;
+                    case CompressionType.Lz4:
+                        options |= BuildAssetBundleOptions.ChunkBasedCompression;
+                        break;
                 }
+                // }
 
                 var builds = new List<AssetBundleBuild>();
                 foreach (var group in filteredGroups)
@@ -199,7 +199,7 @@ namespace AssetBundleToolEditor
         {
             EditorUtility.SetDirty(this);
             AssetDatabase.SaveAssets();
-            Debug.Log($"{this.name}-><color=yellow>保存数据成功</color>");
+            Debug.Log($"{this.name}-><color=green>保存数据成功</color>");
             GenerateJSON();
         }
 

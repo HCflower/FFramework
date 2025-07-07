@@ -17,7 +17,7 @@ namespace AssetBundleToolEditor
         {
             var jsonData = new JSONData
             {
-                compressionType = config.RemoteCompressionType,
+                compressionType = config.CompressionType,
                 bundles = new List<BundleData>()
             };
 
@@ -127,7 +127,7 @@ namespace AssetBundleToolEditor
         {
             var jsonData = JsonUtility.FromJson<JSONData>(json);
 
-            config.RemoteCompressionType = jsonData.compressionType;
+            config.CompressionType = jsonData.compressionType;
             config.AssetBundleList.Clear();
 
             foreach (var bundleData in jsonData.bundles)
