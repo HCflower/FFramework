@@ -129,7 +129,7 @@ namespace AssetBundleToolEditor
         }
 
         //切换控制视图按钮
-        private void ChangeSettingAndBuildingView(VisualElement visual)
+        public void ChangeSettingAndBuildingView(VisualElement visual)
         {
             visual.Clear();
             if (settingAndBuildingView == null)

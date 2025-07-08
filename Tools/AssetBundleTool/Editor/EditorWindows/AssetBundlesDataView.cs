@@ -609,7 +609,7 @@ namespace AssetBundleToolEditor
             AddAssetsToScrollView(filteredAssets);
 
             //更新AB包资源大小
-            assetBundleSizeField.text = "Size:" + GetTotalAssetsSize();
+            assetBundleSizeField.text = "Size: " + GetTotalAssetsSize();
         }
 
         /// <summary>

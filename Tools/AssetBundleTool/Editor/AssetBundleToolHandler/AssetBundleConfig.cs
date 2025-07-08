@@ -25,7 +25,7 @@ namespace AssetBundleToolEditor
         [Tooltip("主文件夹")] public string MainFolderName;
         [Tooltip("用户ID")] public string ID;
         [Tooltip("用户密码")] public string Password;
-        [Tooltip("版本号")] public string Version;
+        [Tooltip("版本号")] public string VersionID;
         [Header("AssetBundles")]
         [Tooltip("AssetBundles包列表")] public List<AssetBundleGroup> AssetBundleList = new List<AssetBundleGroup>();
 

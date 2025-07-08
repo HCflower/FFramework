@@ -25,11 +25,18 @@ namespace AssetBundleToolEditor
             mainContent = new VisualElement();
             mainContent.styleSheets.Add(Resources.Load<StyleSheet>("USS/AssetBundlesSettingAndBuildingView"));
             mainContent.AddToClassList("MainContent");
+            UpdateSettingView(mainContent);
+            visual.Add(mainContent);
+        }
+
+        // 更新设置界面
+        private void UpdateSettingView(VisualElement visual)
+        {
+            visual.Clear();
             //创建设置区域
             CreateLocalSettingContent(mainContent);
             CreateRemoteSettingContent(mainContent);
             CreateGlobalSettingContent(mainContent);
-            visual.Add(mainContent);
         }
 
         #region  本地包设置
@@ -41,7 +48,7 @@ namespace AssetBundleToolEditor
             localSettingContent.AddToClassList("SettingContent");
             localSettingContent.AddToClassList("LocalSettingContent");
             //区域标题
-            Label contentTitle = new Label("LocalSetting");
+            Label contentTitle = new Label("LocalBuildingSetting");
             contentTitle.AddToClassList("ContentTitle");
             localSettingContent.Add(contentTitle);
             // 本地路径
@@ -85,7 +92,7 @@ namespace AssetBundleToolEditor
             remoteSettingContent.AddToClassList("SettingContent");
             remoteSettingContent.AddToClassList("RemoteSettingContent");
             //区域标题
-            Label contentTitle = new Label("RemoteSetting");
+            Label contentTitle = new Label("RemoteBuildingSetting");
             contentTitle.AddToClassList("ContentTitle");
             remoteSettingContent.Add(contentTitle);
 
@@ -129,11 +136,11 @@ namespace AssetBundleToolEditor
             globalSettingContent.AddToClassList("SettingContent");
             globalSettingContent.AddToClassList("BuildingSettingContent");
             //区域标题
-            Label contentTitle = new Label("BuildingSetting");
+            Label contentTitle = new Label("GlobalBuildingSetting");
             contentTitle.AddToClassList("ContentTitle");
             globalSettingContent.Add(contentTitle);
             //构建平台选择
-            CreateEnumField(globalSettingContent, "构建平台选择",
+            CreateEnumField(globalSettingContent, "AB包构建平台选择",
             AssetBundleEditorData.currentABConfig.BuildTarget,
             (newvalue) =>
             {
@@ -156,7 +163,7 @@ namespace AssetBundleToolEditor
             });
 
             //构建AssetBundle包时是否清理文件夹
-            CreateToggle(globalSettingContent, "是否清理文件夹",
+            CreateToggle(globalSettingContent, "构建时是否清理文件夹",
             AssetBundleEditorData.isClearFolderWhenBuild,
             (newValue) =>
             {
@@ -166,11 +173,11 @@ namespace AssetBundleToolEditor
 
             //版本号
             CreateTextField(globalSettingContent, "设置版本号",
-            AssetBundleEditorData.currentABConfig.Version,
+            AssetBundleEditorData.currentABConfig.VersionID,
             (newValue) =>
             {
                 //TODO:关联到项目设置中的版本号
-                AssetBundleEditorData.currentABConfig.Version = newValue;
+                AssetBundleEditorData.currentABConfig.VersionID = newValue;
             });
 
             //下载服务器选择
@@ -179,7 +186,27 @@ namespace AssetBundleToolEditor
             (newvalue) =>
             {
                 AssetBundleEditorData.currentABConfig.NetworkProtocolsType = (NetworkProtocolsType)newvalue;
+                UpdateSettingView(mainContent);
             });
+
+            if (AssetBundleEditorData.currentABConfig.NetworkProtocolsType == NetworkProtocolsType.FTP)
+            {
+                //用户ID
+                CreateTextField(globalSettingContent, "用户ID",
+                AssetBundleEditorData.currentABConfig.ID,
+                (newValue) =>
+                {
+                    AssetBundleEditorData.currentABConfig.ID = newValue;
+                });
+
+                //用户名密码
+                CreateTextField(globalSettingContent, "用户名密码",
+                AssetBundleEditorData.currentABConfig.Password,
+                (newValue) =>
+                {
+                    AssetBundleEditorData.currentABConfig.Password = newValue;
+                });
+            }
 
             //服务器地址
             CreateTextField(globalSettingContent, "服务器地址",
@@ -190,27 +217,11 @@ namespace AssetBundleToolEditor
             });
 
             //主文件夹名称
-            CreateTextField(globalSettingContent, "主文件夹",
+            CreateTextField(globalSettingContent, "主文件夹名称",
             AssetBundleEditorData.currentABConfig.MainFolderName,
             (newValue) =>
             {
                 AssetBundleEditorData.currentABConfig.MainFolderName = newValue;
-            });
-
-            //用户ID
-            CreateTextField(globalSettingContent, "用户ID",
-            AssetBundleEditorData.currentABConfig.ID,
-            (newValue) =>
-            {
-                AssetBundleEditorData.currentABConfig.ID = newValue;
-            });
-
-            //用户名密码
-            CreateTextField(globalSettingContent, "用户名密码",
-            AssetBundleEditorData.currentABConfig.Password,
-            (newValue) =>
-            {
-                AssetBundleEditorData.currentABConfig.Password = newValue;
             });
 
             //添加资源下载管理器
@@ -218,64 +229,32 @@ namespace AssetBundleToolEditor
             {
                 Debug.Log("添加资源下载管理器");
                 // 在当前场景中查找
-                ABResDownLoadManager manager = GameObject.FindObjectOfType<ABResDownLoadManager>();
+                AssetBundlesDownLoadHandler handler = GameObject.FindObjectOfType<AssetBundlesDownLoadHandler>();
                 //设置资源地址
                 string resServer = AssetBundleEditorData.currentABConfig.ResServerPath?.TrimEnd('/');
                 string mainFolderName = AssetBundleEditorData.currentABConfig.MainFolderName?.TrimStart('/');
                 string buildTarget = AssetBundleEditorData.currentABConfig.BuildTarget.ToString();
 
                 string resServerPath = $"{resServer}/{mainFolderName}/{buildTarget}";
-                if (manager != null)
+                if (handler != null)
                 {
-                    Debug.Log($"已存在ABResDownLoadManager,位于 {manager.gameObject.name}");
-                    manager.ResServerPath = resServerPath;
+                    Debug.Log($"已存在AssetBundlesDownLoadHandler,位于 {handler.gameObject.name}");
+                    handler.ResServerPath = resServerPath;
                     Debug.Log($"设置资源服务器路径: {resServerPath}");
-                    Selection.activeObject = manager.gameObject;
+                    Selection.activeObject = handler.gameObject;
                     return;
                 }
                 else
                 {
-                    GameObject managerObj = new GameObject("ABResDownLoadManager");
+                    GameObject managerObj = new GameObject("AssetBundlesDownLoadHandler");
                     managerObj.transform.SetParent(null);
-                    manager = managerObj.AddComponent<ABResDownLoadManager>();
-                    manager.ResServerPath = resServerPath;
+                    handler = managerObj.AddComponent<AssetBundlesDownLoadHandler>();
+                    handler.ResServerPath = resServerPath;
                     Debug.Log($"设置资源服务器路径: {resServerPath}");
                     Debug.Log("已创建资源下载管理器", managerObj);
                     Selection.activeObject = managerObj;
                 }
             }, "添加资源下载管理器", "Setting");
-
-            //添加资源加载管理器
-            CreateButton(globalSettingContent, () =>
-            {
-                Debug.Log("添加资源加载管理器");
-                // 在当前场景中查找
-                AssetBundlesResLoader manager = GameObject.FindObjectOfType<AssetBundlesResLoader>();
-                //设置资源地址
-                string resServer = AssetBundleEditorData.currentABConfig.ResServerPath?.TrimEnd('/');
-                string mainFolderName = AssetBundleEditorData.currentABConfig.MainFolderName?.TrimStart('/');
-                string buildTarget = AssetBundleEditorData.currentABConfig.BuildTarget.ToString();
-
-                if (manager != null)
-                {
-                    Debug.Log($"已存在ABResDownLoadManager,位于 {manager.gameObject.name}");
-                    manager.mainAssetBundleName = buildTarget;
-                    Debug.Log($"设置主包名: {buildTarget}");
-                    Selection.activeObject = manager.gameObject;
-
-                    return;
-                }
-                else
-                {
-                    GameObject managerObj = new GameObject("AssetBundlesResLoader");
-                    managerObj.transform.SetParent(null);
-                    manager = managerObj.AddComponent<AssetBundlesResLoader>();
-                    manager.mainAssetBundleName = buildTarget;
-                    Selection.activeObject = managerObj;
-                    Debug.Log($"设置主包名: {buildTarget}");
-                    Debug.Log("已创建资源加载管理器", managerObj);
-                }
-            }, "添加资源加载管理器", "Setting");
 
             //构建所有远端AssetBundles
             CreateButton(globalSettingContent, () =>
