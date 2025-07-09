@@ -33,10 +33,7 @@
    position:absolute;
    top: 35%;
 
-   border-top-left-radius:5px;
-   border-top-right-radius:5px;
-   border-bottom-left-radius:5px;
-   border-bottom-right-radius:5px;
+   border-radius:5px;
 
    background-color:#585858;
    padding-bottom: 2px;
@@ -80,8 +77,10 @@
    height: 20px;
    margin-left: 1px;
    margin-right: 0px;
-   background-size: 80% 80%;
-   background-image: resource("Icon/FileAdd");
+   padding:0px;
+   padding-bottom: 2px;
+   font-size: 20px;
+  -unity-font-style: bold;
  }
 
  .CancelButton{
@@ -89,8 +88,8 @@
    height: 20px;
    margin-left: 1px;
    margin-right: 0px;
-   background-size: 80% 80%;
-   background-image: resource("Icon/CancelButton");
+   padding:0px;
+   -unity-font-style: bold;
  }
 
   /* 创建配置图标 */
@@ -109,15 +108,8 @@
    height: 123px;  
    align-items: center;
 
-   border-top-left-radius:5px;
-   border-top-right-radius:5px;
-   border-bottom-left-radius:5px;
-   border-bottom-right-radius:5px;
-
-   border-top-width: 0px;
-   border-bottom-width: 0px;
-   border-left-width: 0px;
-   border-right-width: 0px;
+   border-radius:5px;
+   border-width: 0px;
 
    background-color:#585858;
  }

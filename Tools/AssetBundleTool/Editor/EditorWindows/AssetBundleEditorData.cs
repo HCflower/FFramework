@@ -29,7 +29,7 @@ namespace AssetBundleToolEditor
         public static string remoteAssetBundleSavePath;
 
         //构建AssetBundle包时是否清理文件夹
-        public static bool isClearFolderWhenBuild = false;
+        public static bool isClearFolderWhenBuild = true;
 
         #endregion
 

@@ -76,14 +76,14 @@
 .AddABGroupSureButton{
     width:20px;
     height: 20px;
-
     margin:0px;
     margin-right:1px;
-
     padding:0px;
+    padding-bottom: 2px;
 
     background-color:#585858; 
-    background-size: 60% 60%;
+    font-size: 20px;
+    -unity-font-style: bold;
 }
 
 /* 取消添加AB包组 */
@@ -93,6 +93,7 @@
 
     margin:0px;
     padding: 1px;
+    -unity-font-style: bold;
 }
 
 /* AB包元素下拉列表 */
@@ -116,7 +117,6 @@
 .ABItemSearchContent{
     width:100%;
     height: 18px;
-
     margin-top:1px;
 
     padding-left: 1px;
@@ -164,12 +164,12 @@
     flex-shrink: 1;             
     flex-basis: 0%;             
     
-    background-color: rgba(125, 125, 125, 0.25);
     border-right-width: 1px;
     border-right-color: rgba(125, 125, 125, 0.25);
     
     -unity-text-align: middle-center;
     -unity-font-style: bold;
+    background-color:#454545;
 }
 
 /* AB包元素滚动列表 */
@@ -199,7 +199,6 @@
     position:absolute;
 }
 
-
 /* AssetBundle数据项 */
 .DefaultAssetBundleItem{
     width: 100%;
@@ -227,18 +226,21 @@
     background-color: rgb(214, 166, 99);
 }
 
+/* 当前AB包是否构建 */
+.BuildToggle{
+    width: 18px;
+    height: 18px;
+    margin: 0px;
+}
+
 /* ABGroup名称  */
 .AssetBundleItemTitle{
-    width: 110px;
+    width: 90px;
     height: 20px;
     font-size: 12px;
 
-    margin-top:0px;
-    margin-left:0px;
-    margin-right:0px;
-    margin-bottom:0px;
-
-    border-left-width: 3px;
+    margin:0px;
+    padding: 0px;
 
     overflow: hidden;          /* 隐藏超出部分 */
     white-space: nowrap;       /* 禁止文本换行 */
@@ -257,35 +259,25 @@
 
     padding-left:0px;
     padding-right:0px;
-    
-    border-top-width: 0px;
-    border-bottom-width: 0px;
-    border-left-width: 0px;
-    border-right-width: 0px;
+
+    border-width: 0px;
 
     background-color:  #D94040;
-    background-size: 80% 80%;
-    background-image: resource("Icon/CancelButton");
+    -unity-font-style: bold;
 }
 
 .BuildPathTypeEnumField{
     width:65px;
     height: 18px;
-
-    border-top-width: 0px;
-    border-bottom-width: 0px;
-    border-left-width: 0px;
-    border-right-width: 0px;
-
+    border-width: 0px;
     margin-left:0px;
     margin-right:0px;
 }
 .BuildPathTypeEnumField > .unity-base-field__input{
-    border-top-width: 0px;
-    border-bottom-width: 0px;
-    border-left-width: 0px;
-    border-right-width: 0px;
+    border-width: 0px;
+    background-color:#454545;
 }
+
 /* AB包数据项区域 */
 .AssetBundlesDataItemContent{
     width: auto;
@@ -337,24 +329,16 @@
 }
 
 .CancelAsset{
-    width: 18px;
-    height: 18px;
+    width: 16px;
+    height: 16px;
 
-    border-top-width: 0px;
-    border-bottom-width: 0px;
-    border-left-width: 0px;
-    border-right-width: 0px;
-    
-    padding-left:0px;
-    padding-right:0px;
-
-    margin-left:0px;
-    margin-right:0px;
-    
     position:absolute;
+    border-width: 0px;
+    padding:0px;
+    margin:0px;
     right:0px;
+    align-self:center;
 
     background-color:  #D94040;
-    background-size: 80% 80%;
-    background-image: resource("Icon/CancelButton");
+    -unity-font-style: bold;
 }

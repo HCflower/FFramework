@@ -40,6 +40,8 @@
 
     flex-direction: row;
     align-items: center;
+
+    font-size: 12px;
 }
 
 /* 工具栏 */

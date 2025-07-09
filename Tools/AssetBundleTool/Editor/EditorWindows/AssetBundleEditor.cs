@@ -41,7 +41,7 @@ namespace AssetBundleToolEditor
         private void OnDisable()
         {
             //保存所有数据
-            AssetBundleEditorData.currentABConfig.SaveData();
+            AssetBundleEditorData.currentABConfig?.SaveData();
             rootVisualElement.Clear();
         }
 
@@ -50,6 +50,7 @@ namespace AssetBundleToolEditor
         {
             abToolbar = new Toolbar();
             abToolbar.AddToClassList("ABToolBar");
+            // 创建配置文件
             CreateControllerButton(abToolbar, "CreateConfigure", () =>
             {
                 mainContent.Clear();
@@ -57,29 +58,44 @@ namespace AssetBundleToolEditor
             }, out Label CreateConfigIcon);
             CreateConfigIcon.style.backgroundImage = Resources.Load<Texture2D>("Icon/CreateConfigIcon");
 
-            CreateControllerButton(abToolbar, "AssetBundlesData", () =>
+            // AB包数据
+            CreateControllerButton(abToolbar, "AssetBundleData", () =>
             {
                 mainContent.Clear();
                 ChangeABDataView(mainContent);
             }, out Label AssetBundlesDataIcon);
             AssetBundlesDataIcon.style.backgroundImage = Resources.Load<Texture2D>("Icon/AssetBundle");
 
-            CreateControllerButton(abToolbar, "SettingAndBuilding", () =>
+            // 设置和构建
+            CreateControllerButton(abToolbar, "Setting/Building", () =>
             {
                 mainContent.Clear();
                 ChangeSettingAndBuildingView(mainContent);
             }, out Label BuildAndSettingIcon);
             BuildAndSettingIcon.style.backgroundImage = Resources.Load<Texture2D>("Icon/Setting");
 
+            // 刷新配置
+            CreateControllerButton(abToolbar, "UpdateConfigure", () =>
+            {
+                if (AssetBundleEditorData.currentABConfig != null)
+                {
+                    AssetBundleEditorData.currentABConfig.GenerateJSON();
+                    AssetBundleEditorData.currentABConfig.LoadFromJSON();
+                }
+                else Debug.Log("未选择没有配置文件!");
+            }, out Label UpdateConfigureIcon);
+            UpdateConfigureIcon.style.backgroundImage = Resources.Load<Texture2D>("Icon/AB-Refresh");
+
+            // 保存配置
             CreateControllerButton(abToolbar, "SaveConfigure", () =>
             {
                 if (AssetBundleEditorData.currentABConfig != null)
                     AssetBundleEditorData.currentABConfig.SaveData();
-                else
-                    Debug.Log("未选择没有配置文件!");
+                else Debug.Log("未选择没有配置文件!");
             }, out Label SaveIcon);
             SaveIcon.style.backgroundImage = Resources.Load<Texture2D>("Icon/Save");
 
+            // 上传资源到服务器
             CreateControllerButton(abToolbar, "UploadToServer", () =>
                {
                    string assetspath = AssetBundleEditorData.currentABConfig.RemoteSavePath;

@@ -46,7 +46,7 @@ namespace AssetBundleToolEditor
 
             string jsonPath = GetAssociatedJSONPath(config);
             File.WriteAllText(jsonPath, JsonUtility.ToJson(jsonData, true));
-            config.JosnPath = jsonPath;
+            config.JsonAsset = AssetDatabase.LoadAssetAtPath<TextAsset>(jsonPath);
             config.JosnGuid = AssetDatabase.AssetPathToGUID(jsonPath);
             AssetDatabase.Refresh();
             Debug.Log($"JSON文件生成成功: {jsonPath}");

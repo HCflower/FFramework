@@ -111,6 +111,7 @@ namespace AssetBundleToolEditor
         private void CreateConfigureButton(VisualElement visual)
         {
             Button createConfigureButton = new Button();
+            createConfigureButton.text = "+";
             createConfigureButton.AddToClassList("CreateConfigureButton");
             createConfigureButton.clicked += () =>
             {
@@ -154,9 +155,9 @@ namespace AssetBundleToolEditor
         //创建取消按钮
         private void CreateCancelButton(VisualElement visual)
         {
-
             Button CancelButton = new Button();
             CancelButton.AddToClassList("CancelButton");
+            CancelButton.text = "X";
             CancelButton.clicked += () =>
             {
                 isOpencreateConfigure = false;
@@ -170,7 +171,7 @@ namespace AssetBundleToolEditor
         private string GetFolderPath()
         {
             // 打开文件夹选择面板
-            string exportPath = EditorUtility.OpenFolderPanel("Select export path", "Assets", "");
+            string exportPath = EditorUtility.OpenFolderPanel("选择导出路径", "Assets", "");
             // 确保选择的是相对 Assets 目录的路径
             if (!string.IsNullOrEmpty(exportPath) && exportPath.StartsWith(Application.dataPath))
             {
@@ -180,7 +181,7 @@ namespace AssetBundleToolEditor
             }
             else
             {
-                EditorUtility.DisplayDialog("Error", "No directory path was selected within the Assets folder.", "Ok");
+                EditorUtility.DisplayDialog("错误", "未在 Assets 文件夹中选择任何目录路径。", "OK");
             }
             return exportPath;
         }

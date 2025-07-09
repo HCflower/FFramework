@@ -10,7 +10,8 @@ namespace AssetBundleToolEditor
     [CreateAssetMenu(fileName = nameof(AssetBundleConfig), menuName = "Localization/AssetBundleConfig")]
     public class AssetBundleConfig : ScriptableObject
     {
-        [Tooltip("Json文件路径")] public string JosnPath;
+        [Tooltip("AssetBundle配置文件")] public TextAsset JsonAsset;
+        [Tooltip("Json文件路径")][ShowOnly] public string JosnPath;
         [Tooltip("Json文件GUID")][ShowOnly] public string JosnGuid;
 
         [Header("Setting")]
@@ -43,13 +44,13 @@ namespace AssetBundleToolEditor
         }
 
         [Button("生成JSON文件")]
-        private void GenerateJSON()
+        public void GenerateJSON()
         {
             AssetBundleConfigJSON.GenerateJSON(this);
         }
 
         [Button("从JSON加载数据")]
-        private void LoadFromJSON()
+        public void LoadFromJSON()
         {
             if (AssetBundleConfigJSON.LoadJSONToSO(this))
             {
@@ -80,7 +81,7 @@ namespace AssetBundleToolEditor
         //清理远端AssetBundles文件夹
         public void ClearRemoteAssetBundlesFolder()
         {
-            ClearDirectory(Path.Combine(Application.dataPath, RemoteSavePath));
+            ClearDirectory(RemoteSavePath);
         }
 
         [Button("构建本地AssetBundle")]
@@ -100,7 +101,7 @@ namespace AssetBundleToolEditor
         public void CreateRemoteAssetBundle()
         {
             // 确保输出目录存在
-            string outputPath = Path.Combine(Application.dataPath, RemoteSavePath);
+            string outputPath = RemoteSavePath;
             if (!Directory.Exists(outputPath))
             {
                 Directory.CreateDirectory(outputPath);
@@ -109,6 +110,7 @@ namespace AssetBundleToolEditor
             CreateAssetBundleInternal(outputPath, BuildPathType.Remote);
         }
 
+        // 根据路径类型创建AssetBundle
         private void CreateAssetBundleInternal(string savePath, BuildPathType pathType)
         {
             if (string.IsNullOrEmpty(savePath))
@@ -117,10 +119,14 @@ namespace AssetBundleToolEditor
                 return;
             }
 
-            var filteredGroups = AssetBundleList.Where(g => g.buildPathType == pathType).ToList();
+            // 添加isBuild限制，只选择isBuild为true的组
+            var filteredGroups = AssetBundleList
+                .Where(g => g.buildPathType == pathType && g.isBuild)
+                .ToList();
+
             if (filteredGroups.Count == 0)
             {
-                Debug.LogError($"没有可构建的{pathType}AB包");
+                Debug.Log($"<color=yellow>没有可构建的{pathType}AB包（所有包的isBuild都为false或不匹配构建类型）</color>");
                 return;
             }
 
@@ -154,6 +160,13 @@ namespace AssetBundleToolEditor
                     if (string.IsNullOrEmpty(group.assetBundleName))
                     {
                         Debug.LogWarning($"跳过未命名的AB包组");
+                        continue;
+                    }
+
+                    // 可以在这里再次检查isBuild状态（可选的双重保险）
+                    if (!group.isBuild)
+                    {
+                        Debug.LogWarning($"跳过isBuild为false的AB包组: {group.assetBundleName}");
                         continue;
                     }
 
@@ -200,7 +213,6 @@ namespace AssetBundleToolEditor
             EditorUtility.SetDirty(this);
             AssetDatabase.SaveAssets();
             Debug.Log($"{this.name}-><color=green>保存数据成功</color>");
-            GenerateJSON();
         }
 
         //构建本地资源对比文件
@@ -252,7 +264,8 @@ namespace AssetBundleToolEditor
     public class AssetBundleGroup
     {
         [Tooltip("AssetBundle包名")] public string assetBundleName = string.Empty;
-        public BuildPathType buildPathType = BuildPathType.Local;
+        [Tooltip("构建路径类型")] public BuildPathType buildPathType = BuildPathType.Local;
+        [Tooltip("是否构建")] public bool isBuild = true;
         public List<AssetBundleAssetsData> assets;
     }
 

@@ -163,6 +163,7 @@ namespace AssetBundleToolEditor
         {
             this.typeEnumField = new EnumField(ABItemSearchType.Self);
             this.typeEnumField.AddToClassList("ABItemSearchTypeEnumField");
+            typeEnumField.tooltip = "搜索类型(自己/全部)";
 
             // 仅更新搜索类型，不自动刷新视图
             this.typeEnumField.RegisterValueChangedCallback(evt =>
@@ -178,6 +179,7 @@ namespace AssetBundleToolEditor
         {
             EnumField limitTypeEnumField = new EnumField(ABItemShowType.All);
             limitTypeEnumField.AddToClassList("LimitItemShowTypeEnumField");
+            limitTypeEnumField.tooltip = "显示类型";
 
             // 根据当前资源类型过滤显示选项
             if (AssetBundleEditorData.currentAsset != null)
@@ -340,6 +342,21 @@ namespace AssetBundleToolEditor
             Button AssetBundleItem = new Button();
             AssetBundleItem.AddToClassList("DefaultAssetBundleItem");
             if (isSelect) AssetBundleItem.AddToClassList("SelectAssetBundleItem");
+            //当前AssetBundle是否构建
+            Toggle isBuildToggle = new Toggle();
+            isBuildToggle.AddToClassList("BuildToggle");
+            isBuildToggle.value = assetBundleGroup.isBuild;
+            isBuildToggle.tooltip = "是否加入AssetBundle构建";
+            isBuildToggle.RegisterValueChangedCallback
+            (evt =>
+            {
+                if (assetBundleGroup.isBuild != evt.newValue)
+                {
+                    assetBundleGroup.isBuild = evt.newValue;
+                }
+            });
+
+            AssetBundleItem.Add(isBuildToggle);
             //标题
             Label title = new Label();
             title.AddToClassList("AssetBundleItemTitle");
@@ -360,6 +377,7 @@ namespace AssetBundleToolEditor
                 value = assetBundleGroup.buildPathType
             };
             buildPathType.AddToClassList("BuildPathTypeEnumField");
+            buildPathType.tooltip = "AssetBundle构建路径(本地/远端)";
             buildPathType.RegisterValueChangedCallback(evt =>
             {
                 assetBundleGroup.buildPathType = (BuildPathType)evt.newValue;
@@ -368,6 +386,7 @@ namespace AssetBundleToolEditor
 
             //删除ABGroup按钮
             Button delete = new Button();
+            delete.text = "X";
             delete.AddToClassList("DeleteABGroupButton");
             delete.clicked += () =>
             {
@@ -484,10 +503,8 @@ namespace AssetBundleToolEditor
             try
             {
                 string groupNameText = groupName.value?.Trim();
-
                 // 移除UI元素
                 RemoveInputElements(addButton, groupName, sureButton, cancelButton);
-
                 // 验证输入
                 if (string.IsNullOrWhiteSpace(groupNameText))
                 {
@@ -689,7 +706,7 @@ namespace AssetBundleToolEditor
             //移除资源
             Button removeAsset = new Button();
             removeAsset.AddToClassList("CancelAsset");
-            dataInfo.Add(removeAsset);
+            removeAsset.text = "X";
             removeAsset.clicked += () =>
             {
                 if (!EditorUtility.DisplayDialog("确认删除", $"确定删除资源: '{asset.assetName}' ?", "是", "否"))
@@ -697,6 +714,7 @@ namespace AssetBundleToolEditor
                 AssetBundleEditorData.currentAssetBundleGroup.assets.Remove(asset);
                 UpdateAssetBundlesDataItem();
             };
+            dataInfo.Add(removeAsset);
             visual.Add(dataInfo);
         }
 
