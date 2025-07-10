@@ -12,8 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c40cf6ef8f20769498b7319dfef26977, type: 3}
   m_Name: RedDotKitConfig
   m_EditorClassIdentifier: 
-  redDotSystemConfigJson: {fileID: 4900000, guid: 64354317eca555349b886336ffae0561, type: 3}
-  redDotSystemConfigJsonPath: Assets/RedDotSystemConfig.json
+  configJsonTextAsset: {fileID: 4900000, guid: e2f506b84c9012e40823261345a27c04, type: 3}
   RedDotTrees:
   - treeName: 001
     rootKey: 1
@@ -34,3 +33,4 @@ MonoBehaviour:
       redDotCount: 1
       isShowRedDotCount: 1
       parentKeys: 03000000
+  displayPath: Assets/Game/Test/RedDotSystemConfig.json

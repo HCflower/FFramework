@@ -1,11 +1,10 @@
+using System.Text.RegularExpressions;
 using FFramework.Kit;
 using UnityEditor;
 using UnityEngine;
-using System.Text;
 using System.Linq;
 using System.IO;
 using System;
-using System.Text.RegularExpressions;
 
 namespace RedDotKitEditor
 {

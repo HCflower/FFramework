@@ -100,6 +100,91 @@ namespace LocalizationEditor
         }
 
         /// <summary>
+        /// 删除当前的SO数据文件和绑定的CSV文件
+        /// </summary>
+        /// <param name="currentData">要删除的数据对象</param>
+        public static void DeleteCurrentDataFile(LocalizationData currentData)
+        {
+            if (currentData == null)
+            {
+                Debug.LogWarning("没有当前数据文件可删除");
+                return;
+            }
+
+            // 获取SO文件路径
+            string soPath = AssetDatabase.GetAssetPath(currentData);
+            if (string.IsNullOrEmpty(soPath))
+            {
+                Debug.LogError("无法获取当前数据文件的路径");
+                return;
+            }
+
+            // 获取绑定的CSV文件路径
+            string csvPath = "";
+            if (currentData is LocalizationData localizationData)
+            {
+                csvPath = localizationData.localizationDataPath;
+            }
+
+            // 准备删除信息
+            string deleteInfo = $"即将删除以下文件：\n\n";
+            deleteInfo += $"SO文件: {soPath}\n";
+            if (!string.IsNullOrEmpty(csvPath) && File.Exists(csvPath))
+            {
+                deleteInfo += $"CSV文件: {csvPath}\n";
+            }
+            deleteInfo += "\n此操作不可撤销,确定要删除吗?";
+
+            // 显示确认对话框
+            if (EditorUtility.DisplayDialog("确认删除", deleteInfo, "删除", "取消"))
+            {
+                try
+                {
+                    bool hasError = false;
+
+                    // 删除SO文件
+                    if (!string.IsNullOrEmpty(soPath))
+                    {
+                        if (AssetDatabase.DeleteAsset(soPath))
+                        {
+                            Debug.Log($"已删除SO文件: {soPath}");
+                        }
+                        else
+                        {
+                            Debug.LogError($"删除SO文件失败: {soPath}");
+                            hasError = true;
+                        }
+                    }
+
+                    // 删除CSV文件
+                    if (!string.IsNullOrEmpty(csvPath) && System.IO.File.Exists(csvPath))
+                    {
+                        try
+                        {
+                            File.Delete(csvPath);
+                            Debug.Log($"已删除CSV文件: {csvPath}");
+                        }
+                        catch (Exception e)
+                        {
+                            Debug.LogError($"删除CSV文件失败: {csvPath}, 错误: {e.Message}");
+                            hasError = true;
+                        }
+                    }
+
+                    // 刷新资源数据库
+                    AssetDatabase.Refresh();
+
+                    if (!hasError) Debug.Log("文件删除成功");
+                }
+                catch (Exception e)
+                {
+                    Debug.LogError($"删除文件时发生错误: {e.Message}");
+                    EditorUtility.DisplayDialog("删除失败", $"删除文件时发生错误:\n{e.Message}", "确定");
+                }
+            }
+        }
+
+        /// <summary>
         /// 更新本地化数据SO
         /// </summary>
         public static void ImportOrUpdateCSVToSO(LocalizationData data)
@@ -137,7 +222,7 @@ namespace LocalizationEditor
                     string[] values = csvLines[i].Split(',');
                     if (values.Length != headers.Length)
                     {
-                        Debug.LogWarning($"Skipping invalid row {i}: column count mismatch");
+                        Debug.LogWarning($"跳过无效行 {i}：列计数不匹配");
                         continue;
                     }
 

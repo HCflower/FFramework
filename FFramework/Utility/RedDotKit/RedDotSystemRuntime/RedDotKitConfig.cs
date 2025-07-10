@@ -7,13 +7,16 @@ namespace FFramework.Kit
     /// <summary>
     /// 红点系统配置
     /// </summary>
-    [CreateAssetMenu(fileName = "RedDotSystemConfig", menuName = "FFramework/RedDot System Config")]
+    [CreateAssetMenu(fileName = "RedDotSystemConfig", menuName = "FFramework/RedDotKitConfig", order = 2)]
     public class RedDotKitConfig : ScriptableObject
     {
-        public TextAsset redDotSystemConfigJson;
-        public string redDotSystemConfigJsonPath = "Assets/RedDotSystemConfig.json";
+        public TextAsset configJsonTextAsset;
         // 所有树的定义
         public List<TreeDefinition> RedDotTrees = new List<TreeDefinition>();
+
+#if UNITY_EDITOR
+        [SerializeField, ShowOnly] private string configJsonPath = "Assets/RedDotSystemConfig.json";
+#endif
 
         [Serializable]
         public class TreeDefinition
@@ -53,15 +56,51 @@ namespace FFramework.Kit
             UnityEditor.AssetDatabase.SaveAssets();
         }
 
+        // 获取实际的保存/加载路径
+        private string GetActualConfigPath()
+        {
+            // 如果configJsonTextAsset中有数据，则使用该文件所在的路径
+            if (configJsonTextAsset != null)
+            {
+                string assetPath = UnityEditor.AssetDatabase.GetAssetPath(configJsonTextAsset);
+                if (!string.IsNullOrEmpty(assetPath))
+                {
+                    // 获取文件所在的文件夹路径
+                    string directoryPath = System.IO.Path.GetDirectoryName(assetPath);
+                    // 获取原始文件名
+                    string fileName = System.IO.Path.GetFileName(configJsonPath);
+                    // 如果原路径没有文件名，使用默认名称
+                    if (string.IsNullOrEmpty(fileName))
+                    {
+                        fileName = "RedDotConfig.json";
+                    }
+                    // 组合新的保存路径
+                    return System.IO.Path.Combine(directoryPath, fileName);
+                }
+            }
+
+            return configJsonPath;
+        }
+
         [Button("保存数据到Json文件", "yellow")]
         public void SaveToJson()
         {
             try
             {
+                string savePath = GetActualConfigPath();
+
                 string json = JsonUtility.ToJson(new SerializedData { RedDotTrees = this.RedDotTrees }, true);
-                System.IO.File.WriteAllText(redDotSystemConfigJsonPath, json);
+                System.IO.File.WriteAllText(savePath, json);
+
+                // 更新configJsonPath为实际保存的路径
+                configJsonPath = savePath;
+
                 UnityEditor.AssetDatabase.Refresh();
-                Debug.Log($"红点系统配置已保存到: {redDotSystemConfigJsonPath}");
+
+                // 重新加载TextAsset引用
+                configJsonTextAsset = UnityEditor.AssetDatabase.LoadAssetAtPath<TextAsset>(configJsonPath);
+
+                Debug.Log($"红点系统配置已保存到: {configJsonPath}");
             }
             catch (Exception e)
             {
@@ -74,16 +113,25 @@ namespace FFramework.Kit
         {
             try
             {
-                if (System.IO.File.Exists(redDotSystemConfigJsonPath))
+                string loadPath = GetActualConfigPath();
+
+                if (System.IO.File.Exists(loadPath))
                 {
-                    string json = System.IO.File.ReadAllText(redDotSystemConfigJsonPath);
+                    string json = System.IO.File.ReadAllText(loadPath);
                     var wrapper = JsonUtility.FromJson<Wrapper>(json);
                     RedDotTrees = wrapper.RedDotTrees;
-                    Debug.Log($"红点系统配置已从 {redDotSystemConfigJsonPath} 加载");
+
+                    // 更新configJsonPath为实际加载的路径
+                    configJsonPath = loadPath;
+
+                    // 更新TextAsset引用
+                    configJsonTextAsset = UnityEditor.AssetDatabase.LoadAssetAtPath<TextAsset>(configJsonPath);
+
+                    Debug.Log($"红点系统配置已从 {configJsonPath} 加载");
                 }
                 else
                 {
-                    Debug.LogWarning($"找不到红点系统配置文件: {redDotSystemConfigJsonPath}");
+                    Debug.LogWarning($"找不到红点系统配置文件: {loadPath}");
                 }
             }
             catch (Exception e)

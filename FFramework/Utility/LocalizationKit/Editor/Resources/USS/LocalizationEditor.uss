@@ -1,14 +1,32 @@
+/* 数据输入区域 */
+.InputFieldContent{
+    height: 20px;
+    margin-top: 2px;
+    flex-direction: row;
+    align-items: center;
+    flex-grow: 0;     /* 不允许容器在可用空间内增长 */
+    flex-shrink: 1;   /* 允许容器在空间不足时收缩 */
+}
+
 /* 文本输入区域 */
-.TextInputField{
-    width: 300px;
+.InputField{
+    width: auto;
+
+    flex-grow: 1;      /* 输入框占据剩余空间 */
+    flex-shrink: 1;    /* 允许收缩 */
+    flex-basis: 0%;    /* 基础大小为0，完全依赖flex-grow */
 }
 
 /* 功能标题 */
 .LableTitle{
     margin-left: 5px;
-    width: 110px;
+    min-width: 120px;  /* 改为最小宽度，而不是固定宽度 */
     border-right-width: 2px;
-    border-right-color:#B7742C;
+    border-right-color: #B7742C;
+
+    flex-grow: 0;      /* 标题不自动增长 */
+    flex-shrink: 0;    /* 标题不收缩 */
+    flex-basis: 120px; /* 基础宽度 */
 }
 
 /* 控制按钮 */
@@ -16,62 +34,32 @@
     width: 18px;
     height: 18px;
 
-    margin-right:0px;
-    margin-top:0px;
-    margin-bottom:0px;
-
-    border-top-width:0px;
-    border-bottom-width:0px;
-    border-right-width:0px;
-    border-left-width:0px;
+    margin:0px;
+    margin-left:1px;
+    margin-right:1px;
+    border-width:0px;
 
     padding-left: 0px;
     padding-right: 0px;
-    background-size: 90% 90%;
+
+    font-size: 14px;
+    -unity-font-style: bold;  
 }
 
 .ToggleButton{
-    align-self:flex-end;
+    width: 20px;
+    height: 20px;
+
+    margin:0px;
+    border-width:0px;
+
+    padding-left: 1px;
+    padding-right: 0px;
 }
+
 /* 创建Data数据和CSV文件 */
 .CreateDataAddCSVButton{
     background-image: resource("Icon/FileAdd");
-}
-
-/*选择SO数据文件按钮 */
-.SelectSODataFileButton{
-    margin-left: 2px;
-    width: 189px;
-    
-    flex-direction: row;
-    align-items: center;
-    background-color:#515151;
-
-    border-top-width:0px;
-    border-bottom-width:0px;
-    border-right-width:0px;
-    border-left-width:0px;
-
-    padding-left: 0px;
-    padding-right: 0px;
-}
-
-/* 选择CSV文件按钮 */
-.SelectCSVFileButton{
-    margin-left: 2px;
-    width: 189px;
-    
-    flex-direction: row;
-    align-items: center;
-    background-color:#515151;
-
-    border-top-width:0px;
-    border-bottom-width:0px;
-    border-right-width:0px;
-    border-left-width:0px;
-
-    padding-left: 0px;
-    padding-right: 0px;
 }
 
 /* 数据项标题名称 */
@@ -81,33 +69,9 @@
     margin-left: 5px;
 }
 
-/* 数据输入区域 */
-.InputFieldContent{
-    margin-top: 2px;
-    flex-direction: row;
-    height: 20px;
-    align-items: center;
-}
-
-/* CSV文件导入SO按钮 - 数据刷新 */
-.CSVImportToSOButton{
-    background-color:#515151;
-    background-image: resource("Icon/Refresh");
-}
-
-/* 选择文件路径按钮 */
-.SelectFolderButton{
-    background-image: resource("Icon/SelectFolder");
-}
-
 /* CSV文件选择区域 */
 .CSVFileSelectField{
     width: 300px;
-}
-
-/* 改变SO对应的CSV文件数据按钮 */
-.ChangeCSVDataButton{
-    background-image: resource("Icon/ChangeData");
 }
 
 /* 控制按钮区域 */
@@ -121,37 +85,31 @@
 }
 
 /* 控制数据按钮 */
-.ControlDataButton{
+.GlobalControlButton{
     width: 143px;
     height:30px;
     -unity-font-style: bold;
     -unity-text-align: middle-center;
-    margin-top: 5px;
+    margin:0px;
+    margin-top: 2px;
+    padding: 0px;
     justify-content: center;
 
     border-radius: 3px;
+
+    flex-grow: 1;      /* 输入框占据剩余空间 */
+    flex-shrink: 1;    /* 允许收缩 */
+    flex-basis: 0%;    /* 基础大小为0，完全依赖flex-grow */
 }
 
 /* 数据滚动视图 */
 .DataSOScrollview{
-    margin-top: 5px;
-    margin-left: 5px;
-    margin-right: 5px;
-    width: 440px;
-    height:200px;
+    margin: 1px;
+   
+    width: auto;
+    min-height:200px;
     background-color:#2A2A2A;
     border-radius: 2px;
-}
-
-/* 链接图标 */
-.LinkIcon{
-    width: 18px;
-    height: 18px;
-    margin-left: 0px;
-    margin-right: 0px;
-
-    background-size: 160% 160%;
-    background-image: resource("Icon/LinkIcon");
 }
 
 /* SO数据图标 */
@@ -167,7 +125,7 @@
     width: 18px;
     height: 18px;
     left:0px;
-    background-size: 16px 16px;
+    background-size: 15px 15px;
     background-image: resource("Icon/CSV");
 }
 
@@ -176,15 +134,19 @@
     width: 18px;
     height: 18px;
     left:0px;
+    margin: 0px;
+    margin-left: 5px;
 }
 
 /*数据显示项,主区域*/
-.MainContent{
+.DataViewContent{
     width: 100%;
     height:20px;
     flex-direction: row;
     align-items: center;
+    margin: 0px;
     margin-top: 2px;
+    padding: 1px;
 }
 
 /* 选择项按钮 */
@@ -195,12 +157,10 @@
     flex-direction: row;
     align-items: center;
 
-    margin-top:0px;
-    margin-bottom: 0px;
-    margin-left: 1px;
-    margin-right: 2px;
+    margin:1px;
+    padding: 1px;
 
-    border-left-width: 2px;
+    border-left-width: 1px;
     border-left-color:#B7742C;
 
     background-color: #515151;
@@ -209,8 +169,7 @@
     -unity-font-style: bold;
     -unity-text-align: middle-left;
 
-    border-top-left-radius: 2px;
-    border-top-right-radius: 2px;
-    border-bottom-left-radius: 2px;
-    border-bottom-right-radius: 2px;
+    flex-grow: 1;      /* 输入框占据剩余空间 */
+    flex-shrink: 1;    /* 允许收缩 */
+    flex-basis: 0%;    /* 基础大小为0，完全依赖flex-grow */
 }

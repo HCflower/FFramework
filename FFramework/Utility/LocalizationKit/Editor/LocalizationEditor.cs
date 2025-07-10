@@ -14,14 +14,14 @@ namespace LocalizationEditor
     public class LocalizationEditor : EditorWindow
     {
         private string currentDataName = "LocalizationData";       //当前localizationData文件名,默认为LocalizationData
-        private bool isCreateCSV = false;                          //是否创建CSV文件
+        private bool isCreateCSV = true;                           //是否创建CSV文件
         private string localizationDataSavePath = "Assets/";       //localizationData文件保存路径,默认为项目路径
         private string csvSavePath = "Assets/";                    //csv文件保存路径,默认为项目路径
         private LocalizationData currentLocalizationData;          //当前localizationData
         private List<LocalizationData> localizationDataList = new List<LocalizationData>();
-        private TextField currentDataNameField;                    //数据文件名输入框
-        private TextField csvSaveField;                            //CSV文件保存路径
+        private TextField nameInputField;                          //数据文件名输入框
         private TextField dataSaveField;                           //数据文件保存路径
+        private TextField csvFileSaveField;                        //CSV文件保存路径
         private ScrollView scrollView;                             //数据列表
         private ObjectField csvSelectField;                        //CSV文件选择框
 
@@ -29,7 +29,7 @@ namespace LocalizationEditor
         public static void SkillEditorCreateWindow()
         {
             LocalizationEditor window = GetWindow<LocalizationEditor>();
-            window.minSize = new Vector2(450, 330);
+            window.minSize = new Vector2(450, 325);
             window.titleContent = new GUIContent("LocalizationEditor");
             window.Show();
         }
@@ -38,11 +38,30 @@ namespace LocalizationEditor
         {
             rootVisualElement.Clear();
             rootVisualElement.styleSheets.Add(Resources.Load<StyleSheet>("USS/LocalizationEditor"));
-            DataNameField(rootVisualElement);
+            // 文件名控制区域
+            TextInputControlField(rootVisualElement, ref nameInputField, "本地化数据名称:", "+", currentDataName,
+            () =>
+            {
+                foreach (var item in localizationDataList)
+                {
+                    if (item.name == currentDataName)
+                    {
+                        Debug.Log($"本地化数据文件-><color=yellow>{currentDataName}已存在!</color>请重新输入本地化数据文件名.");
+                        return;
+                    }
+                }
+                LocalizationData newData = LocalizationEditorHandler.CreateLocalizationDataAndCSV(currentDataName, localizationDataSavePath, csvSavePath, isCreateCSV);
+                newData.localizationDataPath = csvSavePath + currentDataName + ".csv";
+                UpdateLocalizationDataSOItemView();
+            });
+            // CSV文件控制区域
             CreateCSVFileField(rootVisualElement);
-            DataSaveFolderField(rootVisualElement);
-            CSVSaveFolderField(rootVisualElement);
-            DataSOScrollview(rootVisualElement);
+            // 数据文件保存路径选择区域
+            TextInputControlField(rootVisualElement, ref dataSaveField, "本地化数据保存路径:", "S", localizationDataSavePath, () => GetFolderPath(dataSaveField));
+            // CSV文件保存路径选择区域
+            TextInputControlField(rootVisualElement, ref csvFileSaveField, "CSV文件保存路径:", "S", csvSavePath, () => GetFolderPath(csvFileSaveField));
+            // 数据项显示区域
+            localizationDataScrollview(rootVisualElement);
             ControlButtonContent(rootVisualElement);
             UpdateLocalizationDataSOItemView();
         }
@@ -55,63 +74,25 @@ namespace LocalizationEditor
         }
 
         //数据文件名输入框
-        private void DataNameField(VisualElement visual)
+        private void TextInputControlField(VisualElement visual, ref TextField textInputField, string titleName, string buttonText, string textContent = null, Action action = null)
         {
+            // 显示项区域
             Label label = new Label();
             label.AddToClassList("InputFieldContent");
-
+            // 功能标题
             Label title = new Label();
             title.AddToClassList("LableTitle");
-            title.text = "本地化数据文件名";
-
-            currentDataNameField = new TextField();
-            currentDataNameField.AddToClassList("TextInputField");
-            currentDataNameField.value = currentDataName;
-            currentDataNameField.RegisterValueChangedCallback((evt) => { currentDataName = evt.newValue; });
-            Button createDataAddCSVButton = new Button();
-            createDataAddCSVButton.AddToClassList("ControlButton");
-            createDataAddCSVButton.AddToClassList("CreateDataAddCSVButton");
-            createDataAddCSVButton.clicked += () =>
-            {
-                foreach (var item in localizationDataList)
-                {
-                    if (item.name == currentDataName)
-                    {
-                        Debug.Log($"本地化数据文件-><color=yellow>{currentDataName}已存在!</color>请重新输入本地化数据文件名.");
-                        return;
-                    }
-                }
-                LocalizationData newData = LocalizationEditorHandler.CreateLocalizationDataAndCSV(currentDataName, localizationDataSavePath, csvSavePath, isCreateCSV);
-                UpdateLocalizationDataSOItemView();
-            };
+            title.text = titleName;
             label.Add(title);
-            label.Add(currentDataNameField);
-            label.Add(createDataAddCSVButton);
-            visual.Add(label);
-        }
-
-        //创建CSV保存文件夹选择区域
-        private void CSVSaveFolderField(VisualElement visual)
-        {
-            Label label = new Label();
-            label.AddToClassList("InputFieldContent");
-
-            Label title = new Label();
-            title.AddToClassList("LableTitle");
-            title.text = "CSV文件保存路径";
-
-            csvSaveField = new TextField();
-            csvSaveField.AddToClassList("TextInputField");
-            csvSaveField.value = csvSavePath;
-            csvSaveField.RegisterValueChangedCallback((evt) => { csvSavePath = evt.newValue; });
-            Button selectCSVSavePathButton = new Button();
-            selectCSVSavePathButton.AddToClassList("ControlButton");
-            selectCSVSavePathButton.AddToClassList("SelectFolderButton");
-            selectCSVSavePathButton.clicked += () => GetFolderPath(csvSaveField);
-
-            label.Add(title);
-            label.Add(csvSaveField);
-            label.Add(selectCSVSavePathButton);
+            //输入框
+            textInputField = new TextField();
+            textInputField.AddToClassList("InputField");
+            textInputField.value = textContent;
+            textInputField.RegisterValueChangedCallback((evt) => { textContent = evt.newValue; });
+            label.Add(textInputField);
+            //功能按钮
+            CreateFunctionButton(label, buttonText, action, out Button _);
+            //添加到显示项区域
             visual.Add(label);
         }
 
@@ -122,21 +103,14 @@ namespace LocalizationEditor
             label.AddToClassList("InputFieldContent");
             Label title = new Label();
 
+            // 功能标题
             title.AddToClassList("LableTitle");
             title.text = "CSV文件";
+            label.Add(title);
 
-            Toggle isCreateCSVToggle = new Toggle();
-            isCreateCSVToggle.value = this.isCreateCSV;
-            isCreateCSVToggle.AddToClassList("ToggleButton");
-            isCreateCSVToggle.RegisterValueChangedCallback((evt) =>
-            {
-                this.isCreateCSV = evt.newValue;
-                Debug.Log($"是否创建CSV文件:{isCreateCSV}");
-            });
-            title.Add(isCreateCSVToggle);
-
+            // 创建CSV文件选择框
             csvSelectField = new ObjectField();
-            csvSelectField.AddToClassList("CSVFileSelectField");
+            csvSelectField.AddToClassList("InputField");
             csvSelectField.objectType = typeof(UnityEngine.Object);
             // 监听ObjectField的值变化
             csvSelectField.RegisterValueChangedCallback(evt =>
@@ -152,10 +126,11 @@ namespace LocalizationEditor
                     }
                 }
             });
-            Button ChangeSOCSVButton = new Button();
-            ChangeSOCSVButton.AddToClassList("ControlButton");
-            ChangeSOCSVButton.AddToClassList("ChangeCSVDataButton");
-            ChangeSOCSVButton.clicked += () =>
+            label.Add(csvSelectField);
+
+            // 控制按钮
+            CreateFunctionButton(label, "R",
+            () =>
             {
                 if (currentLocalizationData == null)
                 {
@@ -168,46 +143,37 @@ namespace LocalizationEditor
                     return;
                 }
 
-                if (!string.IsNullOrEmpty(csvSaveField.value))
+                if (!string.IsNullOrEmpty(csvFileSaveField.value))
                 {
                     // 获取CSV文件路径
                     string assetPath = AssetDatabase.GetAssetPath(csvSelectField.value);
-                    Debug.Log($"{currentLocalizationData.name}文件的CSVPath切换为-><color=yellow>{assetPath}</color>(请确保路径正确,且CSV文件存在!)");
+                    if (currentLocalizationData != null)
+                    {
+                        currentLocalizationData.localizationDataPath = assetPath;
+                        // 标记为脏数据并保存
+                        EditorUtility.SetDirty(currentLocalizationData);
+                        AssetDatabase.SaveAssetIfDirty(currentLocalizationData);
+                        Debug.Log($"路径已更新为: {assetPath}");
+                    }
                 }
                 UpdateLocalizationDataSOItemView();
-            };
+            }, out Button _);
 
-            label.Add(title);
-            label.Add(csvSelectField);
-            label.Add(ChangeSOCSVButton);
-            visual.Add(label);
-        }
-
-        //创建Data保存文件夹选择区域
-        private void DataSaveFolderField(VisualElement visual)
-        {
-            Label label = new Label();
-            label.AddToClassList("InputFieldContent");
-            Label title = new Label();
-
-            title.AddToClassList("LableTitle");
-            title.text = "数据文件保存路径";
-
-            dataSaveField = new TextField();
-            dataSaveField.AddToClassList("TextInputField");
-            dataSaveField.value = localizationDataSavePath;
-            dataSaveField.RegisterValueChangedCallback((evt) =>
+            // 是否创建CSV文件单选框
+            Toggle isCreateCSVToggle = new Toggle();
+            isCreateCSVToggle.value = this.isCreateCSV;
+            isCreateCSVToggle.AddToClassList("ToggleButton");
+            isCreateCSVToggle.tooltip = "是否创建CSV文件";
+            isCreateCSVToggle.RegisterValueChangedCallback((evt) =>
             {
-                localizationDataSavePath = evt.newValue;
+                this.isCreateCSV = evt.newValue;
+                Debug.Log($"是否创建CSV文件:{isCreateCSV}");
             });
-            Button selectDataSavePathButton = new Button();
-            selectDataSavePathButton.AddToClassList("ControlButton");
-            selectDataSavePathButton.AddToClassList("SelectFolderButton");
-            selectDataSavePathButton.clicked += () => GetFolderPath(dataSaveField);
+            var textElement = isCreateCSVToggle.Q<VisualElement>(className: "unity-toggle__checkmark");
+            textElement.style.width = 18;
+            textElement.style.height = 18;
+            label.Add(isCreateCSVToggle);
 
-            label.Add(title);
-            label.Add(dataSaveField);
-            label.Add(selectDataSavePathButton);
             visual.Add(label);
         }
 
@@ -215,7 +181,7 @@ namespace LocalizationEditor
         private string GetFolderPath(TextField textField)
         {
             // 打开文件夹选择面板
-            string exportPath = EditorUtility.OpenFolderPanel("Select export path", "Assets", "");
+            string exportPath = EditorUtility.OpenFolderPanel("选择导出路径", "Assets", "");
             // 确保选择的是相对 Assets 目录的路径
             if (!string.IsNullOrEmpty(exportPath) && exportPath.StartsWith(Application.dataPath))
             {
@@ -225,13 +191,13 @@ namespace LocalizationEditor
             }
             else
             {
-                EditorUtility.DisplayDialog("Error", "No directory path was selected within the Assets folder.", "Ok");
+                EditorUtility.DisplayDialog("错误", "未在 Assets 文件夹中选择任何目录路径。", "Ok");
             }
             return exportPath;
         }
 
-        //创建Data文件选择区域
-        private void DataSOScrollview(VisualElement visual)
+        //创建本地化Data文件选择区域
+        private void localizationDataScrollview(VisualElement visual)
         {
             scrollView = new ScrollView();
             scrollView.AddToClassList("DataSOScrollview");
@@ -260,78 +226,76 @@ namespace LocalizationEditor
         private void AddDataSOItem(LocalizationData data, VisualElement visual)
         {
             Label mainContent = new Label();
-            mainContent.AddToClassList("MainContent");
-
-            Label soContent = new Label();
-            soContent.AddToClassList("SelectItemButtonContent");
-
-            Label soIcon = new Label();
-            soIcon.AddToClassList("DataSOIcon");
-
-            Button soButton = new Button();
-            soButton.AddToClassList("ControlButton");
-            soButton.AddToClassList("SelectSODataFileButton");
-
+            mainContent.AddToClassList("DataViewContent");
+            // 资源路径
             string assetPath = AssetDatabase.GetAssetPath(data);
             // 根据路径加载CSV文件
             TextAsset csvObject = data.localizationDataFile;
-
-            // 添加点击事件处理
-            soButton.clicked += () =>
+            // 数据文件
+            CreateFunctionButton(mainContent, "", () =>
             {
                 currentLocalizationData = data;
                 // 聚焦到对象
                 EditorGUIUtility.PingObject(data);
+                dataSaveField.value = AssetDatabase.GetAssetPath(currentLocalizationData);
                 currentDataName = data.name;
-                currentDataNameField.value = data.name;
+                nameInputField.value = data.name;
                 //加载CSV文件
-                if (csvObject != null) csvSelectField.value = csvObject;
-                else csvSelectField.value = null;
-            };
-
+                if (csvObject != null)
+                    csvSelectField.value = csvObject;
+                else
+                    csvSelectField.value = null;
+            }, out Button soButton, "SelectItemButtonContent");
+            // Data文件图标
+            Label soIcon = new Label();
+            soIcon.AddToClassList("DataSOIcon");
+            soButton.Add(soIcon);
+            // Data文件名称
             Label soTitle = new Label();
             soTitle.AddToClassList("ItemTitle");
             soTitle.text = data.name;
-            soContent.Add(soButton);
-            soButton.Add(soIcon);
             soButton.Add(soTitle);
 
-            Label linkIcon = new Label();
-            linkIcon.AddToClassList("LinkIcon");
-
-            Label csvContent = new Label();
-            csvContent.AddToClassList("SelectItemButtonContent");
-
-            Button csvButton = new Button();
-            csvButton.AddToClassList("ControlButton");
-            csvButton.AddToClassList("SelectCSVFileButton");
-            csvButton.clicked += () =>
+            // CSV文件
+            CreateFunctionButton(mainContent, "", () =>
             {
                 // 聚焦到对象
                 EditorGUIUtility.PingObject(csvObject);
-            };
-
+                csvFileSaveField.value = currentLocalizationData.localizationDataPath;
+            }, out Button csvButton, "SelectItemButtonContent");
+            // CSV文件图标
             Label csvIcon = new Label();
             csvIcon.AddToClassList("CSVIcon");
-
+            csvButton.Add(csvIcon);
+            // CSV文件名称
             Label csvTitle = new Label();
             csvTitle.AddToClassList("ItemTitle");
             if (csvObject == null) csvTitle.text = "Null";
             else csvTitle.text = csvObject.name;
-            csvContent.Add(csvButton);
-            csvButton.Add(csvIcon);
             csvButton.Add(csvTitle);
+            // 导入CSV文件数据
+            CreateFunctionButton(mainContent, "I", () =>
+            {
+                LocalizationEditorHandler.ImportOrUpdateCSVToSO(data);
+            }, out Button importCSVButton, "");
+            // 删除当前的数据文件
+            CreateFunctionButton(mainContent, "<color=red>X</color>", () =>
+            {
+                LocalizationEditorHandler.DeleteCurrentDataFile(data);
 
-            Button import = new Button();
-            import.AddToClassList("ControlButton");
-            import.AddToClassList("CSVImportToSOButton");
-            import.clicked += () => LocalizationEditorHandler.ImportOrUpdateCSVToSO(data);
-
-            mainContent.Add(soContent);
-            mainContent.Add(linkIcon);
-            mainContent.Add(csvContent);
-            soContent.Add(import);
+                UpdateLocalizationDataSOItemView();
+            }, out Button deleteButton, "");
             visual.Add(mainContent);
+        }
+
+        //创建功能按钮
+        private void CreateFunctionButton(VisualElement visual, string buttonText, Action action, out Button functionButton, string buttonStyle = null)
+        {
+            functionButton = new Button();
+            functionButton.AddToClassList(!string.IsNullOrEmpty(buttonStyle) ? buttonStyle : "ControlButton");
+            functionButton.text = buttonText;
+            functionButton.clicked += action;
+            visual.Add(functionButton);
         }
 
         //控制按钮区域
@@ -372,7 +336,7 @@ namespace LocalizationEditor
         private void CreateControllerButton(VisualElement visual, string buttonName, Action action, string iconPath)
         {
             Button controllerButton = new Button();
-            controllerButton.AddToClassList("ControlDataButton");
+            controllerButton.AddToClassList("GlobalControlButton");
             controllerButton.text = buttonName;
             controllerButton.clicked += () =>
             {

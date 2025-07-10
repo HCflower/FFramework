@@ -7,7 +7,7 @@ using System.IO;
 
 namespace AssetBundleToolEditor
 {
-    [CreateAssetMenu(fileName = nameof(AssetBundleConfig), menuName = "Localization/AssetBundleConfig")]
+    [CreateAssetMenu(fileName = nameof(AssetBundleConfig), menuName = "FFramework/AssetBundleConfig", order = 0)]
     public class AssetBundleConfig : ScriptableObject
     {
         [Tooltip("AssetBundle配置文件")] public TextAsset JsonAsset;

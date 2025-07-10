@@ -10,6 +10,7 @@ namespace FFramework.Kit
     public class LocalizationData : ScriptableObject
     {
         public TextAsset localizationDataFile;
+        [ShowOnly] public string localizationDataPath;
         public List<LocalizationItem> localizationList = new();
         private Dictionary<LanguageType, Dictionary<string, string>> localizationDic = new();
 
