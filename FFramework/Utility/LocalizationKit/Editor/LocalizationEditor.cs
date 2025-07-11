@@ -69,6 +69,11 @@ namespace LocalizationEditor
         private void OnDisable()
         {
             currentLocalizationData = null;
+            // 保存所有数据
+            foreach (var localizationData in localizationDataList)
+            {
+                AssetDatabase.SaveAssetIfDirty(localizationData);
+            }
             localizationDataList.Clear();
             scrollView.Clear(); //清空数据列表
         }
