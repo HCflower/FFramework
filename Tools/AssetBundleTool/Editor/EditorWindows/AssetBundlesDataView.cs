@@ -443,19 +443,22 @@ namespace AssetBundleToolEditor
                 // 避免重复添加输入框
                 if (addABGroupButton.Q<TextField>() != null)
                     return;
-
+                // 创建输入框
                 TextField groupName = new TextField();
                 groupName.AddToClassList("AddABGroupInput");
                 groupName.tooltip = "请输入AssetBundle组名";
                 groupName.value = ""; // 确保初始值为空
-
+                addABGroupButton.Add(groupName);
+                // 创建确认按钮
                 Button sureAddABGroup = new Button();
                 sureAddABGroup.AddToClassList("AddABGroupSureButton");
                 sureAddABGroup.text = "+"; // 设置按钮文本
-
+                addABGroupButton.Add(sureAddABGroup);
+                // 创建取消按钮
                 Button cancelAddABGroup = new Button();
                 cancelAddABGroup.AddToClassList("CancelABGroupButton");
                 cancelAddABGroup.text = "Cancel"; // 设置取消按钮文本
+                addABGroupButton.Add(cancelAddABGroup);
 
                 // 确认按钮事件
                 sureAddABGroup.clicked += () =>
@@ -483,10 +486,6 @@ namespace AssetBundleToolEditor
                         evt.StopPropagation();
                     }
                 });
-
-                addABGroupButton.Add(groupName);
-                addABGroupButton.Add(sureAddABGroup);
-                addABGroupButton.Add(cancelAddABGroup);
 
                 // 聚焦到输入框
                 groupName.Focus();

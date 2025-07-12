@@ -1,0 +1,159 @@
+/* 主区域 */
+.MainContent{
+    width: 100%;
+    height: 100%;
+
+    flex-direction: row;
+    flex-grow: 0;     /* 不允许容器在可用空间内增长 */
+    flex-shrink: 1;   /* 允许容器在空间不足时收缩 */
+    
+    background-color: #383838;
+}
+
+/* 通用控制区域 */
+.GlobalControlContent{
+    width: auto;
+    height: 100%;
+    flex-direction: row;   
+    flex-shrink: 0;       
+}
+
+/* 轨道控制区域 */
+.TrackControlContent{
+    width: 200px;
+    height: 100%;
+
+    flex-grow: 1;      /* 输入框占据剩余空间 */
+    flex-shrink: 1;    /* 允许收缩 */
+    flex-basis: 0%;    /* 基础大小为0，完全依赖flex-grow */ 
+
+    background-color: #585858;
+}
+
+/* 通用控制区域隐藏按钮 */
+.GlobalControlShowButton{
+    width: 18px;
+    height: 100%;
+
+    align-self: center;
+    left: 0px;
+    margin: 0px;
+    padding: 0px;
+
+    border-width: 0px;
+    font-size: 18px;
+    background-color:rgba(0, 0, 0, 0);
+}
+
+.GlobalControlShowButton:hover{
+    border-width: 1px;
+    border-color:rgba(233, 143, 46, 0.65);
+    color:rgb(233, 142, 46);
+}
+
+/* 通用控制功能区域 */
+.GlobalControlFunctionContent{
+    width:150px;
+    height: 100%;
+
+    margin: 0px;
+    margin-left: 1px;
+    padding: 0px;
+
+    border-width: 0px;
+    border-radius:5px;
+
+    background-color: #303030;
+}
+
+/* 通用控制按钮 */
+.Field{
+    width: 100%;
+    height: 20px;
+
+    margin: 0px;
+    padding: 0px;
+    border-width: 0px;
+    border-radius: 2px;
+    font-size: 12px;
+    -unity-font-style: bold;  
+    align-items: center;
+}
+
+/* 技能图标 */
+.SkillIcon{
+    width: 146px;
+    height: 146px;
+
+    margin: 0px;
+    padding: 0px;
+
+    align-self: center;
+    border-width: 0px;
+    border-radius:2px;
+    justify-content: flex-end;
+
+    background-color: #383838;
+}
+
+/* 选择图标 */
+.SelectIcon{
+    width: 30px;
+    height: 15px;
+
+    margin: 0px;
+    padding: 0px;
+    align-self: flex-end;
+
+    font-size: 8px;
+    -unity-font-style: bold;  
+}
+
+/* 控制按钮区域 */
+.ControlButtonContent{
+    width: 146px;
+    height: auto;
+
+    margin: 0px;
+    margin-top: 2px;  
+    padding: 0px;
+    align-self: center;
+    flex-direction: column;  
+}
+
+/* 控制按钮区域标题 */
+.ControlButtonContentTitle{
+    width: auto;
+    height: auto;
+
+    margin: 0px;
+    margin-left: 1px;
+    margin-bottom: 1px; 
+    align-self: flex-start;
+    font-size: 10px;
+    -unity-font-style: bold;
+}
+
+/* AddConfig文本输入框 */
+.AddConfigInput{
+    width: 106px;
+    height: 20px;
+
+    margin: 0px;
+    padding: 0px;
+}
+
+/* AddConfig控制按钮 */
+.AddConfigButton{
+    width: 18px;
+    height: 18px;
+
+    margin: 0px;
+    margin-left: 1px;
+    padding: 0px;
+
+    border-width: 0px;
+    font-size: 13px;
+    -unity-font-style: bold;
+    background-color: #383838;
+}

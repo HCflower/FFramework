@@ -1,0 +1,79 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 32c80dbf4247c2244984125dc75f0db0, type: 3}
+  m_Name: SkillConfig
+  m_EditorClassIdentifier: 
+  frameRate: 30
+  totalFrames: 60
+  owner: {fileID: 0}
+  skillIcon: {fileID: 0}
+  skillName: 
+  skillId: 0
+  description: 
+  cooldown: 1
+  animationTrack:
+    trackName: Animation
+    isEnabled: 1
+    animationClips:
+    - clipName: Attack
+      clip: {fileID: 0}
+      startFrame: 0
+      durationFrame: 1
+      playSpeed: 1
+      loop: 0
+      applyRootMotion: 0
+  audioTracks:
+  - trackName: 
+    isEnabled: 0
+    trackIndex: 0
+    audioClips:
+    - clipName: 
+      clip: {fileID: 0}
+      startFrame: 0
+      durationFrame: -1
+      volume: 0
+      pitch: 0
+      loop: 0
+  effectTracks:
+  - trackName: 
+    isEnabled: 0
+    trackIndex: 0
+    effectClips:
+    - clipName: 
+      effectPrefab: {fileID: 0}
+      startFrame: 0
+      durationFrame: -1
+      position: {x: 0, y: 0, z: 0}
+      rotation: {x: 0, y: 0, z: 0}
+      scale: {x: 0, y: 0, z: 0}
+  injuryDetectionTracks:
+  - trackName: 
+    isEnabled: 0
+    trackIndex: 0
+    injuryDetectionClips:
+    - clipName: 
+      startFrame: 0
+      durationFrame: 0
+      targetLayers:
+        serializedVersion: 2
+        m_Bits: 0
+      isMultiInjuryDetection: 0
+      multiInjuryDetectionInterval: 0
+      colliderType: 0
+      innerCircleRadius: 0
+      outerCircleRadius: 1
+      sectorAngle: 0
+      sectorThickness: 0.1
+      position: {x: 0, y: 0, z: 0}
+      rotation: {x: 0, y: 0, z: 0}
+      scale: {x: 1, y: 1, z: 1}
+  eventTracks: []
