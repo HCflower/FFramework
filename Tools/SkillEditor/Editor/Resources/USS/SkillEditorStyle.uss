@@ -18,22 +18,24 @@
     flex-shrink: 0;       
 }
 
-/* 轨道控制区域 */
-.TrackControlContent{
-    width: 200px;
+/* 包装容器 */
+.GlobalControlShowButtonWrapper{
+    width: 18px; /* 比内部按钮稍大 */
     height: 100%;
+    justify-content: center;
+    left: 0px;
+    margin: 0px;
+    padding: 0px;
 
-    flex-grow: 1;      /* 输入框占据剩余空间 */
-    flex-shrink: 1;    /* 允许收缩 */
-    flex-basis: 0%;    /* 基础大小为0，完全依赖flex-grow */ 
-
-    background-color: #585858;
+    border-width: 1px;
+    border-color: #585858;
+    background-color: #383838;
 }
 
-/* 通用控制区域隐藏按钮 */
+/* 通用控制区域显示按钮 */
 .GlobalControlShowButton{
     width: 18px;
-    height: 100%;
+    height: auto;
 
     align-self: center;
     left: 0px;
@@ -41,14 +43,21 @@
     padding: 0px;
 
     border-width: 0px;
-    font-size: 18px;
+    font-size: 15px;
     background-color:rgba(0, 0, 0, 0);
+
+    /* 添加过渡动画 */
+    transform-origin: center center;
+    transition-property: rotate, color;
+    transition-duration: 0.45s;
+    transition-timing-function: ease-in-out;
 }
 
-.GlobalControlShowButton:hover{
-    border-width: 1px;
-    border-color:rgba(233, 143, 46, 0.65);
-    color:rgb(233, 142, 46);
+/* 在包装容器上触发hover效果 */
+.GlobalControlShowButtonWrapper:hover .GlobalControlShowButton{
+    font-size: 22px;
+    color: rgb(233, 142, 46);
+    rotate: 180deg;
 }
 
 /* 通用控制功能区域 */
@@ -82,8 +91,8 @@
 
 /* 技能图标 */
 .SkillIcon{
-    width: 146px;
-    height: 146px;
+    width: 138px;
+    height: 138px;
 
     margin: 0px;
     padding: 0px;
@@ -157,3 +166,174 @@
     -unity-font-style: bold;
     background-color: #383838;
 }
+
+/* 轨道区域 */
+.TrackContent{
+    width: auto;
+    height: 100%;
+
+    flex-grow: 1;      /* 输入框占据剩余空间 */
+    flex-shrink: 1;    /* 允许收缩 */
+    flex-basis: 0%;    /* 基础大小为0，完全依赖flex-grow */ 
+
+    flex-direction: row;   
+
+    background-color: #585858;
+}
+
+/* 轨道项控制区域 */
+.TrackItemControlContent{
+    width: 175px;
+    height: 100%;
+
+    border-right-width: 1px;
+    border-right-color: #303030;
+    flex-direction: column;
+    background-color: #454545;
+}
+
+/* 轨道项控制按钮区域 */
+.TrackItemControlButtonContent{
+    width: 100%;
+    height: 26px;
+
+    margin: 0px;
+    padding: 0px;
+
+    align-items: center;
+
+    flex-direction: row;
+    background-color: #383838;
+}
+
+/* 轨道项控制按钮 */
+.TrackItemControlButton{
+    width: 22px;
+    height: 20px;
+
+    margin: 0px;
+    margin-left: 1px;
+    padding: 0px;
+    padding-bottom:2px;
+    padding-left:2px;
+
+    border-width: 0px;
+    font-size: 13px;
+    -unity-font-style: bold;
+    background-color: #585858;
+}
+.TrackItemControlButton:hover{
+    background-color: rgb(233, 142, 46);
+}
+
+/* 帧输入显示区域 */
+.FrameInputContent{
+    width: 120px;
+    height: 100%;
+
+    margin: 0px;
+    margin-left: 2px;
+    padding: 0px;
+    align-items: center;
+    flex-direction: row;
+}
+
+/* 帧分隔符 */
+.SeparatorLabel{
+    margin: 0px;
+    padding: 0px;
+
+    font-size: 16px;
+    color: rgb(233, 142, 46);
+}
+/* 帧输入显示区域 */
+.FrameInput{
+    width: 36px;
+    height: 20px;
+
+    margin: 0px;
+    padding: 0px;
+    border-width: 0px;
+    border-radius: 5px;
+
+    background-color: #383838;
+}
+.FrameInput > #unity-text-input{
+     -unity-text-align: middle-center;
+}
+
+/* 轨道控制区域 */
+.TrackControlContent{
+    width: auto;
+    height: 100%;
+
+    flex-direction: column;
+
+    flex-grow: 1;      /* 输入框占据剩余空间 */
+    flex-shrink: 1;    /* 允许收缩 */
+    flex-basis: 0%;    /* 基础大小为0，完全依赖flex-grow */ 
+
+    background-color: #454545;
+}
+
+/* 时间轴鼠标交互样式 */
+.TimeLineIMGUI {
+    width: auto;
+    height:26px;
+
+    margin: 0px;
+    padding: 0px;
+    flex-direction: row;   
+
+    background-color: rgb(45, 45, 45);
+    border-bottom-width: 1px;
+    border-bottom-color: rgb(100, 100, 100);
+    position: relative;
+    overflow: visible;
+    cursor: text; /* 显示文本光标，表示可点击 */
+}
+.TimeLineIMGUI:hover {
+    background-color: rgb(50, 50, 50);
+}
+
+/* 所有刻度线的通用样式 */
+.Timeline-tick {
+    position: absolute;
+    bottom: 0px;
+    width: 1px;
+    height: 6px; /* 默认次刻度高度 */
+    background-color: rgb(128, 128, 128); /* 默认灰色 */
+    pointer-events: none; /* 不阻挡鼠标事件 */
+}
+
+/* 主刻度线的特殊样式 */
+.Timeline-tick.major {
+    height: 12px;
+    background-color: rgb(255, 255, 255);
+    pointer-events: none; /* 不阻挡鼠标事件 */
+}
+
+/* 刻度标签样式 */
+.Tick-label {
+    position: absolute;
+    top: -2px;
+    width: 20px;
+    height: 20px;
+    color: rgb(255, 255, 255);
+    font-size: 10px;
+    -unity-text-align: middle-center;
+    pointer-events: none; /* 不阻挡鼠标事件 */
+}
+
+/* 当前帧指示器样式 */
+.Current-frame-indicator {
+    position: absolute;
+    top: 13px;
+    bottom: 0px;
+    width: 2px;
+    height: 100%;  
+    background-color: rgb(255, 0, 0);
+    z-index: 1000; /* 确保在最顶层 */
+    pointer-events: none; /* 不阻挡鼠标事件 */
+}
+
