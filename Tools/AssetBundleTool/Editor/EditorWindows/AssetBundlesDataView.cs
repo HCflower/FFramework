@@ -386,7 +386,6 @@ namespace AssetBundleToolEditor
 
             //删除ABGroup按钮
             Button delete = new Button();
-            delete.text = "X";
             delete.AddToClassList("DeleteABGroupButton");
             delete.clicked += () =>
             {
@@ -705,7 +704,6 @@ namespace AssetBundleToolEditor
             //移除资源
             Button removeAsset = new Button();
             removeAsset.AddToClassList("CancelAsset");
-            removeAsset.text = "X";
             removeAsset.clicked += () =>
             {
                 if (!EditorUtility.DisplayDialog("确认删除", $"确定删除资源: '{asset.assetName}' ?", "是", "否"))

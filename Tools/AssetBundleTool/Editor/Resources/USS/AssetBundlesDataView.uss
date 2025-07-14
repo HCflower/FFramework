@@ -263,6 +263,8 @@
     border-width: 0px;
 
     background-color:  #D94040;
+    background-image: resource("Icon/DeletedIcon");
+
     -unity-font-style: bold;
 }
 
@@ -341,4 +343,6 @@
 
     background-color:  #D94040;
     -unity-font-style: bold;
+    background-image: resource("Icon/DeletedIcon");
+
 }

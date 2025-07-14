@@ -1,18 +1,12 @@
-using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+using UnityEngine.UIElements;
 
-public class SkillEditorTrack : MonoBehaviour
+namespace SkillEditor
 {
-    // Start is called before the first frame update
-    void Start()
+    /// <summary>
+    /// 轨道
+    /// </summary>
+    public class SkillEditorTrack : VisualElement
     {
-        
-    }
 
-    // Update is called once per frame
-    void Update()
-    {
-        
     }
 }

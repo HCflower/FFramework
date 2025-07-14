@@ -5,7 +5,7 @@
 
     flex-direction: row;
     flex-grow: 0;     /* 不允许容器在可用空间内增长 */
-    flex-shrink: 1;   /* 允许容器在空间不足时收缩 */
+    flex-shrink: 0;   /* 防止容器收缩 */
     
     background-color: #383838;
 }
@@ -28,14 +28,14 @@
     padding: 0px;
 
     border-width: 1px;
-    border-color: #585858;
+    border-color: #303030;
     background-color: #383838;
 }
 
 /* 通用控制区域显示按钮 */
 .GlobalControlShowButton{
     width: 18px;
-    height: auto;
+    height: 100%;
 
     align-self: center;
     left: 0px;
@@ -45,19 +45,21 @@
     border-width: 0px;
     font-size: 15px;
     background-color:rgba(0, 0, 0, 0);
+    background-size: 18px 18px;
+    background-image: resource("Icon/Setting");
 
     /* 添加过渡动画 */
     transform-origin: center center;
     transition-property: rotate, color;
-    transition-duration: 0.45s;
+    transition-duration: 0.65s;
     transition-timing-function: ease-in-out;
 }
 
 /* 在包装容器上触发hover效果 */
 .GlobalControlShowButtonWrapper:hover .GlobalControlShowButton{
-    font-size: 22px;
-    color: rgb(233, 142, 46);
-    rotate: 180deg;
+    background-size: 24px 24px;
+    -unity-background-image-tint-color: rgb(255, 154, 45);
+    rotate: 90deg;
 }
 
 /* 通用控制功能区域 */
@@ -171,9 +173,10 @@
 .TrackContent{
     width: auto;
     height: 100%;
+    min-height: 400px;  /* 设置最小高度 */
 
     flex-grow: 1;      /* 输入框占据剩余空间 */
-    flex-shrink: 1;    /* 允许收缩 */
+    flex-shrink: 0;    /* 防止收缩 */
     flex-basis: 0%;    /* 基础大小为0，完全依赖flex-grow */ 
 
     flex-direction: row;   
@@ -181,16 +184,21 @@
     background-color: #585858;
 }
 
+
 /* 轨道项控制区域 */
 .TrackItemControlContent{
     width: 175px;
     height: 100%;
+    min-width: 175px;   /* 设置最小宽度 */
+    min-height: 300px;  /* 设置最小高度 */
 
     border-right-width: 1px;
     border-right-color: #303030;
     flex-direction: column;
+    flex-shrink: 0;     /* 防止收缩 */
     background-color: #454545;
 }
+
 
 /* 轨道项控制按钮区域 */
 .TrackItemControlButtonContent{
@@ -203,6 +211,9 @@
     align-items: center;
 
     flex-direction: row;
+
+    flex-shrink: 0;    /* 防止收缩 */
+
     background-color: #383838;
 }
 
@@ -220,10 +231,11 @@
     border-width: 0px;
     font-size: 13px;
     -unity-font-style: bold;
-    background-color: #585858;
+    background-size: 18px 18px;
+    background-color: #454545;
 }
 .TrackItemControlButton:hover{
-    background-color: rgb(233, 142, 46);
+    background-color: #585858;
 }
 
 /* 帧输入显示区域 */
@@ -259,18 +271,20 @@
     background-color: #383838;
 }
 .FrameInput > #unity-text-input{
-     -unity-text-align: middle-center;
+    -unity-text-align: middle-center;
+    -unity-font-style: bold;
 }
 
 /* 轨道控制区域 */
 .TrackControlContent{
     width: auto;
     height: 100%;
+    min-height: 300px;  /* 设置最小高度 */
 
     flex-direction: column;
 
     flex-grow: 1;      /* 输入框占据剩余空间 */
-    flex-shrink: 1;    /* 允许收缩 */
+    flex-shrink: 0;    /* 防止收缩 */
     flex-basis: 0%;    /* 基础大小为0，完全依赖flex-grow */ 
 
     background-color: #454545;
@@ -290,6 +304,7 @@
     border-bottom-color: rgb(100, 100, 100);
     position: relative;
     overflow: visible;
+    flex-shrink: 0;    /* 防止收缩 */
     cursor: text; /* 显示文本光标，表示可点击 */
 }
 .TimeLineIMGUI:hover {
@@ -335,5 +350,94 @@
     background-color: rgb(255, 0, 0);
     z-index: 1000; /* 确保在最顶层 */
     pointer-events: none; /* 不阻挡鼠标事件 */
+}
+
+/* 搜索或添加轨道 */
+.SearchOrAddTrack{
+    width:100%;
+    height:28px;
+
+    padding:0px;
+    border-width:0px;
+    border-radius:0px;
+    flex-direction: row;   
+    align-items: center;
+
+    border-bottom-width: 1px;
+    border-bottom-color: #303030;
+
+    flex-shrink: 0;    /* 防止收缩 */
+}
+
+/* 搜索轨道输入图标 */
+.SearchTrackInputIcon{
+    width: 18px;
+    height: 18px;
+
+    position:absolute;
+    margin: 0px;
+    margin-left: 1px;
+    margin-bottom: 1px;
+    padding: 0px;
+    border-width:0px;
+    background-image: resource("Icon/SearchIcon");
+}
+
+/* 搜索轨道输入 */
+.SearchTrackInput{
+    width:148px;
+    height:18px;
+
+    margin: 0px;
+    margin-left: 2px;
+    padding: 0px;
+}
+
+/* 添加轨道按钮 */
+.AddTrackButton{
+    width: 20px;
+    height: 20px;
+
+    margin: 0px;
+    margin-left: 2px;
+    padding: 0px;
+    background-color: #383838;
+    border-width:1px;
+    border-color: #585858;
+    background-image: resource("Icon/MoreOptions");
+}
+.AddTrackButton:hover{
+    background-color: #757575;
+}
+
+/* Tips区域 */
+.TipsContent{
+    width:100%;
+    height:28px;
+
+    padding:0px;
+    border-width:0px;
+    border-radius:0px;
+    flex-direction: row;   
+    align-items: center;
+
+    border-bottom-width: 1px;
+    border-bottom-color: #303030;
+}
+
+.TrackScrollView{
+    width: 100%;
+    height: auto;       /* 改为自动高度 */
+    min-height: 200px;  /* 设置最小高度 */
+    max-height: 400px;  /* 设置最大高度 */
+    
+    flex-grow: 0;       /* 允许增长 */
+    flex-shrink: 0;     /* 防止收缩 */
+}
+
+.TrackScrollViewContent{
+    width:1500px;
+    height:1000px;
+    background-color: #585858;
 }
 
