@@ -260,10 +260,9 @@
     padding-left:0px;
     padding-right:0px;
 
-    border-width: 1px;
-    border-color: #353535;
+    border-width: 0px;
 
-    background-color: #454545;
+    background-color:  #D94040;
     background-image: resource("Icon/DeletedIcon");
 
     -unity-font-style: bold;
@@ -278,7 +277,7 @@
 }
 .BuildPathTypeEnumField > .unity-base-field__input{
     border-width: 0px;
-    background-color: #454545;
+    background-color:#454545;
 }
 
 /* AB包数据项区域 */
@@ -336,14 +335,13 @@
     height: 16px;
 
     position:absolute;
-    border-width: 1px;
-    border-color: #353535;
+    border-width: 0px;
     padding:0px;
     margin:0px;
     right:0px;
     align-self:center;
 
-    background-color: #454545;
+    background-color:  #D94040;
     -unity-font-style: bold;
     background-image: resource("Icon/DeletedIcon");
 

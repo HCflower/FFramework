@@ -8,50 +8,28 @@ using System;
 namespace SkillEditor
 {
     /// <summary>
-    /// 技能编辑器
+    /// 技能编辑器 - 重构后的主类
     /// </summary>
     public class SkillEditor : EditorWindow
     {
-        #region 数据
-
-        private SkillConfig currentSkillConfig;     // 当前技能配置
-        private bool isGlobalControlShow = false;   // 是否显示全局控制区域
-
-        // 时间轴配置
-        private float frameUnitWidth = 10f;          // 每帧单位宽度
-        [Min(0)] private int currentFrame = 1;       // 当前帧
-        private int maxFrame = 100;                  // 最大帧数
-        private float trackViewContentOffsetX = 0f;  // 轨道视图内容偏移X
-        private int majorTickInterval = 5;           // 主刻度间隔（每几帧显示一个主刻度）
-        private bool isPlaying = false;             // 是否播放
-        private bool isLoop = false;                // 是否循环播放
-
-        // 事件定义
-        public Action<int> OnCurrentFrameChanged;    // 当前帧改变事件
-
+        #region 管理器
+        private SkillEditorDataManager dataManager;
+        private SkillEditorUIBuilder uiBuilder;
+        private TimelineManager timelineManager;
+        private ScrollSyncManager scrollSyncManager;
+        private EventManager eventManager;
         #endregion
 
-        #region GUI
-
+        #region GUI元素
         private VisualElement mainContent;
-
-        // 全局控制区域
         private VisualElement globalControlContent;
         private VisualElement allTrackContent;
-        private ObjectField configObjectField;
-        private TextField nameInputField;
-        private TextField idInputField;
-        private TextField descriptionField;
-
-        // 轨道
-        private VisualElement timeLineIMGUI;
-        private IntegerField currentFrameInput;
-        private IntegerField maxFrameInput;
-        private VisualElement trackItemControlContent;
-        private VisualElement trackPlayControlContent;
-        private VisualElement trackControlContent;    // 轨道内容
-        private VisualElement trackContent;           // 轨道内容
-
+        private VisualElement trackControlArea;
+        private ScrollView trackControlScrollView;
+        private VisualElement trackControlContent;
+        private VisualElement trackArea;
+        private ScrollView trackScrollView;
+        private VisualElement trackContent;
         #endregion
 
         /// <summary>
@@ -66,786 +44,146 @@ namespace SkillEditor
             window.Show();
         }
 
-        // 窗口初始化
         private void OnEnable()
+        {
+            InitializeManagers();
+            InitializeUI();
+        }
+
+        private void OnDisable()
+        {
+            dataManager?.SaveData();
+            eventManager?.Cleanup();
+        }
+
+        private void InitializeManagers()
+        {
+            dataManager = new SkillEditorDataManager();
+            eventManager = new EventManager();
+            timelineManager = new TimelineManager(dataManager, eventManager);
+            uiBuilder = new SkillEditorUIBuilder(eventManager);
+            scrollSyncManager = new ScrollSyncManager();
+
+            // 注册事件
+            eventManager.OnCurrentFrameChanged += OnCurrentFrameChanged;
+            eventManager.OnMaxFrameChanged += OnMaxFrameChanged;
+            eventManager.OnGlobalControlToggled += OnGlobalControlToggled;
+            eventManager.OnRefreshRequested += RefreshView;
+            eventManager.OnTimelineZoomChanged += OnTimelineZoomChanged; // 添加缩放事件处理
+        }
+
+        private void InitializeUI()
         {
             rootVisualElement.Clear();
             rootVisualElement.styleSheets.Add(Resources.Load<StyleSheet>("USS/SkillEditorStyle"));
-            CreateMainContent(rootVisualElement);
-            CreateGlobalControlContent(mainContent);
-            // 创建轨道区域
-            CreateTrackContent(mainContent);
-            // 绘制当前帧指示器
-            DrawCurrentFrameIndicator();
+            CreateMainStructure();
+            RefreshView();
         }
 
-        // 窗口关闭 - 保存数据
-        private void OnDisable()
+        private void OnTimelineZoomChanged()
         {
-
+            // 缩放时需要更新轨道内容宽度
+            UpdateTrackContentWidth();
+            // 刷新时间轴显示
+            timelineManager.RefreshTimeline();
         }
 
-        // 刷新视图
+        private void UpdateTrackContentWidth()
+        {
+            if (trackContent != null)
+            {
+                float newWidth = dataManager.CalculateTimelineWidth();
+                trackContent.style.width = newWidth;
+
+                // 更新所有轨道元素的宽度
+                uiBuilder.RefreshTrackContent(trackContent, dataManager);
+            }
+        }
+
+        private void CreateMainStructure()
+        {
+            mainContent = uiBuilder.CreateMainContent(rootVisualElement);
+            globalControlContent = uiBuilder.CreateGlobalControlArea(mainContent, dataManager.IsGlobalControlShow);
+            allTrackContent = uiBuilder.CreateTrackArea(mainContent);
+
+            CreateTrackStructure();
+        }
+
+        private void CreateTrackStructure()
+        {
+            var trackElements = uiBuilder.CreateTrackStructure(allTrackContent, dataManager);
+
+            trackControlArea = trackElements.controlArea;
+            trackControlScrollView = trackElements.controlScrollView;
+            trackControlContent = trackElements.controlContent;
+            trackArea = trackElements.trackArea;
+            trackScrollView = trackElements.trackScrollView;
+            trackContent = trackElements.trackContent;
+
+            // 初始化时间轴
+            timelineManager.InitializeTimeline(trackArea);
+
+            // 设置轨道内容引用，以便时间轴缩放时同步更新
+            timelineManager.SetTrackContent(trackContent);
+
+            // 设置滚动同步
+            scrollSyncManager.SetupScrollSync(trackControlScrollView, trackScrollView);
+        }
+
         private void RefreshView()
         {
-            // 刷新全局控制区域
-            globalControlContent.Clear();
-            if (isGlobalControlShow) CreateGlobalControlFunctionContent(globalControlContent);
-            else CreateGlobalControlShowButton(globalControlContent);
+            uiBuilder.RefreshGlobalControl(globalControlContent, dataManager);
+            // uiBuilder.RefreshTrackContent(trackControlContent, dataManager);
+            timelineManager.RefreshTimeline();
         }
 
-        #region 各个功能区域绘制
-
-        // 创建主区域
-        private void CreateMainContent(VisualElement visual)
+        #region 事件处理
+        private void OnCurrentFrameChanged(int newFrame)
         {
-            mainContent = new VisualElement();
-            mainContent.AddToClassList("MainContent");
-            visual.Add(mainContent);
+            timelineManager.UpdateCurrentFrame(newFrame);
+
+            // 更新帧输入框显示
+            UpdateFrameInputDisplay(newFrame);
         }
 
-        #region  全局控制区域
-
-        // 创建全局控制区域
-        private void CreateGlobalControlContent(VisualElement visual)
+        private void OnMaxFrameChanged(int newMaxFrame)
         {
-            globalControlContent = new VisualElement();
-            globalControlContent.AddToClassList("GlobalControlContent");
-            visual.Add(globalControlContent);
-            //创建全局控制区域显示按钮
-            CreateGlobalControlShowButton(globalControlContent);
+            timelineManager.UpdateMaxFrame(newMaxFrame);
+
+            // 只更新必要的内容，不进行全面刷新
+            UpdateTimelineAndTrackContent();
         }
 
-        // 创建全局控制区域隐藏按钮
-        private void CreateGlobalControlShowButton(VisualElement visual)
+        private void UpdateTimelineAndTrackContent()
         {
-            VisualElement buttonWrapper = new VisualElement();
-            buttonWrapper.AddToClassList("GlobalControlShowButtonWrapper");
-            Button hideOrShowButton = new Button();
-            hideOrShowButton.AddToClassList("GlobalControlShowButton");
-            // hideOrShowButton.text = "◀"; //▶
-            hideOrShowButton.tooltip = "Global Setting";
-            hideOrShowButton.clicked += () =>
+            // 只更新时间轴和轨道内容，不影响控制区域
+            timelineManager.RefreshTimeline();
+
+            // 更新轨道内容宽度
+            if (trackContent != null)
             {
-                isGlobalControlShow = true;
-                RefreshView();
-            };
-            buttonWrapper.Add(hideOrShowButton);
-
-            visual.Add(buttonWrapper);
-        }
-
-        // 创建全局控制区域功能区域
-        private void CreateGlobalControlFunctionContent(VisualElement visual)
-        {
-            ScrollView functionContentScrollView = new ScrollView();
-            // 设置滚动条隐藏
-            functionContentScrollView.horizontalScrollerVisibility = ScrollerVisibility.Hidden;
-            functionContentScrollView.verticalScrollerVisibility = ScrollerVisibility.Hidden;
-            functionContentScrollView.AddToClassList("GlobalControlFunctionContent");
-            visual.Add(functionContentScrollView);
-
-            // 创建技能配置选择区域
-            CreateObjectField(functionContentScrollView, "技能配置:", ref configObjectField, typeof(SkillConfig), () =>
-            {
-                currentSkillConfig = configObjectField.value as SkillConfig;
-            });
-            if (currentSkillConfig) configObjectField.value = currentSkillConfig;
-
-            CreateSelectImage(functionContentScrollView, "技能Icon:");
-
-            // 创建名称设置区域
-            CreateInputField(functionContentScrollView, "技能名称:", ref nameInputField, () =>
-            {
-
-            });
-
-            // 创建技能ID设置区域
-            CreateInputField(functionContentScrollView, "技能ID:", ref idInputField, () =>
-            {
-
-            });
-
-            // 创建技能ID设置区域
-            CreateInputField(functionContentScrollView, "技能描述:", ref descriptionField, () =>
-            {
-
-            });
-            descriptionField.multiline = true;
-            descriptionField.style.whiteSpace = WhiteSpace.Normal;
-            descriptionField.style.height = 60;
-
-            // 创建隐藏全局控制区域按钮
-            CreateGlobalControlButton(functionContentScrollView, "↩", out Button _, () =>
-            {
-                isGlobalControlShow = false;
-                RefreshView();
-            }, "隐藏全局控制区域");
-
-            // 创建刷新视图按钮
-            CreateGlobalControlButton(functionContentScrollView, "刷新视图", out Button _, () =>
-            {
-
-            });
-
-            // 创建保存数据按钮
-            CreateGlobalControlButton(functionContentScrollView, "保存配置文件", out Button _, () =>
-            {
-
-            });
-
-            // 创建创建配置文件按钮
-            CreateAddConfigButton(functionContentScrollView);
-
-            // 创建删除配置文件按钮
-            CreateGlobalControlButton(functionContentScrollView, "删除配置文件", out Button deleteButton, () =>
-            {
-
-            });
-            deleteButton.style.backgroundColor = Color.red;
-        }
-
-        private void CreateAddConfigButton(VisualElement visual)
-        {
-            // 创建创建配置文件按钮
-            VisualElement controlButtonContent = new VisualElement();
-            controlButtonContent.AddToClassList("ControlButtonContent");
-            // 添加配置按钮
-            Button addConfigButton = new Button();
-            addConfigButton.AddToClassList("Field");
-            addConfigButton.style.flexDirection = FlexDirection.Row;
-            addConfigButton.text = "创建配置文件";
-            addConfigButton.clicked += () =>
-            {
-                addConfigButton.text = "";
-                // 避免重复添加输入框
-                if (addConfigButton.Q<TextField>() != null) return;
-                // 创建输入框
-                TextField configName = new TextField();
-                configName.AddToClassList("AddConfigInput");
-                configName.tooltip = "请输入SkillConfig名称";
-                configName.value = ""; // 确保初始值为空
-                addConfigButton.Add(configName);
-                // 创建确认按钮
-                Button sureAddConfig = new Button();
-                sureAddConfig.text = "+"; // 设置按钮文本
-                sureAddConfig.style.fontSize = 20;
-                sureAddConfig.AddToClassList("AddConfigButton");
-                addConfigButton.Add(sureAddConfig);
-                // 创建取消按钮
-                Button cancelAddConfig = new Button();
-                cancelAddConfig.AddToClassList("AddConfigButton");
-                cancelAddConfig.text = "X"; // 设置取消按钮文本
-                addConfigButton.Add(cancelAddConfig);
-                // 确认按钮事件
-                sureAddConfig.clicked += () =>
-                {
-                    // TODO: 创建配置文件
-                    Debug.Log("创建配置文件");
-                };
-
-                // 取消按钮事件
-                cancelAddConfig.clicked += () =>
-                {
-                    addConfigButton.Remove(configName);
-                    addConfigButton.Remove(sureAddConfig);
-                    addConfigButton.Remove(cancelAddConfig);
-                    addConfigButton.text = "Create Config File";
-                };
-
-                // 回车键确认
-                configName.RegisterCallback<KeyDownEvent>(evt =>
-                {
-                    if (evt.keyCode == KeyCode.Return || evt.keyCode == KeyCode.KeypadEnter)
-                    {
-                        evt.StopPropagation();
-                    }
-                    else if (evt.keyCode == KeyCode.Escape)
-                    {
-                        evt.StopPropagation();
-                    }
-                });
-
-                // 聚焦到输入框
-                configName.Focus();
-            };
-            controlButtonContent.Add(addConfigButton);
-
-            visual.Add(controlButtonContent);
-        }
-
-        // 创建图像选择区域
-        private void CreateSelectImage(ScrollView visual, string titleText)
-        {
-            VisualElement controlButtonContent = ControlButtonContent(titleText);
-            // 选择技能Icon
-            Image skillIcon = new Image();
-            skillIcon.AddToClassList("SkillIcon");
-            controlButtonContent.Add(skillIcon);
-            // 创建选择技能Icon按钮
-            Button selectIcon = new Button();
-            selectIcon.AddToClassList("SelectIcon");
-            selectIcon.text = "Select";
-            selectIcon.tooltip = "选择技能Icon";
-            selectIcon.clicked += () =>
-            {
-                // TODO: 选择技能Icon
-                Debug.Log("选择技能Icon");
-            };
-            skillIcon.Add(selectIcon);
-
-            visual.Add(controlButtonContent);
-        }
-
-        #endregion
-
-
-        #region  轨道控制区域
-
-        // 创建轨道控制区域
-        private void CreateTrackContent(VisualElement visual)
-        {
-            allTrackContent = new VisualElement();
-            allTrackContent.AddToClassList("TrackContent");
-            visual.Add(allTrackContent);
-
-            // 创建轨道项控制区域
-            CreateTrackItemControlContent(allTrackContent);
-            // 创建轨道控制区域
-            CreateTrackControlContent(allTrackContent);
-
-        }
-
-        // 轨道项控制区域
-        private void CreateTrackItemControlContent(VisualElement visual)
-        {
-            trackItemControlContent = new VisualElement();
-            trackItemControlContent.AddToClassList("TrackItemControlContent");
-            visual.Add(trackItemControlContent);
-            // 创建轨道项控制区域
-            CreateItemTrackControlButtonContent(trackItemControlContent);
-            // 创建添加轨道区域
-            CreateSearchOrAddTrackContent(trackItemControlContent);
-            // 绘制轨道区域
-            CreateTrackScrollView(trackItemControlContent, out ScrollView scrollView);
-            // 设置滚动条样式
-            scrollView.verticalScrollerVisibility = ScrollerVisibility.Hidden;
-            scrollView.horizontalScrollerVisibility = ScrollerVisibility.Hidden;
-            // trackControlContent.AddToClassList("TrackScrollViewContent");
-            // scrollView.Add(trackControlContent);
-
-        }
-
-        // 轨道项控制按钮区域
-        private void CreateItemTrackControlButtonContent(VisualElement visual)
-        {
-            VisualElement controlButtonContent = new VisualElement();
-            controlButtonContent.AddToClassList("TrackItemControlButtonContent");
-            visual.Add(controlButtonContent);
-
-            // 创建向左移动一帧按钮
-            CreateTrackControlButton(controlButtonContent, "d_Animation.PrevKey", () =>
-            {
-
-            }, "上一帧");
-
-            // 创建播放按钮
-            CreateTrackControlButton(controlButtonContent, isPlaying ? "d_PauseButton@2x" : "d_Animation.Play", () =>
-            {
-                isPlaying = !isPlaying;
-            }, "播放");
-            // 创建暂停按钮
-            CreateTrackControlButton(controlButtonContent, "d_Animation.NextKey", () =>
-            {
-
-            }, "下一帧");
-
-            // 创建向右移动一帧按钮
-            CreateTrackControlButton(controlButtonContent, "d_preAudioLoopOff@2x", () =>
-            {
-
-            }, "循环播放");
-
-            //创建帧显示区域
-            CreateFrameInputContent(controlButtonContent);
-
-        }
-
-        // 轨道项控制按钮
-        private void CreateTrackControlButton(VisualElement visual, string iconPath, Action action = null, string description = null)
-        {
-            Button controlButton = new Button();
-            controlButton.AddToClassList("TrackItemControlButton");
-            controlButton.tooltip = description;
-            controlButton.style.backgroundImage = Resources.Load<Texture2D>($"Icon/{iconPath}");
-
-            controlButton.clicked += () => { action?.Invoke(); };
-            visual.Add(controlButton);
-        }
-
-        // 帧输入显示区域
-        private void CreateFrameInputContent(VisualElement visual)
-        {
-            VisualElement frameInputContent = new VisualElement();
-            frameInputContent.AddToClassList("FrameInputContent");
-            visual.Add(frameInputContent);
-
-            // 创建当前帧输入
-            CreateFrameInput(frameInputContent, ref currentFrameInput, "当前帧");
-            currentFrameInput.value = currentFrame;
-            currentFrameInput.RegisterValueChangedCallback(evt => UpdateCurrentFrame(evt.newValue));
-            // 创建中间分隔符
-            Label separatorLabel = new Label();
-            separatorLabel.AddToClassList("SeparatorLabel");
-            separatorLabel.text = "|";
-            frameInputContent.Add(separatorLabel);
-            // 创建最大帧输入
-            CreateFrameInput(frameInputContent, ref maxFrameInput, "最大帧");
-            maxFrameInput.value = maxFrame;
-            maxFrameInput.RegisterValueChangedCallback(evt => UpdateMaxFrame(evt.newValue));
-        }
-
-        // 创建帧输入
-        private void CreateFrameInput(VisualElement visual, ref IntegerField frameInput, string description = null)
-        {
-            frameInput = new IntegerField();
-            frameInput.AddToClassList("FrameInput");
-            frameInput.tooltip = description;
-            visual.Add(frameInput);
-        }
-
-        // 轨道控制区域
-        private void CreateTrackControlContent(VisualElement visual)
-        {
-            trackPlayControlContent = new VisualElement();
-            trackPlayControlContent.AddToClassList("TrackControlContent");
-            visual.Add(trackPlayControlContent);
-
-            // 绘制时间轴
-            CreateTimeLineIMGUI(trackPlayControlContent);
-            // 绘制Tips区域
-            CreateTipsContent(trackPlayControlContent);
-            // 绘制轨道区域
-            CreateTrackScrollView(trackPlayControlContent, out ScrollView scrollView);
-            // trackContent.AddToClassList("TrackScrollViewContent");
-            // scrollView.Add(trackContent);
-        }
-
-        // 添加搜索或添加轨道区域
-        private void CreateSearchOrAddTrackContent(VisualElement visual)
-        {
-            VisualElement searchOrAddTrack = new VisualElement();
-            searchOrAddTrack.AddToClassList("SearchOrAddTrack");
-            visual.Add(searchOrAddTrack);
-
-            // 创建搜索轨道输入框
-            CreateSearchTrackInput(searchOrAddTrack);
-            // 创建添加轨道按钮
-            CreateAddTrackButton(searchOrAddTrack);
-        }
-
-        // 创建搜索轨道输入框
-        private void CreateSearchTrackInput(VisualElement visual)
-        {
-            TextField searchTrackInput = new TextField();
-            searchTrackInput.AddToClassList("SearchTrackInput");
-            searchTrackInput.tooltip = "搜索轨道";
-            // 获取TextElement
-            var textElement = searchTrackInput.Q<TextElement>(className: "unity-text-element");
-            if (textElement != null) textElement.style.marginLeft = 18;
-            // Icon
-            Image icon = new Image();
-            icon.AddToClassList("SearchTrackInputIcon");
-            searchTrackInput.Add(icon);
-            visual.Add(searchTrackInput);
-        }
-
-        // 创建添加轨道按钮
-        private void CreateAddTrackButton(VisualElement visual)
-        {
-            Button addTrackButton = new Button();
-            addTrackButton.AddToClassList("AddTrackButton");
-            visual.Add(addTrackButton);
-        }
-
-        #region  绘制时间轴区域
-
-        // 创建时间轴IMGUI
-        private void CreateTimeLineIMGUI(VisualElement visual)
-        {
-            timeLineIMGUI = new VisualElement();
-            timeLineIMGUI.AddToClassList("TimeLineIMGUI");
-
-            // 设置时间轴样式 
-            timeLineIMGUI.style.width = CalculateTimelineWidth();
-            timeLineIMGUI.style.position = Position.Relative;
-
-            // 绘制刻度
-            DrawTimelineScale();
-            // 注册鼠标事件
-            RegisterTimelineMouseEvents();
-
-            visual.Add(timeLineIMGUI);
-        }
-
-        // 计算时间轴容器宽度的统一方法 - 添加额外空间(2)避免截断
-        private float CalculateTimelineWidth()
-        {
-            return (maxFrame + 1) * frameUnitWidth;
-        }
-
-        // 注册时间轴鼠标事件
-        private void RegisterTimelineMouseEvents()
-        {
-            if (timeLineIMGUI == null) return;
-
-            bool isDragging = false;
-
-            // 鼠标按下事件
-            timeLineIMGUI.RegisterCallback<MouseDownEvent>(evt =>
-            {
-                if (evt.button == 0) // 左键
-                {
-                    isDragging = true;
-                    timeLineIMGUI.CaptureMouse(); // 捕获鼠标
-                    HandleTimelineClick(evt.localMousePosition);
-                    evt.StopPropagation();
-                }
-            });
-
-            // 鼠标拖动事件
-            timeLineIMGUI.RegisterCallback<MouseMoveEvent>(evt =>
-            {
-                if (isDragging)
-                {
-                    HandleTimelineClick(evt.localMousePosition);
-                    evt.StopPropagation();
-                }
-            });
-
-            // 鼠标释放事件
-            timeLineIMGUI.RegisterCallback<MouseUpEvent>(evt =>
-            {
-                if (evt.button == 0 && isDragging)
-                {
-                    isDragging = false;
-                    timeLineIMGUI.ReleaseMouse(); // 释放鼠标捕获
-                    evt.StopPropagation();
-                }
-            });
-
-            // 鼠标离开事件（确保拖动状态重置）
-            timeLineIMGUI.RegisterCallback<MouseLeaveEvent>(evt =>
-            {
-                if (isDragging)
-                {
-                    isDragging = false;
-                    timeLineIMGUI.ReleaseMouse();
-                }
-            });
-
-            // 添加鼠标滚轮缩放功能
-            timeLineIMGUI.RegisterCallback<WheelEvent>(evt =>
-            {
-                // 按住Ctrl键时进行缩放
-                if (evt.ctrlKey)
-                {
-                    float zoomDelta = evt.delta.y > 0 ? -2f : 2f;
-                    SetFrameUnitWidth(frameUnitWidth + zoomDelta);
-                    evt.StopPropagation();
-                }
-            });
-        }
-
-        // 处理时间轴点击/拖动
-        private void HandleTimelineClick(Vector2 localMousePosition)
-        {
-            // 计算鼠标位置对应的帧数
-            float mouseX = localMousePosition.x;
-            float exactFrame = mouseX / frameUnitWidth;
-
-            // 将指示器移动到最近的刻度处
-            int nearestFrame = GetNearestTickFrame(exactFrame);
-
-            // 限制在有效范围内
-            nearestFrame = Mathf.Clamp(nearestFrame, 0, maxFrame);
-
-            // 更新当前帧
-            UpdateCurrentFrame(nearestFrame);
-        }
-
-        // 获取最近的刻度帧
-        private int GetNearestTickFrame(float exactFrame)
-        {
-            // 吸附到最近的整数帧
-            return Mathf.RoundToInt(exactFrame);
-        }
-
-        // 绘制时间轴刻度
-        private void DrawTimelineScale()
-        {
-            if (timeLineIMGUI == null) return;
-
-            // 清空现有内容
-            timeLineIMGUI.Clear();
-
-            // 计算显示区域
-            float timelineWidth = maxFrame * frameUnitWidth;
-
-            // 起始索引计算
-            int startIndex = trackViewContentOffsetX < 1 ? 0 : Mathf.CeilToInt(trackViewContentOffsetX / frameUnitWidth);
-
-            // 计算起始偏移
-            float startOffset = 0;
-            if (startIndex > 0) startOffset = frameUnitWidth - (trackViewContentOffsetX % frameUnitWidth);
-
-            // 绘制刻度线和标签
-            DrawScaleTicks(startOffset, timelineWidth, startIndex);
-        }
-
-        // 绘制刻度线和标签
-        private void DrawScaleTicks(float startOffset, float timelineWidth, int startIndex)
-        {
-            int index = startIndex;
-            float maxDisplayWidth = Mathf.Min(timelineWidth, maxFrame * frameUnitWidth);
-
-            // 确保至少绘制到最大帧
-            for (float i = startOffset; i <= maxDisplayWidth || index <= maxFrame; i += frameUnitWidth)
-            {
-                // 如果超出显示范围但还没到最大帧，继续
-                if (i > maxDisplayWidth && index < maxFrame)
-                {
-                    i = maxFrame * frameUnitWidth;
-                    index = maxFrame;
-                }
-
-                // 如果索引超过最大帧，停止
-                if (index > maxFrame) break;
-
-                // 修改主刻度判断：每majorTickInterval帧一个主刻度
-                bool isMajorTick = index % majorTickInterval == 0;
-
-                // 创建刻度线
-                CreateTickLine(i, isMajorTick);
-
-                // 创建标签（仅主刻度或最大帧）
-                if (isMajorTick || index == maxFrame)
-                {
-                    CreateTickLabel(i, index);
-                }
-
-                index++;
-
-                // 防止无限循环
-                if (i > maxDisplayWidth && index > maxFrame) break;
+                float newWidth = dataManager.CalculateTimelineWidth();
+                trackContent.style.width = newWidth;
+                uiBuilder.RefreshTrackContent(trackContent, dataManager);
             }
         }
 
-        // 创建单个刻度线
-        private void CreateTickLine(float xPosition, bool isMajorTick)
+        private void OnGlobalControlToggled(bool isShow)
         {
-            VisualElement tickLine = new VisualElement();
-            tickLine.AddToClassList("Timeline-tick");
-            // 如果是主刻度，添加major类
-            if (isMajorTick) tickLine.AddToClassList("major");
-            // 只设置位置，其他样式通过USS控制
-            tickLine.style.left = xPosition;
-            timeLineIMGUI.Add(tickLine);
+            dataManager.IsGlobalControlShow = isShow;
+            RefreshView();
         }
 
-        // 创建刻度标签
-        private void CreateTickLabel(float xPosition, int frameIndex)
+        private void UpdateFrameInputDisplay(int frame)
         {
-            Label tickLabel = new Label();
-            tickLabel.text = frameIndex.ToString();
-            tickLabel.AddToClassList("Tick-label");
-            // 帧居中
-            tickLabel.style.left = xPosition - 9;
-            timeLineIMGUI.Add(tickLabel);
-        }
-
-        // 绘制当前帧指示器
-        private void DrawCurrentFrameIndicator()
-        {
-            if (currentFrame < 0 || currentFrame > maxFrame) return;
-
-            // 清理现有指示器 - 在正确的容器中查找
-            var existingIndicator = trackPlayControlContent?.Q("Current-frame-indicator");
-            existingIndicator?.RemoveFromHierarchy();
-
-            VisualElement indicator = new VisualElement();
-            indicator.name = "Current-frame-indicator";
-            indicator.AddToClassList("Current-frame-indicator");
-
-            // 设置位置和偏移
-            float xPosition = currentFrame * frameUnitWidth;
-            indicator.style.left = xPosition - 1;
-
-            trackPlayControlContent.Add(indicator);
-        }
-
-        // 更新当前帧
-        public void UpdateCurrentFrame(int frame)
-        {
-            int oldFrame = currentFrame;
-            currentFrame = Mathf.Clamp(frame, 0, maxFrame);
-
-            // 更新输入框显示
+            // 找到当前帧输入框并更新其显示值
+            var currentFrameInput = rootVisualElement.Q<IntegerField>("current-frame-input");
             if (currentFrameInput != null)
             {
-                currentFrameInput.SetValueWithoutNotify(currentFrame);
+                currentFrameInput.SetValueWithoutNotify(frame);
             }
-
-            // 更新指示器位置
-            UpdateFrameIndicatorPosition();
-
-            // 如果帧数改变，触发事件
-            if (oldFrame != currentFrame)
-            {
-                OnCurrentFrameChanged?.Invoke(currentFrame);
-            }
-        }
-
-        // 更新帧指示器位置
-        private void UpdateFrameIndicatorPosition()
-        {
-            // 在正确的容器中查找指示器
-            var indicator = trackPlayControlContent?.Q("Current-frame-indicator");
-            if (indicator != null)
-            {
-                float xPosition = currentFrame * frameUnitWidth;
-                indicator.style.left = xPosition - 1;
-            }
-        }
-
-        // 更新最大帧数
-        public void UpdateMaxFrame(int frame)
-        {
-            maxFrame = Mathf.Max(1, frame);
-            if (maxFrameInput != null)
-                maxFrameInput.value = maxFrame;
-
-            // 更新时间轴宽度并重新绘制
-            if (timeLineIMGUI != null)
-            {
-                timeLineIMGUI.style.width = CalculateTimelineWidth();
-                DrawTimelineScale();
-            }
-        }
-
-        // 设置帧单位宽度（用于缩放）
-        public void SetFrameUnitWidth(float width)
-        {
-            frameUnitWidth = Mathf.Clamp(width, 10f, 50f);
-            if (timeLineIMGUI != null)
-            {
-                timeLineIMGUI.style.width = CalculateTimelineWidth();
-                DrawTimelineScale();
-                // 缩放后更新指示器位置
-                UpdateFrameIndicatorPosition();
-            }
-        }
-
-        // 创建Tips区域
-        private void CreateTipsContent(VisualElement visual)
-        {
-            Label tipsContent = new Label();
-            tipsContent.AddToClassList("TipsContent");
-            visual.Add(tipsContent);
         }
 
         #endregion
-
-        private void CreateTrackItem(VisualElement visual)
-        {
-
-        }
-
-        private void CreateTrack(VisualElement visual)
-        {
-
-        }
-
-        #endregion
-
-        #endregion
-
-        #region  通用绘制
-
-        // 创建全局控制按钮
-        private void CreateGlobalControlButton(VisualElement visual, string buttonText, out Button controlButton, Action action = null, string description = null)
-        {
-            VisualElement controlButtonContent = new VisualElement();
-            controlButtonContent.AddToClassList("ControlButtonContent");
-            // 按钮
-            controlButton = new Button();
-            controlButton.AddToClassList("Field");
-            controlButton.text = buttonText;
-            controlButton.tooltip = description;
-            controlButton.clicked += () => { action?.Invoke(); };
-            controlButtonContent.Add(controlButton);
-
-            visual.Add(controlButtonContent);
-        }
-
-        // 创建ObjectField选择区域
-        private void CreateObjectField(VisualElement visual, string titleText, ref ObjectField objectField, Type type, Action action = null)
-        {
-            VisualElement controlButtonContent = ControlButtonContent(titleText);
-            // 对象选择区域
-            objectField = new ObjectField();
-            objectField.AddToClassList("Field");
-            if (type != null && typeof(UnityEngine.Object).IsAssignableFrom(type))
-            {
-                objectField.objectType = type;
-            }
-            objectField.RegisterValueChangedCallback((e) => { action?.Invoke(); });
-            controlButtonContent.Add(objectField);
-
-            visual.Add(controlButtonContent);
-        }
-
-        // 创建inputField选择区域
-        private void CreateInputField(VisualElement visual, string titleText, ref TextField inputField, Action action = null)
-        {
-            VisualElement controlButtonContent = ControlButtonContent(titleText);
-
-            // 文本输入框
-            inputField = new TextField();
-            inputField.AddToClassList("Field");
-            inputField.tooltip = titleText;
-            inputField.RegisterValueChangedCallback((e) => { action?.Invoke(); });
-            controlButtonContent.Add(inputField);
-
-            visual.Add(controlButtonContent);
-        }
-
-        // 创建控制按钮区域
-        private VisualElement ControlButtonContent(string titleText)
-        {
-            VisualElement controlButtonContent = new VisualElement();
-            controlButtonContent.AddToClassList("ControlButtonContent");
-            // title
-            Label title = new Label();
-            title.AddToClassList("ControlButtonContentTitle");
-            title.text = titleText;
-            controlButtonContent.Add(title);
-            return controlButtonContent;
-        }
-
-        // 创建轨道滚动视图
-        private void CreateTrackScrollView(VisualElement visual, out ScrollView scrollView)
-        {
-            scrollView = new ScrollView();
-            scrollView.AddToClassList("TrackScrollView");
-            VisualElement element = new VisualElement();
-            element.AddToClassList("TrackScrollViewContent");
-            scrollView.Add(element);
-
-            visual.Add(scrollView);
-        }
-
-        #endregion
-
     }
 }

@@ -9,10 +9,10 @@ namespace SkillEditor
     public class SkillEditorTrackItem : VisualElement
     {
         // 轨道项构造函数
-        private SkillEditorTrackItem(VisualElement visual)
+        public SkillEditorTrackItem(VisualElement visual)
         {
-            VisualElement mainVisualElement = new VisualElement();
-            mainVisualElement.styleSheets.Add(Resources.Load<StyleSheet>("USS/SkillEditorTrackStyle"));
+            VisualElement trackItem = new VisualElement();
+            trackItem.styleSheets.Add(Resources.Load<StyleSheet>("USS/SkillEditorTrackStyle"));
         }
     }
 }

@@ -1,0 +1,11 @@
+.TrackArea{
+    height: 28px;
+
+    margin: 0px;
+    margin-top: 1px;
+    margin-bottom: 1px;
+    padding: 0px;
+    border: 0px;
+    border-radius: 0px 4px 4px 0px;
+    background-color:#505050;
+}
