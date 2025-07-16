@@ -7,5 +7,36 @@
     padding: 0px;
     border: 0px;
     border-radius: 0px 4px 4px 0px;
-    background-color:#505050;
+    background-color: #585858;
 }
+
+.TrackArea-Animation{
+    border-bottom-width: 1px;
+    border-bottom-color: rgba(42, 184, 206, 0.5);
+}
+
+.TrackArea-Audio{
+    border-bottom-width: 1px;
+    border-bottom-color: rgba(250, 193, 23, 0.5);
+
+}
+
+.TrackArea-Effect{
+    border-bottom-width: 1px;
+    border-bottom-color: rgba(190, 42, 206, 0.5);
+
+}
+
+.TrackArea-Attack{
+    border-bottom-width: 1px;
+    border-bottom-color: rgba(206, 45, 42, 0.5);
+}
+
+.TrackArea-Event{
+    border-bottom-width: 1px;
+    border-bottom-color: rgba(42, 116, 206, 0.5);
+}
+
+
+
+

@@ -1,12 +1,12 @@
-using System;
 using FFramework.Kit;
+using System;
 
 namespace SkillEditor
 {
     /// <summary>
     /// 事件管理器
     /// </summary>
-    public class EventManager
+    public class SkillEditorEvent
     {
         public Action<int> OnCurrentFrameChanged;
         public Action<int> OnMaxFrameChanged;

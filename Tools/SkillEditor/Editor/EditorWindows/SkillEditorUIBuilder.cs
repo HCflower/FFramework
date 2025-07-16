@@ -1,6 +1,7 @@
 using UnityEngine.UIElements;
 using UnityEditor.UIElements;
 using FFramework.Kit;
+using UnityEditor;
 using UnityEngine;
 using System;
 
@@ -11,79 +12,76 @@ namespace SkillEditor
     /// </summary>
     public class SkillEditorUIBuilder
     {
-        private readonly EventManager eventManager;
+        private readonly SkillEditorEvent skillEditorEvent;
+        private readonly SkillEditorData skillEditorData;
+        private VisualElement allTrackContent;
+        private VisualElement trackControlContent; // 添加轨道控制区域引用
 
-        public SkillEditorUIBuilder(EventManager eventManager)
+        public SkillEditorUIBuilder(SkillEditorData skillEditorData, SkillEditorEvent skillEditorEvent)
         {
-            this.eventManager = eventManager;
+            this.skillEditorData = skillEditorData;
+            this.skillEditorEvent = skillEditorEvent;
         }
 
         #region 主要结构创建
         public VisualElement CreateMainContent(VisualElement parent)
         {
-            var mainContent = new VisualElement();
-            mainContent.AddToClassList("MainContent");
-            parent.Add(mainContent);
-            return mainContent;
+            return CreateAndAddElement(parent, "MainContent");
         }
 
-        public VisualElement CreateGlobalControlArea(VisualElement parent, bool isShow)
+        public VisualElement CreateGlobalControlArea(VisualElement parent)
         {
-            var globalControlContent = new VisualElement();
-            globalControlContent.AddToClassList("GlobalControlContent");
-            parent.Add(globalControlContent);
-            return globalControlContent;
+            return CreateAndAddElement(parent, "GlobalControlContent");
         }
 
         public VisualElement CreateTrackArea(VisualElement parent)
         {
-            var allTrackContent = new VisualElement();
-            allTrackContent.AddToClassList("TrackContent");
-            parent.Add(allTrackContent);
-            return allTrackContent;
+            return CreateAndAddElement(parent, "TrackContent");
         }
 
-        public (VisualElement controlArea, ScrollView controlScrollView, VisualElement controlContent,
-                VisualElement trackArea, ScrollView trackScrollView, VisualElement trackContent)
-        CreateTrackStructure(VisualElement parent, SkillEditorDataManager dataManager)
+        public TrackStructureResult CreateTrackStructure(VisualElement parent, SkillEditorData skillEditorData)
         {
             // 创建轨道控制区域
-            var controlArea = new VisualElement();
-            controlArea.AddToClassList("TrackItemControlContent");
-            parent.Add(controlArea);
-
-            // 创建控制按钮区域
-            CreateTrackControlButtons(controlArea, dataManager);
-
-            // 创建搜索和添加区域
+            var controlArea = CreateAndAddElement(parent, "TrackItemControlContent");
+            CreateTrackControlButtons(controlArea, skillEditorData);
             CreateSearchAndAddArea(controlArea);
 
             // 创建轨道控制滚动视图
             var (controlScrollView, controlContent) = CreateScrollView(controlArea, "TrackScrollView", "TrackScrollViewContent");
-            controlScrollView.verticalScrollerVisibility = ScrollerVisibility.Hidden;
-            controlScrollView.horizontalScrollerVisibility = ScrollerVisibility.Hidden;
-
-            // 添加测试轨道控制
-            AddTestTrackControls(controlContent);
+            this.trackControlContent = controlContent;
+            SetScrollViewVisibility(controlScrollView, false, false);
 
             // 创建轨道区域
-            var trackArea = new VisualElement();
-            trackArea.AddToClassList("TrackControlContent");
-            parent.Add(trackArea);
-
-            // 创建轨道滚动视图
+            var trackArea = CreateAndAddElement(parent, "TrackControlContent");
             var (trackScrollView, trackContent) = CreateScrollView(trackArea, "TrackScrollView", "TrackScrollViewContent");
-            // 设置轨道内容的初始宽度
-            trackContent.style.width = dataManager.CalculateTimelineWidth();
-            // 添加测试轨道
-            AddTestTracks(trackContent, dataManager.CalculateTimelineWidth());
+            this.allTrackContent = trackContent;
+            trackContent.style.width = skillEditorData.CalculateTimelineWidth();
 
-            return (controlArea, controlScrollView, controlContent, trackArea, trackScrollView, trackContent);
+            return new TrackStructureResult
+            {
+                ControlArea = controlArea,
+                ControlScrollView = controlScrollView,
+                ControlContent = controlContent,
+                TrackArea = trackArea,
+                TrackScrollView = trackScrollView,
+                TrackContent = trackContent
+            };
+        }
+
+        // 新增结构体用于返回复杂结果
+        public struct TrackStructureResult
+        {
+            public VisualElement ControlArea;
+            public ScrollView ControlScrollView;
+            public VisualElement ControlContent;
+            public VisualElement TrackArea;
+            public ScrollView TrackScrollView;
+            public VisualElement TrackContent;
         }
         #endregion
 
         #region 全局控制区域
-        public void RefreshGlobalControl(VisualElement globalControlContent, SkillEditorDataManager dataManager)
+        public void RefreshGlobalControl(VisualElement globalControlContent, SkillEditorData dataManager)
         {
             globalControlContent.Clear();
             if (dataManager.IsGlobalControlShow)
@@ -94,122 +92,131 @@ namespace SkillEditor
 
         private void CreateGlobalControlShowButton(VisualElement parent)
         {
-            var buttonWrapper = new VisualElement();
-            buttonWrapper.AddToClassList("GlobalControlShowButtonWrapper");
-
-            var showButton = CreateButton("", "Global Setting", () =>
-            {
-                eventManager.TriggerGlobalControlToggled(true);
-            });
+            var buttonWrapper = CreateAndAddElement(parent, "GlobalControlShowButtonWrapper");
+            var showButton = CreateButton("", "Global Setting", () => skillEditorEvent.TriggerGlobalControlToggled(true));
             showButton.AddToClassList("GlobalControlShowButton");
-
             buttonWrapper.Add(showButton);
-            parent.Add(buttonWrapper);
         }
 
-        private void CreateGlobalControlFunction(VisualElement parent, SkillEditorDataManager dataManager)
+        private void CreateGlobalControlFunction(VisualElement parent, SkillEditorData dataManager)
         {
-            var scrollView = new ScrollView();
-            scrollView.horizontalScrollerVisibility = ScrollerVisibility.Hidden;
-            scrollView.verticalScrollerVisibility = ScrollerVisibility.Hidden;
-            scrollView.AddToClassList("GlobalControlFunctionContent");
-            parent.Add(scrollView);
+            var scrollView = CreateScrollView(parent, "GlobalControlFunctionContent");
 
-            // 技能配置选择
-            CreateObjectField(scrollView, "技能配置:", typeof(SkillConfig), dataManager.CurrentSkillConfig, (obj) =>
+            // 技能配置区域
+            CreateSkillConfigSection(scrollView, dataManager);
+
+            // 控制按钮区域
+            CreateGlobalControlButtons(scrollView);
+        }
+
+        private void CreateSkillConfigSection(VisualElement parent, SkillEditorData dataManager)
+        {
+            CreateObjectField(parent, "技能配置:", typeof(SkillConfig), dataManager.CurrentSkillConfig, (obj) =>
             {
                 dataManager.CurrentSkillConfig = obj as SkillConfig;
-                eventManager.TriggerSkillConfigChanged(dataManager.CurrentSkillConfig);
+                skillEditorEvent.TriggerSkillConfigChanged(dataManager.CurrentSkillConfig);
             });
 
-            // 技能Icon选择
-            CreateImageSelector(scrollView, "技能Icon:");
-
-            // 输入字段
-            CreateInputField(scrollView, "技能名称:", "", null);
-            CreateInputField(scrollView, "技能ID:", "", null);
-            CreateMultilineInputField(scrollView, "技能描述:", "", null);
-
-            // 控制按钮
-            CreateControlButtons(scrollView);
+            CreateImageSelector(parent, "技能Icon:");
+            CreateInputField(parent, "技能名称:", "", null);
+            CreateInputField(parent, "技能ID:", "", null);
+            CreateMultilineInputField(parent, "技能描述:", "", null);
         }
 
-        private void CreateControlButtons(VisualElement parent)
+        private void CreateGlobalControlButtons(VisualElement parent)
         {
+            // 隐藏全局控制区域按钮
             CreateButton(parent, "↩", "隐藏全局控制区域", () =>
             {
-                eventManager.TriggerGlobalControlToggled(false);
+                skillEditorEvent.TriggerGlobalControlToggled(false);
             });
 
+            // 刷新视图按钮
             CreateButton(parent, "刷新视图", "", () =>
             {
-                eventManager.TriggerRefreshRequested();
+                skillEditorEvent.TriggerRefreshRequested();
             });
 
+            // 保存配置文件按钮
             CreateButton(parent, "保存配置文件", "", () =>
             {
                 // 保存逻辑
             });
 
+            // 添加配置按钮
             CreateAddConfigButton(parent);
 
+            // 删除配置文件按钮
             var deleteButton = CreateButton(parent, "删除配置文件", "", () =>
             {
                 // 删除逻辑
             });
             deleteButton.style.backgroundColor = Color.red;
         }
+
         #endregion
 
         #region 轨道控制区域
-        public void RefreshTrackContent(VisualElement trackContent, SkillEditorDataManager dataManager)
+        public void RefreshTrackContent(VisualElement trackContent, SkillEditorData skillEditorData)
         {
-            if (trackContent != null)
+            if (trackContent == null) return;
+
+            float newWidth = skillEditorData.CalculateTimelineWidth();
+            UpdateTrackContentWidth(trackContent, newWidth);
+
+            var scrollView = trackContent.GetFirstAncestorOfType<ScrollView>();
+            if (scrollView != null)
             {
-                float newWidth = dataManager.CalculateTimelineWidth();
-                trackContent.style.width = newWidth;
-
-                // 更新轨道内容的宽度
-                trackContent.style.minWidth = newWidth;
-
-                // 重新创建轨道以确保宽度正确
-                AddTestTracks(trackContent, newWidth);
+                ForceUpdateScrollView(scrollView);
             }
         }
 
-        private void CreateTrackControlButtons(VisualElement parent, SkillEditorDataManager dataManager)
+        private void UpdateTrackContentWidth(VisualElement trackContent, float width)
         {
-            var buttonContent = new VisualElement();
-            buttonContent.AddToClassList("TrackItemControlButtonContent");
-            parent.Add(buttonContent);
+            trackContent.style.width = width;
+            trackContent.style.minWidth = width;
+        }
 
-            // 播放控制按钮
-            CreateIconButton(buttonContent, "d_Animation.PrevKey", "上一帧", () =>
-            {
-                eventManager.TriggerCurrentFrameChanged(dataManager.CurrentFrame - 1);
-            });
+        private void CreateTrackControlButtons(VisualElement parent, SkillEditorData dataManager)
+        {
+            var buttonContent = CreateAndAddElement(parent, "TrackItemControlButtonContent");
 
-            CreateIconButton(buttonContent, dataManager.IsPlaying ? "d_PauseButton@2x" : "d_Animation.Play", "播放", () =>
-            {
-                dataManager.IsPlaying = !dataManager.IsPlaying;
-                eventManager.TriggerPlayStateChanged(dataManager.IsPlaying);
-            });
-
-            CreateIconButton(buttonContent, "d_Animation.NextKey", "下一帧", () =>
-            {
-                eventManager.TriggerCurrentFrameChanged(dataManager.CurrentFrame + 1);
-            });
-
-            CreateIconButton(buttonContent, "d_preAudioLoopOff@2x", "循环播放", () =>
-            {
-                dataManager.IsLoop = !dataManager.IsLoop;
-            });
+            // 播放控制按钮组
+            CreatePlaybackControls(buttonContent, dataManager);
 
             // 帧输入区域
             CreateFrameInputArea(buttonContent, dataManager);
         }
 
-        private void CreateFrameInputArea(VisualElement parent, SkillEditorDataManager dataManager)
+        private void CreatePlaybackControls(VisualElement parent, SkillEditorData dataManager)
+        {
+            // 上一帧按钮
+            CreateIconButton(parent, "d_Animation.PrevKey", "上一帧", () =>
+            {
+                skillEditorEvent.TriggerCurrentFrameChanged(dataManager.CurrentFrame - 1);
+            });
+
+            // 播放/暂停按钮
+            CreateIconButton(parent, dataManager.IsPlaying ? "d_PauseButton@2x" : "d_Animation.Play", "播放", () =>
+            {
+                dataManager.IsPlaying = !dataManager.IsPlaying;
+                skillEditorEvent.TriggerPlayStateChanged(dataManager.IsPlaying);
+            });
+
+            // 下一帧按钮
+            CreateIconButton(parent, "d_Animation.NextKey", "下一帧", () =>
+            {
+                skillEditorEvent.TriggerCurrentFrameChanged(dataManager.CurrentFrame + 1);
+            });
+
+            // 循环播放按钮
+            CreateIconButton(parent, "d_preAudioLoopOff@2x", "循环播放", () =>
+            {
+                dataManager.IsLoop = !dataManager.IsLoop;
+            });
+        }
+
+        private void CreateFrameInputArea(VisualElement parent, SkillEditorData dataManager)
         {
             var frameInputContent = new VisualElement();
             frameInputContent.AddToClassList("FrameInputContent");
@@ -218,7 +225,7 @@ namespace SkillEditor
             // 当前帧输入
             var currentFrameInput = CreateIntegerField("当前帧", dataManager.CurrentFrame, (value) =>
             {
-                eventManager.TriggerCurrentFrameChanged(value);
+                skillEditorEvent.TriggerCurrentFrameChanged(value);
             });
             currentFrameInput.name = "current-frame-input"; // 添加名称以便查找
             frameInputContent.Add(currentFrameInput);
@@ -231,18 +238,25 @@ namespace SkillEditor
             // 最大帧输入
             var maxFrameInput = CreateIntegerField("最大帧", dataManager.MaxFrame, (value) =>
             {
-                eventManager.TriggerMaxFrameChanged(value);
+                skillEditorEvent.TriggerMaxFrameChanged(value);
             });
             frameInputContent.Add(maxFrameInput);
         }
 
+
         private void CreateSearchAndAddArea(VisualElement parent)
         {
-            var searchAddArea = new VisualElement();
-            searchAddArea.AddToClassList("SearchOrAddTrack");
-            parent.Add(searchAddArea);
+            var searchAddArea = CreateAndAddElement(parent, "SearchOrAddTrack");
 
             // 搜索输入框
+            CreateSearchInput(searchAddArea);
+
+            // 添加轨道按钮
+            CreateAddTrackButton(searchAddArea);
+        }
+
+        private void CreateSearchInput(VisualElement parent)
+        {
             var searchInput = new TextField();
             searchInput.AddToClassList("SearchTrackInput");
             searchInput.tooltip = "搜索轨道";
@@ -253,33 +267,102 @@ namespace SkillEditor
             var searchIcon = new Image();
             searchIcon.AddToClassList("SearchTrackInputIcon");
             searchInput.Add(searchIcon);
-            searchAddArea.Add(searchInput);
+            parent.Add(searchInput);
+        }
 
-            // 添加轨道按钮
+        private void CreateAddTrackButton(VisualElement parent)
+        {
             var addButton = new Button();
             addButton.AddToClassList("AddTrackButton");
-            searchAddArea.Add(addButton);
+            addButton.clicked += () => ShowTrackCreationMenu(addButton);
+            parent.Add(addButton);
         }
-
-        private void AddTestTrackControls(VisualElement parent)
+        private void ShowTrackCreationMenu(VisualElement button)
         {
-            for (int i = 0; i < 15; i++)
-            {
-                new SkillEditorTrackControl(parent);
-            }
+            var menu = new GenericMenu();
+
+            // 创建动画轨道菜单项
+            menu.AddItem(new GUIContent("创建 Animation Track"), false, () => CreateTrack(TrackType.AnimationTrack));
+
+            // 创建攻击轨道菜单项
+            menu.AddItem(new GUIContent("创建 Attack Track"), false, () => CreateTrack(TrackType.AttackTrack));
+
+            // 创建音频轨道菜单项
+            menu.AddItem(new GUIContent("创建 Audio Track"), false, () => CreateTrack(TrackType.AudioTrack));
+
+            // 创建特效轨道菜单项
+            menu.AddItem(new GUIContent("创建 Effect Track"), false, () => CreateTrack(TrackType.EffectTrack));
+
+            // 创建事件轨道菜单项
+            menu.AddItem(new GUIContent("创建 Event Track"), false, () => CreateTrack(TrackType.EventTrack));
+
+            var rect = button.worldBound;
+            menu.DropDown(new Rect(rect.x, rect.yMax, 0, 0));
         }
 
-        private void AddTestTracks(VisualElement parent, float width)
+        private void CreateTrack(TrackType trackType)
         {
-            // 清除现有轨道（如果是刷新操作）
-            parent.Clear();
-
-            for (int i = 0; i < 15; i++)
+            if (skillEditorData == null)
             {
-                new SkillEditorTrack(parent, width);
+                Debug.LogError("SkillEditorData为空,无法添加轨道");
+                return;
             }
+
+            var trackControl = new SkillEditorTrackControl(trackControlContent, trackType);
+            var track = new SkillEditorTrack(allTrackContent, trackType, skillEditorData.CalculateTimelineWidth());
+
+            skillEditorData.tracks.Add((trackControl, track));
+            Debug.Log($"成功创建{trackType}轨道，当前轨道数量: {skillEditorData.tracks.Count}");
         }
 
+        #endregion
+
+        #region 辅助方法
+        private VisualElement CreateAndAddElement(VisualElement parent, string className)
+        {
+            var element = new VisualElement();
+            element.AddToClassList(className);
+            parent.Add(element);
+            return element;
+        }
+
+        private ScrollView CreateScrollView(VisualElement parent, string className)
+        {
+            var scrollView = new ScrollView();
+            scrollView.AddToClassList(className);
+            SetScrollViewVisibility(scrollView, false, false);
+            parent.Add(scrollView);
+            return scrollView;
+        }
+
+        private void SetScrollViewVisibility(ScrollView scrollView, bool horizontal, bool vertical)
+        {
+            scrollView.horizontalScrollerVisibility = horizontal ? ScrollerVisibility.Auto : ScrollerVisibility.Hidden;
+            scrollView.verticalScrollerVisibility = vertical ? ScrollerVisibility.Auto : ScrollerVisibility.Hidden;
+        }
+
+        private void ForceUpdateScrollView(ScrollView scrollView)
+        {
+            scrollView.MarkDirtyRepaint();
+            scrollView.contentContainer.MarkDirtyRepaint();
+
+            EditorApplication.delayCall += () =>
+            {
+                if (scrollView != null)
+                {
+                    var originalVisibility = scrollView.horizontalScrollerVisibility;
+                    scrollView.horizontalScrollerVisibility = ScrollerVisibility.Hidden;
+
+                    EditorApplication.delayCall += () =>
+                    {
+                        if (scrollView != null)
+                        {
+                            scrollView.horizontalScrollerVisibility = originalVisibility;
+                        }
+                    };
+                }
+            };
+        }
         #endregion
 
         #region 通用UI创建方法

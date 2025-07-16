@@ -9,7 +9,33 @@
     padding: 0px;
     border: 0px;
     border-radius: 4px 0px 0px 4px;
-    background-color:#505050;
+    background-color:#585858;
+}
+
+.TrackControlArea-Animation{
+    border-bottom-width: 1px;
+    border-bottom-color: rgba(42, 184, 206, 0.5);
+}
+
+.TrackControlArea-Audio{
+    border-bottom-width: 1px;
+    border-bottom-color: rgba(250, 193, 23, 0.5);
+}
+
+.TrackControlArea-Effect{
+    border-bottom-width: 1px;
+    border-bottom-color: rgba(190, 42, 206, 0.5);
+
+}
+
+.TrackControlArea-Attack{
+    border-bottom-width: 1px;
+    border-bottom-color: rgba(206, 45, 42, 0.5);
+}
+
+.TrackControlArea-Event{
+    border-bottom-width: 1px;
+    border-bottom-color: rgba(42, 116, 206, 0.5);
 }
 
 /* 轨道控制区域 */
@@ -31,6 +57,9 @@
 
     padding: 0px;
     border: 0px;
+    
+    background-size: 20px 20px;
+    background-position: center center;
 }
 
 /* 轨道标题 */
