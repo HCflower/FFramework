@@ -4,6 +4,8 @@ using FFramework.Kit;
 using UnityEditor;
 using UnityEngine;
 using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace SkillEditor
 {
@@ -21,6 +23,9 @@ namespace SkillEditor
         {
             this.skillEditorData = skillEditorData;
             this.skillEditorEvent = skillEditorEvent;
+            // 订阅刷新事件
+            if (skillEditorEvent != null)
+                skillEditorEvent.OnRefreshRequested += OnRefreshRequested;
         }
 
         #region 主要结构创建
@@ -243,7 +248,6 @@ namespace SkillEditor
             frameInputContent.Add(maxFrameInput);
         }
 
-
         private void CreateSearchAndAddArea(VisualElement parent)
         {
             var searchAddArea = CreateAndAddElement(parent, "SearchOrAddTrack");
@@ -281,8 +285,13 @@ namespace SkillEditor
         {
             var menu = new GenericMenu();
 
-            // 创建动画轨道菜单项
-            menu.AddItem(new GUIContent("创建 Animation Track"), false, () => CreateTrack(TrackType.AnimationTrack));
+            // 创建动画轨道菜单项（只允许一个）
+            bool hasAnimationTrack = skillEditorData.tracks.Exists(t => t.TrackType == TrackType.AnimationTrack);
+            menu.AddItem(new GUIContent("创建 Animation Track"), hasAnimationTrack, () =>
+            {
+                if (!hasAnimationTrack) CreateTrack(TrackType.AnimationTrack);
+                else Debug.LogWarning("已存在动画轨道，无法创建新的动画轨道。");
+            });
 
             // 创建攻击轨道菜单项
             menu.AddItem(new GUIContent("创建 Attack Track"), false, () => CreateTrack(TrackType.AttackTrack));
@@ -300,6 +309,7 @@ namespace SkillEditor
             menu.DropDown(new Rect(rect.x, rect.yMax, 0, 0));
         }
 
+        // 创建轨道
         private void CreateTrack(TrackType trackType)
         {
             if (skillEditorData == null)
@@ -308,11 +318,82 @@ namespace SkillEditor
                 return;
             }
 
-            var trackControl = new SkillEditorTrackControl(trackControlContent, trackType);
+            // 默认轨道名称可用类型+序号
+            string trackName = $"{trackType}_{skillEditorData.tracks.Count + 1}";
+            var trackControl = new SkillEditorTrackControl(trackControlContent, trackType, trackName);
             var track = new SkillEditorTrack(allTrackContent, trackType, skillEditorData.CalculateTimelineWidth());
+            var trackInfo = new SkillEditorTrackInfo(trackControl, track, trackType, trackName);
+            skillEditorData.tracks.Add(trackInfo);
 
-            skillEditorData.tracks.Add((trackControl, track));
+            // 重新订阅事件
+            SubscribeTrackEvents(trackControl);
+
             Debug.Log($"成功创建{trackType}轨道，当前轨道数量: {skillEditorData.tracks.Count}");
+        }
+
+        // 刷新事件
+        public void OnRefreshRequested()
+        {
+            // 清空现有轨道UI
+            trackControlContent?.Clear();
+            allTrackContent?.Clear();
+            // 重新创建所有轨道UI
+            RefreshAllTracks();
+        }
+
+        // 刷新所有轨道UI
+        private void RefreshAllTracks()
+        {
+            if (skillEditorData?.tracks == null) return;
+
+            // 需要重新创建UI元素，而不是重用旧的
+            var tracksToRecreate = new List<SkillEditorTrackInfo>(skillEditorData.tracks);
+            skillEditorData.tracks.Clear();
+
+            //TODO 优先创建动画轨道 - 实现轨道拖拽后可以考虑移除
+            foreach (var oldTrackInfo in tracksToRecreate.Where(t => t.TrackType == TrackType.AnimationTrack))
+            {
+                var newTrackControl = new SkillEditorTrackControl(trackControlContent, oldTrackInfo.TrackType, oldTrackInfo.TrackName);
+                var newTrack = new SkillEditorTrack(allTrackContent, oldTrackInfo.TrackType, skillEditorData.CalculateTimelineWidth());
+                var newTrackInfo = new SkillEditorTrackInfo(newTrackControl, newTrack, oldTrackInfo.TrackType, oldTrackInfo.TrackName);
+                skillEditorData.tracks.Add(newTrackInfo);
+                SubscribeTrackEvents(newTrackControl);
+            }
+            // 再创建其它类型轨道
+            foreach (var oldTrackInfo in tracksToRecreate.Where(t => t.TrackType != TrackType.AnimationTrack))
+            {
+                var newTrackControl = new SkillEditorTrackControl(trackControlContent, oldTrackInfo.TrackType, oldTrackInfo.TrackName);
+                var newTrack = new SkillEditorTrack(allTrackContent, oldTrackInfo.TrackType, skillEditorData.CalculateTimelineWidth());
+                var newTrackInfo = new SkillEditorTrackInfo(newTrackControl, newTrack, oldTrackInfo.TrackType, oldTrackInfo.TrackName);
+                skillEditorData.tracks.Add(newTrackInfo);
+                SubscribeTrackEvents(newTrackControl);
+            }
+        }
+
+        // 订阅轨道事件
+        private void SubscribeTrackEvents(SkillEditorTrackControl trackControl)
+        {
+            trackControl.OnDeleteTrack += (ctrl) =>
+           {
+               var info = skillEditorData.tracks.Find(t => t.Control == ctrl);
+               if (info != null)
+               {
+                   skillEditorData.tracks.Remove(info);
+                   Debug.Log($"删除轨道: {info.TrackName}，剩余轨道数量: {skillEditorData.tracks.Count}");
+                   skillEditorEvent?.TriggerRefreshRequested();
+               }
+           };
+            // 订阅激活/失活事件
+            trackControl.OnActiveStateChanged += (ctrl, isActive) =>
+            {
+                var info = skillEditorData.tracks.Find(t => t.Control == ctrl);
+                if (info != null)
+                {
+                    info.IsActive = isActive;
+                    info.Control.RefreshState(isActive);
+                    Debug.Log($"轨道[{info.TrackName}]激活状态: {(isActive ? "激活" : "失活")}");
+                }
+            };
         }
 
         #endregion

@@ -12,7 +12,8 @@ namespace SkillEditor
         #region 数据
         public SkillConfig CurrentSkillConfig { get; set; }
         public bool IsGlobalControlShow { get; set; } = false;
-        public List<(SkillEditorTrackControl control, SkillEditorTrack track)> tracks = new();
+        public List<SkillEditorTrackInfo> tracks = new();
+
         // 时间轴配置
         public float FrameUnitWidth { get; private set; } = 10f;
         public int CurrentFrame { get; private set; } = 1;
@@ -57,5 +58,26 @@ namespace SkillEditor
         EffectTrack,     //  特效轨道
         AttackTrack,     //  攻击轨道
         EventTrack,      //  事件轨道
+    }
+
+    /// <summary>
+    /// 轨道信息结构体
+    /// </summary>
+    public class SkillEditorTrackInfo
+    {
+        public SkillEditorTrackControl Control { get; set; }
+        public SkillEditorTrack Track { get; set; }
+        public TrackType TrackType { get; set; }
+        public string TrackName { get; set; }
+        public bool IsActive { get; set; } = true;
+
+        public SkillEditorTrackInfo(SkillEditorTrackControl control, SkillEditorTrack track, TrackType type, string name)
+        {
+            Control = control;
+            Track = track;
+            TrackType = type;
+            TrackName = name;
+            IsActive = true;
+        }
     }
 }

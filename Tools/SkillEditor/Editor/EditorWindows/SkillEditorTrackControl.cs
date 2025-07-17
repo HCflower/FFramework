@@ -9,14 +9,25 @@ namespace SkillEditor
     /// </summary>
     public class SkillEditorTrackControl : VisualElement
     {
+        // 激活/失活事件
+        public event System.Action<SkillEditorTrackControl, bool> OnActiveStateChanged;
+        // 轨道名称更改事件
+        public event System.Action<SkillEditorTrackControl, string> OnTrackNameChanged;
         // 轨道删除事件
         public System.Action<SkillEditorTrackControl> OnDeleteTrack;
+        private VisualElement trackControlArea;
         private VisualElement trackControlAreaContent;
+        private Image trackControlIcon;
+
+        public TrackType TrackType { get; private set; }
+        public string TrackName { get; private set; }
 
         // 轨道控制器构造函数
-        public SkillEditorTrackControl(VisualElement visual, TrackType trackType)
+        public SkillEditorTrackControl(VisualElement visual, TrackType trackType, string trackName = null)
         {
-            VisualElement trackControlArea = new VisualElement();
+            TrackType = trackType;
+            TrackName = trackName;
+            trackControlArea = new VisualElement();
             trackControlArea.styleSheets.Add(Resources.Load<StyleSheet>("USS/SkillEditorTrackControlStyle"));
             trackControlArea.AddToClassList("TrackControlArea");
             switch (trackType)
@@ -42,11 +53,12 @@ namespace SkillEditor
             visual.Add(trackControlArea);
 
             // 创建轨道控制器区域
-            trackControlArea.Add(CreateTrackControlAreaContent(trackType));
+            trackControlAreaContent = CreateTrackControlAreaContent(trackType, trackName);
+            trackControlArea.Add(trackControlAreaContent);
         }
 
         // 创建轨道控制器区域
-        public VisualElement CreateTrackControlAreaContent(TrackType trackType)
+        public VisualElement CreateTrackControlAreaContent(TrackType trackType, string trackName)
         {
             trackControlAreaContent = new VisualElement();
             trackControlAreaContent.AddToClassList("TrackControlAreaContent");
@@ -56,33 +68,33 @@ namespace SkillEditor
                 case TrackType.AnimationTrack:
                     trackControlAreaContent.Add(CreateTrackControlIcon("d_AnimationClip Icon"));
                     // 添加标题
-                    trackControlAreaContent.Add(CreateTrackControlTitle("动画轨道"));
+                    trackControlAreaContent.Add(CreateTrackControlTitle(trackName != null ? trackName : "动画轨道"));
                     break;
                 case TrackType.AudioTrack:
                     trackControlAreaContent.Add(CreateTrackControlIcon("d_AudioImporter Icon"));
                     // 添加标题
-                    trackControlAreaContent.Add(CreateTrackControlTitle("音频轨道"));
+                    trackControlAreaContent.Add(CreateTrackControlTitle(trackName != null ? trackName : "音频轨道"));
                     // 添加控制器按钮
                     trackControlAreaContent.Add(CreateTrackControlButton("MoreOptions"));
                     break;
                 case TrackType.EffectTrack:
                     trackControlAreaContent.Add(CreateTrackControlIcon("d_VisualEffectAsset Icon"));
                     // 添加标题
-                    trackControlAreaContent.Add(CreateTrackControlTitle("特效轨道"));
+                    trackControlAreaContent.Add(CreateTrackControlTitle(trackName != null ? trackName : "特效轨道"));
                     // 添加控制器按钮
                     trackControlAreaContent.Add(CreateTrackControlButton("MoreOptions"));
                     break;
                 case TrackType.EventTrack:
                     trackControlAreaContent.Add(CreateTrackControlIcon("SignalAsset Icon"));
                     // 添加标题
-                    trackControlAreaContent.Add(CreateTrackControlTitle("事件轨道"));
+                    trackControlAreaContent.Add(CreateTrackControlTitle(trackName != null ? trackName : "事件轨道"));
                     // 添加控制器按钮
                     trackControlAreaContent.Add(CreateTrackControlButton("MoreOptions"));
                     break;
                 case TrackType.AttackTrack:
                     trackControlAreaContent.Add(CreateTrackControlIcon("d_BoxCollider Icon"));
                     // 添加标题
-                    trackControlAreaContent.Add(CreateTrackControlTitle("攻击轨道"));
+                    trackControlAreaContent.Add(CreateTrackControlTitle(trackName != null ? trackName : "攻击轨道"));
                     // 添加控制器按钮
                     trackControlAreaContent.Add(CreateTrackControlButton("MoreOptions"));
                     break;
@@ -95,7 +107,7 @@ namespace SkillEditor
         // 创建控制器图标
         public Image CreateTrackControlIcon(string iconPath)
         {
-            Image trackControlIcon = new Image();
+            trackControlIcon = new Image();
             trackControlIcon.AddToClassList("TrackControlAreaIcon");
             trackControlIcon.style.backgroundImage = new StyleBackground(Resources.Load<Texture2D>($"Icon/{iconPath}"));
             return trackControlIcon;
@@ -129,9 +141,20 @@ namespace SkillEditor
             GenericMenu menu = new GenericMenu();
 
             // 添加菜单项
-            menu.AddItem(new GUIContent("设置轨道为激活状态"), false, () => Debug.Log("设置轨道为激活状态"));
-            menu.AddItem(new GUIContent("设置轨道为失活状态"), false, () => Debug.Log("设置轨道为失活状态"));
-            menu.AddItem(new GUIContent("更改当前轨道名称"), false, () => Debug.Log("更改当前轨道名称"));
+            menu.AddItem(new GUIContent("设置轨道为激活状态"), false, () =>
+            {
+                OnActiveStateChanged?.Invoke(this, true);
+            });
+            menu.AddItem(new GUIContent("设置轨道为失活状态"), false, () =>
+            {
+                OnActiveStateChanged?.Invoke(this, false);
+            });
+            menu.AddItem(new GUIContent("更改当前轨道名称"), false, () =>
+            {
+                // 示例：弹窗输入新名称（实际可用EditorUtility.DisplayDialog或自定义UI）
+                string newName = TrackName;
+                OnTrackNameChanged?.Invoke(this, newName);
+            });
             menu.AddSeparator("");
             menu.AddItem(new GUIContent("删除当前轨道"), false, () =>
             {
@@ -141,6 +164,15 @@ namespace SkillEditor
             // 使用按钮的世界边界，菜单显示在按钮正下方
             var rect = button.worldBound;
             menu.DropDown(new Rect(rect.x, rect.yMax, 0, 0));
+        }
+
+        // 刷新状态
+        public void RefreshState(bool isActive)
+        {
+            if (!isActive)
+                trackControlIcon.AddToClassList("TrackInactiveState");
+            else
+                trackControlIcon.RemoveFromClassList("TrackInactiveState");
         }
     }
 }

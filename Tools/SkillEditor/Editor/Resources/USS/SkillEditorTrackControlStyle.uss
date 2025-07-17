@@ -13,29 +13,28 @@
 }
 
 .TrackControlArea-Animation{
-    border-bottom-width: 1px;
-    border-bottom-color: rgba(42, 184, 206, 0.5);
+    border-left-width: 1px;
+    border-left-color: rgb(42, 184, 206);
 }
 
 .TrackControlArea-Audio{
-    border-bottom-width: 1px;
-    border-bottom-color: rgba(250, 193, 23, 0.5);
+    border-left-width: 1px;
+    border-left-color: rgb(250, 193, 23);
 }
 
 .TrackControlArea-Effect{
-    border-bottom-width: 1px;
-    border-bottom-color: rgba(190, 42, 206, 0.5);
-
+    border-left-width: 1px;
+    border-left-color: rgb(190, 42, 206);
 }
 
 .TrackControlArea-Attack{
-    border-bottom-width: 1px;
-    border-bottom-color: rgba(206, 45, 42, 0.5);
+    border-left-width: 1px;
+    border-left-color: rgb(206, 45, 42);
 }
 
 .TrackControlArea-Event{
-    border-bottom-width: 1px;
-    border-bottom-color: rgba(42, 116, 206, 0.5);
+    border-left-width: 1px;
+    border-left-color: rgb(42, 116, 206);
 }
 
 /* 轨道控制区域 */
@@ -64,7 +63,7 @@
 
 /* 轨道标题 */
 .TrackControlAreaTitle{
-    width: 126px;
+    width: 125px;
     height: 20px;
 
     padding: 0px;
@@ -81,4 +80,9 @@
     margin: 0px;
     padding: 0px;
     border: 0px;
+}
+
+/* 轨道失活状态 */
+.TrackInactiveState{
+    -unity-background-image-tint-color: rgba(255, 255, 255, 0.25) 
 }

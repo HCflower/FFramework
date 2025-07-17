@@ -11,30 +11,28 @@
 }
 
 .TrackArea-Animation{
-    border-bottom-width: 1px;
-    border-bottom-color: rgba(42, 184, 206, 0.5);
+    border-right-width: 1px;
+    border-right-color: rgb(42, 184, 206);
 }
 
 .TrackArea-Audio{
-    border-bottom-width: 1px;
-    border-bottom-color: rgba(250, 193, 23, 0.5);
-
+    border-right-width: 1px;
+    border-right-color: rgb(250, 193, 23);
 }
 
 .TrackArea-Effect{
-    border-bottom-width: 1px;
-    border-bottom-color: rgba(190, 42, 206, 0.5);
-
+    border-right-width: 1px;
+    border-right-color: rgb(190, 42, 206);
 }
 
 .TrackArea-Attack{
-    border-bottom-width: 1px;
-    border-bottom-color: rgba(206, 45, 42, 0.5);
+    border-right-width: 1px;
+    border-right-color: rgb(206, 45, 42);
 }
 
 .TrackArea-Event{
-    border-bottom-width: 1px;
-    border-bottom-color: rgba(42, 116, 206, 0.5);
+    border-right-width: 1px;
+    border-right-color: rgb(42, 116, 206);
 }
 
 

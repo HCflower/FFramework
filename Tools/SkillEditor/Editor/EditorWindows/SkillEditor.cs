@@ -100,11 +100,11 @@ namespace SkillEditor
                 uiBuilder.RefreshTrackContent(trackContent, skillEditorData);
 
                 // 同步所有轨道宽度
-                foreach (var (control, track) in skillEditorData.tracks)
+                foreach (var item in skillEditorData.tracks)
                 {
-                    if (track is SkillEditorTrack trackObj)
+                    if (item.Track != null)
                     {
-                        trackObj.SetWidth(newWidth);
+                        item.Track.SetWidth(newWidth);
                     }
                 }
             }
