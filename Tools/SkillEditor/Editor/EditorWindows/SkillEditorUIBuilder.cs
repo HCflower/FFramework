@@ -293,14 +293,14 @@ namespace SkillEditor
                 else Debug.LogWarning("已存在动画轨道，无法创建新的动画轨道。");
             });
 
-            // 创建攻击轨道菜单项
-            menu.AddItem(new GUIContent("创建 Attack Track"), false, () => CreateTrack(TrackType.AttackTrack));
-
             // 创建音频轨道菜单项
             menu.AddItem(new GUIContent("创建 Audio Track"), false, () => CreateTrack(TrackType.AudioTrack));
 
             // 创建特效轨道菜单项
             menu.AddItem(new GUIContent("创建 Effect Track"), false, () => CreateTrack(TrackType.EffectTrack));
+
+            // 创建攻击轨道菜单项
+            menu.AddItem(new GUIContent("创建 Attack Track"), false, () => CreateTrack(TrackType.AttackTrack));
 
             // 创建事件轨道菜单项
             menu.AddItem(new GUIContent("创建 Event Track"), false, () => CreateTrack(TrackType.EventTrack));
@@ -392,6 +392,22 @@ namespace SkillEditor
                     info.IsActive = isActive;
                     info.Control.RefreshState(isActive);
                     Debug.Log($"轨道[{info.TrackName}]激活状态: {(isActive ? "激活" : "失活")}");
+                }
+            };
+            // 订阅添加轨道项事件
+            trackControl.OnAddTrackItem += (ctrl) =>
+            {
+                var info = skillEditorData.tracks.Find(t => t.Control == ctrl);
+                if (info != null)
+                {
+                    if (info.TrackType == TrackType.EventTrack)
+                    {
+                        info.Track.AddTrackItem("Event");
+                    }
+                    else if (info.TrackType == TrackType.AttackTrack)
+                    {
+                        info.Track.AddTrackItem("Attack");
+                    }
                 }
             };
         }

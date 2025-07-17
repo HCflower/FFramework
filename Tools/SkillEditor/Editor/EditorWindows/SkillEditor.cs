@@ -82,6 +82,7 @@ namespace SkillEditor
             // 只刷新时间轴，内部会同步轨道内容宽度
             skillEditorTimeline.RefreshTimeline();
             UpdateTrackContentWidth();
+
             // 延迟刷新滚动条状态，确保布局计算完成
             EditorApplication.delayCall += () =>
             {
@@ -99,12 +100,16 @@ namespace SkillEditor
                 // 更新所有轨道元素的宽度
                 uiBuilder.RefreshTrackContent(trackContent, skillEditorData);
 
-                // 同步所有轨道宽度
+                // 计算轨道项的默认宽度（比如每个轨道项占用5帧的宽度）
+                float trackItemWidth = skillEditorData.FrameUnitWidth * 5f; // 可以根据需要调整
+
+                // 同步所有轨道宽度和轨道项宽度
                 foreach (var item in skillEditorData.tracks)
                 {
                     if (item.Track != null)
                     {
                         item.Track.SetWidth(newWidth);
+                        item.Track.UpdateTrackItemsWidth(trackItemWidth);
                     }
                 }
             }
@@ -266,7 +271,7 @@ namespace SkillEditor
             EditorApplication.delayCall += () =>
             {
                 UpdateTimelineAndTrackContent();
-                UpdateTrackContentWidth();
+                UpdateTrackContentWidth(); // 这里会同时更新轨道项宽度
 
                 // 额外延迟刷新滚动条，确保内容宽度更新完成
                 EditorApplication.delayCall += () =>

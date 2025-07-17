@@ -15,6 +15,8 @@ namespace SkillEditor
         public event System.Action<SkillEditorTrackControl, string> OnTrackNameChanged;
         // 轨道删除事件
         public System.Action<SkillEditorTrackControl> OnDeleteTrack;
+        // 子轨道添加事件
+        public event System.Action<SkillEditorTrackControl> OnAddTrackItem;
         private VisualElement trackControlArea;
         private VisualElement trackControlAreaContent;
         private Image trackControlIcon;
@@ -155,12 +157,21 @@ namespace SkillEditor
                 string newName = TrackName;
                 OnTrackNameChanged?.Invoke(this, newName);
             });
+            if (TrackType == TrackType.AttackTrack || TrackType == TrackType.EventTrack)
+            {
+                menu.AddItem(new GUIContent("添加子轨道"), false, () =>
+                {
+                    // 触发添加子轨道事件
+                    OnAddTrackItem?.Invoke(this);
+                });
+            }
             menu.AddSeparator("");
             menu.AddItem(new GUIContent("删除当前轨道"), false, () =>
             {
                 // 触发删除事件
                 OnDeleteTrack?.Invoke(this);
             });
+
             // 使用按钮的世界边界，菜单显示在按钮正下方
             var rect = button.worldBound;
             menu.DropDown(new Rect(rect.x, rect.yMax, 0, 0));
