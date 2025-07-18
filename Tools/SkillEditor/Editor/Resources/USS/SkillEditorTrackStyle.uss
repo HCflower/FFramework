@@ -65,7 +65,7 @@
 .TrackItem-Animation{
     background-color:  rgba(42, 184, 206, 0.25);
 
-    border-left-width: 1px;
+    border-left-width: 2px;
     border-left-color: rgba(42, 184, 206, 1);
 }
 
@@ -73,7 +73,7 @@
 .TrackItem-Audio{
     background-color: rgba(250, 193, 23, 0.25);
 
-    border-left-width: 1px;
+    border-left-width: 2px;
     border-left-color: rgba(250, 193, 23, 1);
 }
 
@@ -81,7 +81,7 @@
 .TrackItem-Effect{
     background-color: rgba(190, 42, 206, 0.25);
 
-    border-left-width: 1px;
+    border-left-width: 2px;
     border-left-color: rgba(190, 42, 206, 1); 
 }
 
@@ -89,7 +89,7 @@
 .TrackItem-Attack{
     background-color: rgba(206, 45, 42, 0.25);
 
-    border-left-width: 1px;
+    border-left-width: 2px;
     border-left-color: rgba(206, 45, 42, 1);
 }
 
@@ -97,7 +97,7 @@
 .TrackItem-Event{
     background-color: rgba(42, 116, 206, 0.25);
 
-    border-left-width: 1px;
+    border-left-width: 2px;
     border-left-color: rgba(42, 116, 206, 1); 
 }
 

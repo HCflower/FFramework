@@ -16,9 +16,12 @@ namespace SkillEditor
         private VisualElement trackArea;
         private TrackType trackType;
         private List<SkillEditorTrackItem> trackItems = new List<SkillEditorTrackItem>(); // 添加轨道项列表
-        public SkillEditorTrack(VisualElement visual, TrackType trackType, float width)
+        private FFramework.Kit.SkillConfig skillConfig; // 当前技能配置
+
+        public SkillEditorTrack(VisualElement visual, TrackType trackType, float width, FFramework.Kit.SkillConfig skillConfig)
         {
             this.trackType = trackType;
+            this.skillConfig = skillConfig;
             trackArea = new VisualElement();
             trackArea.styleSheets.Add(Resources.Load<StyleSheet>("USS/SkillEditorTrackStyle"));
             trackArea.AddToClassList("TrackArea");
@@ -70,11 +73,7 @@ namespace SkillEditor
             }
             evt.StopPropagation();
         }
-        /// <summary>
-        /// 添加轨道项，外部和内部均可调用
-        /// </summary>
-        /// <param name="resource">资源对象（AnimationClip/AudioClip/GameObject等）</param>
-        /// <returns>成功创建返回true，否则false</returns>
+
         /// <summary>
         /// 添加轨道项，支持动画、音频、特效、事件、攻击轨道
         /// </summary>
@@ -83,18 +82,49 @@ namespace SkillEditor
         public bool AddTrackItem(object resource)
         {
             SkillEditorTrackItem newItem = null;
+            float frameRate = 30f;
+            float duration = 0f;
 
-            // 动画、音频、特效
-            if ((trackType == TrackType.AnimationTrack && resource is AnimationClip)
-                || (trackType == TrackType.AudioTrack && resource is AudioClip)
-                || (trackType == TrackType.EffectTrack && resource is GameObject))
+            // 获取帧率（优先SkillConfig配置，其次默认30）
+            if (skillConfig != null && skillConfig.frameRate > 0)
+                frameRate = skillConfig.frameRate;
+
+            // 动画轨道
+            if (trackType == TrackType.AnimationTrack && resource is AnimationClip clip)
             {
-                newItem = new SkillEditorTrackItem(trackArea, resource is Object unityObj ? unityObj.name : resource.ToString(), trackType);
+                duration = clip.length;
+                int frameCount = Mathf.RoundToInt(duration * frameRate);
+                newItem = new SkillEditorTrackItem(trackArea, clip.name, trackType, frameCount);
+            }
+            // 音频轨道
+            else if (trackType == TrackType.AudioTrack && resource is AudioClip audio)
+            {
+                duration = audio.length;
+                int frameCount = Mathf.RoundToInt(duration * frameRate);
+                newItem = new SkillEditorTrackItem(trackArea, audio.name, trackType, frameCount);
+            }
+            // 特效轨道（假定GameObject有Animation或ParticleSystem组件）
+            else if (trackType == TrackType.EffectTrack && resource is GameObject go)
+            {
+                // 优先AnimationClip
+                var anim = go.GetComponent<Animation>();
+                if (anim != null && anim.clip != null)
+                {
+                    duration = anim.clip.length;
+                }
+                else
+                {
+                    var ps = go.GetComponent<ParticleSystem>();
+                    if (ps != null)
+                        duration = ps.main.duration;
+                }
+                int frameCount = Mathf.RoundToInt(duration * frameRate);
+                newItem = new SkillEditorTrackItem(trackArea, go.name, trackType, frameCount);
             }
             // 事件轨道和攻击轨道支持字符串名称
             else if ((trackType == TrackType.EventTrack || trackType == TrackType.AttackTrack) && resource is string)
             {
-                newItem = new SkillEditorTrackItem(trackArea, resource.ToString(), trackType);
+                newItem = new SkillEditorTrackItem(trackArea, resource.ToString(), trackType, 0);
             }
 
             if (newItem != null)
@@ -106,11 +136,11 @@ namespace SkillEditor
         }
 
         // 更新所有轨道项的宽度
-        public void UpdateTrackItemsWidth(float itemWidth)
+        public void UpdateTrackItemsWidth()
         {
             foreach (var item in trackItems)
             {
-                item.SetWidth(itemWidth);
+                item.SetPixelsPerFrame();
             }
         }
 

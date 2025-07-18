@@ -1,11 +1,11 @@
+using System.Collections.Generic;
 using UnityEngine.UIElements;
 using UnityEditor.UIElements;
 using FFramework.Kit;
 using UnityEditor;
 using UnityEngine;
-using System;
-using System.Collections.Generic;
 using System.Linq;
+using System;
 
 namespace SkillEditor
 {
@@ -15,13 +15,13 @@ namespace SkillEditor
     public class SkillEditorUIBuilder
     {
         private readonly SkillEditorEvent skillEditorEvent;
-        private readonly SkillEditorData skillEditorData;
+        // SkillEditorData已为静态类，无需成员变量
         private VisualElement allTrackContent;
         private VisualElement trackControlContent; // 添加轨道控制区域引用
 
-        public SkillEditorUIBuilder(SkillEditorData skillEditorData, SkillEditorEvent skillEditorEvent)
+        public SkillEditorUIBuilder(SkillEditorEvent skillEditorEvent)
         {
-            this.skillEditorData = skillEditorData;
+            // SkillEditorData为静态类，无需赋值
             this.skillEditorEvent = skillEditorEvent;
             // 订阅刷新事件
             if (skillEditorEvent != null)
@@ -44,11 +44,11 @@ namespace SkillEditor
             return CreateAndAddElement(parent, "TrackContent");
         }
 
-        public TrackStructureResult CreateTrackStructure(VisualElement parent, SkillEditorData skillEditorData)
+        public TrackStructureResult CreateTrackStructure(VisualElement parent)
         {
             // 创建轨道控制区域
             var controlArea = CreateAndAddElement(parent, "TrackItemControlContent");
-            CreateTrackControlButtons(controlArea, skillEditorData);
+            CreateTrackControlButtons(controlArea);
             CreateSearchAndAddArea(controlArea);
 
             // 创建轨道控制滚动视图
@@ -60,7 +60,7 @@ namespace SkillEditor
             var trackArea = CreateAndAddElement(parent, "TrackControlContent");
             var (trackScrollView, trackContent) = CreateScrollView(trackArea, "TrackScrollView", "TrackScrollViewContent");
             this.allTrackContent = trackContent;
-            trackContent.style.width = skillEditorData.CalculateTimelineWidth();
+            trackContent.style.width = SkillEditorData.CalculateTimelineWidth();
 
             return new TrackStructureResult
             {
@@ -86,11 +86,11 @@ namespace SkillEditor
         #endregion
 
         #region 全局控制区域
-        public void RefreshGlobalControl(VisualElement globalControlContent, SkillEditorData dataManager)
+        public void RefreshGlobalControl(VisualElement globalControlContent)
         {
             globalControlContent.Clear();
-            if (dataManager.IsGlobalControlShow)
-                CreateGlobalControlFunction(globalControlContent, dataManager);
+            if (SkillEditorData.IsGlobalControlShow)
+                CreateGlobalControlFunction(globalControlContent);
             else
                 CreateGlobalControlShowButton(globalControlContent);
         }
@@ -103,29 +103,85 @@ namespace SkillEditor
             buttonWrapper.Add(showButton);
         }
 
-        private void CreateGlobalControlFunction(VisualElement parent, SkillEditorData dataManager)
+        private void CreateGlobalControlFunction(VisualElement parent)
         {
             var scrollView = CreateScrollView(parent, "GlobalControlFunctionContent");
 
             // 技能配置区域
-            CreateSkillConfigSection(scrollView, dataManager);
+            CreateSkillConfigSection(scrollView);
 
             // 控制按钮区域
             CreateGlobalControlButtons(scrollView);
         }
 
-        private void CreateSkillConfigSection(VisualElement parent, SkillEditorData dataManager)
+        private void CreateSkillConfigSection(VisualElement parent)
         {
-            CreateObjectField(parent, "技能配置:", typeof(SkillConfig), dataManager.CurrentSkillConfig, (obj) =>
+            CreateObjectField(parent, "技能配置:", typeof(SkillConfig), SkillEditorData.CurrentSkillConfig, (obj) =>
             {
-                dataManager.CurrentSkillConfig = obj as SkillConfig;
-                skillEditorEvent.TriggerSkillConfigChanged(dataManager.CurrentSkillConfig);
+                SkillEditorData.CurrentSkillConfig = obj as SkillConfig;
+                skillEditorEvent.TriggerSkillConfigChanged(SkillEditorData.CurrentSkillConfig);
+                // 切换配置后刷新编辑器视图
+                skillEditorEvent.TriggerRefreshRequested();
             });
 
+            // 动画帧率输入框逻辑简化，闭包安全
+            TextField frameRateField = null;
+            frameRateField = CreateInputField(parent, "动画帧率:", SkillEditorData.CurrentSkillConfig?.frameRate.ToString() ?? "30", value =>
+            {
+                if (SkillEditorData.CurrentSkillConfig == null)
+                {
+                    Debug.LogWarning("当前没有加载的技能配置，无法设置帧率");
+                    if (frameRateField != null) frameRateField.value = "30";
+                    return;
+                }
+                if (float.TryParse(value, out float frameRate))
+                {
+                    frameRate = Mathf.Clamp(frameRate, 1f, 120f);
+                    SkillEditorData.CurrentSkillConfig.frameRate = frameRate;
+                    if (frameRateField != null) frameRateField.value = frameRate.ToString();
+                }
+                else
+                {
+                    Debug.LogWarning($"无效的帧率值: {value}，请输入有效的数字");
+                    if (frameRateField != null) frameRateField.value = SkillEditorData.CurrentSkillConfig.frameRate.ToString();
+                }
+            });
+            // 技能Icon选择器（可扩展为真正的资源选择）
             CreateImageSelector(parent, "技能Icon:");
-            CreateInputField(parent, "技能名称:", "", null);
-            CreateInputField(parent, "技能ID:", "", null);
-            CreateMultilineInputField(parent, "技能描述:", "", null);
+
+            // 技能名称
+            CreateInputField(parent, "技能名称:", SkillEditorData.CurrentSkillConfig?.skillName ?? "", value =>
+            {
+                if (SkillEditorData.CurrentSkillConfig != null)
+                {
+                    SkillEditorData.CurrentSkillConfig.skillName = value;
+                }
+            });
+
+            // 技能ID
+            CreateInputField(parent, "技能ID:", SkillEditorData.CurrentSkillConfig?.skillId.ToString() ?? "", value =>
+            {
+                if (SkillEditorData.CurrentSkillConfig != null)
+                {
+                    if (int.TryParse(value, out int skillId))
+                    {
+                        SkillEditorData.CurrentSkillConfig.skillId = skillId;
+                    }
+                    else
+                    {
+                        Debug.LogWarning($"无效的技能ID值: {value}，请输入有效的整数");
+                    }
+                }
+            });
+
+            // 技能描述
+            CreateMultilineInputField(parent, "技能描述:", SkillEditorData.CurrentSkillConfig?.description ?? "", value =>
+            {
+                if (SkillEditorData.CurrentSkillConfig != null)
+                {
+                    SkillEditorData.CurrentSkillConfig.description = value;
+                }
+            });
         }
 
         private void CreateGlobalControlButtons(VisualElement parent)
@@ -146,6 +202,8 @@ namespace SkillEditor
             CreateButton(parent, "保存配置文件", "", () =>
             {
                 // 保存逻辑
+                AssetDatabase.SaveAssetIfDirty(SkillEditorData.CurrentSkillConfig);
+                Debug.Log($"已保存技能配置: {SkillEditorData.CurrentSkillConfig?.skillName}");
             });
 
             // 添加配置按钮
@@ -162,11 +220,11 @@ namespace SkillEditor
         #endregion
 
         #region 轨道控制区域
-        public void RefreshTrackContent(VisualElement trackContent, SkillEditorData skillEditorData)
+        public void RefreshTrackContent(VisualElement trackContent)
         {
             if (trackContent == null) return;
 
-            float newWidth = skillEditorData.CalculateTimelineWidth();
+            float newWidth = SkillEditorData.CalculateTimelineWidth();
             UpdateTrackContentWidth(trackContent, newWidth);
 
             var scrollView = trackContent.GetFirstAncestorOfType<ScrollView>();
@@ -182,53 +240,54 @@ namespace SkillEditor
             trackContent.style.minWidth = width;
         }
 
-        private void CreateTrackControlButtons(VisualElement parent, SkillEditorData dataManager)
+        private void CreateTrackControlButtons(VisualElement parent)
         {
             var buttonContent = CreateAndAddElement(parent, "TrackItemControlButtonContent");
 
             // 播放控制按钮组
-            CreatePlaybackControls(buttonContent, dataManager);
+            CreatePlaybackControls(buttonContent);
 
             // 帧输入区域
-            CreateFrameInputArea(buttonContent, dataManager);
+            CreateFrameInputArea(buttonContent);
         }
 
-        private void CreatePlaybackControls(VisualElement parent, SkillEditorData dataManager)
+        private void CreatePlaybackControls(VisualElement parent)
         {
             // 上一帧按钮
             CreateIconButton(parent, "d_Animation.PrevKey", "上一帧", () =>
             {
-                skillEditorEvent.TriggerCurrentFrameChanged(dataManager.CurrentFrame - 1);
+                skillEditorEvent.TriggerCurrentFrameChanged(SkillEditorData.CurrentFrame - 1);
             });
 
             // 播放/暂停按钮
-            CreateIconButton(parent, dataManager.IsPlaying ? "d_PauseButton@2x" : "d_Animation.Play", "播放", () =>
+            CreateIconButton(parent, SkillEditorData.IsPlaying ? "d_PauseButton@2x" : "d_Animation.Play", "播放", () =>
             {
-                dataManager.IsPlaying = !dataManager.IsPlaying;
-                skillEditorEvent.TriggerPlayStateChanged(dataManager.IsPlaying);
+                SkillEditorData.IsPlaying = !SkillEditorData.IsPlaying;
+                skillEditorEvent.TriggerPlayStateChanged(SkillEditorData.IsPlaying);
             });
 
             // 下一帧按钮
             CreateIconButton(parent, "d_Animation.NextKey", "下一帧", () =>
             {
-                skillEditorEvent.TriggerCurrentFrameChanged(dataManager.CurrentFrame + 1);
+                skillEditorEvent.TriggerCurrentFrameChanged(SkillEditorData.CurrentFrame + 1);
             });
 
             // 循环播放按钮
             CreateIconButton(parent, "d_preAudioLoopOff@2x", "循环播放", () =>
             {
-                dataManager.IsLoop = !dataManager.IsLoop;
+                SkillEditorData.IsLoop = !SkillEditorData.IsLoop;
             });
         }
 
-        private void CreateFrameInputArea(VisualElement parent, SkillEditorData dataManager)
+        // 创建帧输入区域
+        private void CreateFrameInputArea(VisualElement parent)
         {
             var frameInputContent = new VisualElement();
             frameInputContent.AddToClassList("FrameInputContent");
             parent.Add(frameInputContent);
 
             // 当前帧输入
-            var currentFrameInput = CreateIntegerField("当前帧", dataManager.CurrentFrame, (value) =>
+            var currentFrameInput = CreateIntegerField("当前帧", SkillEditorData.CurrentFrame, (value) =>
             {
                 skillEditorEvent.TriggerCurrentFrameChanged(value);
             });
@@ -240,12 +299,27 @@ namespace SkillEditor
             separator.AddToClassList("SeparatorLabel");
             frameInputContent.Add(separator);
 
-            // 最大帧输入
-            var maxFrameInput = CreateIntegerField("最大帧", dataManager.MaxFrame, (value) =>
+            // 最大帧输入，优先用配置中的maxFrames（不为0），否则用SkillEditorData.MaxFrame
+            IntegerField maxFrameInput = null;
+            int maxFrameValue = (SkillEditorData.CurrentSkillConfig != null && SkillEditorData.CurrentSkillConfig.maxFrames > 0)
+                ? SkillEditorData.CurrentSkillConfig.maxFrames
+                : SkillEditorData.MaxFrame;
+            maxFrameInput = CreateIntegerField("最大帧", maxFrameValue, (value) =>
             {
+                SkillEditorData.CurrentSkillConfig.maxFrames = value;
                 skillEditorEvent.TriggerMaxFrameChanged(value);
+                skillEditorEvent.TriggerRefreshRequested();
             });
             frameInputContent.Add(maxFrameInput);
+
+            // 切换配置时自动刷新最大帧输入框显示
+            skillEditorEvent.OnSkillConfigChanged += (config) =>
+            {
+                if (maxFrameInput != null)
+                {
+                    maxFrameInput.value = (config != null && config.maxFrames > 0) ? config.maxFrames : SkillEditorData.MaxFrame;
+                }
+            };
         }
 
         private void CreateSearchAndAddArea(VisualElement parent)
@@ -286,7 +360,7 @@ namespace SkillEditor
             var menu = new GenericMenu();
 
             // 创建动画轨道菜单项（只允许一个）
-            bool hasAnimationTrack = skillEditorData.tracks.Exists(t => t.TrackType == TrackType.AnimationTrack);
+            bool hasAnimationTrack = SkillEditorData.tracks.Exists(t => t.TrackType == TrackType.AnimationTrack);
             menu.AddItem(new GUIContent("创建 Animation Track"), hasAnimationTrack, () =>
             {
                 if (!hasAnimationTrack) CreateTrack(TrackType.AnimationTrack);
@@ -312,23 +386,17 @@ namespace SkillEditor
         // 创建轨道
         private void CreateTrack(TrackType trackType)
         {
-            if (skillEditorData == null)
-            {
-                Debug.LogError("SkillEditorData为空,无法添加轨道");
-                return;
-            }
-
             // 默认轨道名称可用类型+序号
-            string trackName = $"{trackType}_{skillEditorData.tracks.Count + 1}";
+            string trackName = $"{trackType}_{SkillEditorData.tracks.Count + 1}";
             var trackControl = new SkillEditorTrackControl(trackControlContent, trackType, trackName);
-            var track = new SkillEditorTrack(allTrackContent, trackType, skillEditorData.CalculateTimelineWidth());
+            var track = new SkillEditorTrack(allTrackContent, trackType, SkillEditorData.CalculateTimelineWidth(), SkillEditorData.CurrentSkillConfig);
             var trackInfo = new SkillEditorTrackInfo(trackControl, track, trackType, trackName);
-            skillEditorData.tracks.Add(trackInfo);
+            SkillEditorData.tracks.Add(trackInfo);
 
             // 重新订阅事件
             SubscribeTrackEvents(trackControl);
 
-            Debug.Log($"成功创建{trackType}轨道，当前轨道数量: {skillEditorData.tracks.Count}");
+            // Debug.Log($"成功创建{trackType}轨道，当前轨道数量: {SkillEditorData.tracks.Count}");
         }
 
         // 刷新事件
@@ -344,28 +412,28 @@ namespace SkillEditor
         // 刷新所有轨道UI
         private void RefreshAllTracks()
         {
-            if (skillEditorData?.tracks == null) return;
+            if (SkillEditorData.tracks == null) return;
 
             // 需要重新创建UI元素，而不是重用旧的
-            var tracksToRecreate = new List<SkillEditorTrackInfo>(skillEditorData.tracks);
-            skillEditorData.tracks.Clear();
+            var tracksToRecreate = new List<SkillEditorTrackInfo>(SkillEditorData.tracks);
+            SkillEditorData.tracks.Clear();
 
             //TODO 优先创建动画轨道 - 实现轨道拖拽后可以考虑移除
             foreach (var oldTrackInfo in tracksToRecreate.Where(t => t.TrackType == TrackType.AnimationTrack))
             {
                 var newTrackControl = new SkillEditorTrackControl(trackControlContent, oldTrackInfo.TrackType, oldTrackInfo.TrackName);
-                var newTrack = new SkillEditorTrack(allTrackContent, oldTrackInfo.TrackType, skillEditorData.CalculateTimelineWidth());
+                var newTrack = new SkillEditorTrack(allTrackContent, oldTrackInfo.TrackType, SkillEditorData.CalculateTimelineWidth(), SkillEditorData.CurrentSkillConfig);
                 var newTrackInfo = new SkillEditorTrackInfo(newTrackControl, newTrack, oldTrackInfo.TrackType, oldTrackInfo.TrackName);
-                skillEditorData.tracks.Add(newTrackInfo);
+                SkillEditorData.tracks.Add(newTrackInfo);
                 SubscribeTrackEvents(newTrackControl);
             }
             // 再创建其它类型轨道
             foreach (var oldTrackInfo in tracksToRecreate.Where(t => t.TrackType != TrackType.AnimationTrack))
             {
                 var newTrackControl = new SkillEditorTrackControl(trackControlContent, oldTrackInfo.TrackType, oldTrackInfo.TrackName);
-                var newTrack = new SkillEditorTrack(allTrackContent, oldTrackInfo.TrackType, skillEditorData.CalculateTimelineWidth());
+                var newTrack = new SkillEditorTrack(allTrackContent, oldTrackInfo.TrackType, SkillEditorData.CalculateTimelineWidth(), SkillEditorData.CurrentSkillConfig);
                 var newTrackInfo = new SkillEditorTrackInfo(newTrackControl, newTrack, oldTrackInfo.TrackType, oldTrackInfo.TrackName);
-                skillEditorData.tracks.Add(newTrackInfo);
+                SkillEditorData.tracks.Add(newTrackInfo);
                 SubscribeTrackEvents(newTrackControl);
             }
         }
@@ -375,18 +443,18 @@ namespace SkillEditor
         {
             trackControl.OnDeleteTrack += (ctrl) =>
            {
-               var info = skillEditorData.tracks.Find(t => t.Control == ctrl);
+               var info = SkillEditorData.tracks.Find(t => t.Control == ctrl);
                if (info != null)
                {
-                   skillEditorData.tracks.Remove(info);
-                   Debug.Log($"删除轨道: {info.TrackName}，剩余轨道数量: {skillEditorData.tracks.Count}");
+                   SkillEditorData.tracks.Remove(info);
+                   Debug.Log($"删除轨道: {info.TrackName}，剩余轨道数量: {SkillEditorData.tracks.Count}");
                    skillEditorEvent?.TriggerRefreshRequested();
                }
            };
             // 订阅激活/失活事件
             trackControl.OnActiveStateChanged += (ctrl, isActive) =>
             {
-                var info = skillEditorData.tracks.Find(t => t.Control == ctrl);
+                var info = SkillEditorData.tracks.Find(t => t.Control == ctrl);
                 if (info != null)
                 {
                     info.IsActive = isActive;
@@ -397,7 +465,7 @@ namespace SkillEditor
             // 订阅添加轨道项事件
             trackControl.OnAddTrackItem += (ctrl) =>
             {
-                var info = skillEditorData.tracks.Find(t => t.Control == ctrl);
+                var info = SkillEditorData.tracks.Find(t => t.Control == ctrl);
                 if (info != null)
                 {
                     if (info.TrackType == TrackType.EventTrack)
@@ -519,11 +587,11 @@ namespace SkillEditor
         {
             var container = CreateLabeledContainer(parent, labelText);
 
-            var inputField = new TextField();
+            TextField inputField = new TextField();
             inputField.AddToClassList("Field");
             inputField.value = currentValue;
             inputField.tooltip = labelText;
-
+            inputField.style.fontSize = 10;
             if (onValueChanged != null)
             {
                 inputField.RegisterValueChangedCallback(evt => onValueChanged(evt.newValue));
@@ -538,6 +606,7 @@ namespace SkillEditor
             var inputField = CreateInputField(parent, labelText, currentValue, onValueChanged);
             inputField.multiline = true;
             inputField.style.whiteSpace = WhiteSpace.Normal;
+            inputField.style.fontSize = 10;
             inputField.style.height = 60;
             return inputField;
         }
@@ -561,19 +630,78 @@ namespace SkillEditor
         {
             var container = CreateLabeledContainer(parent, labelText);
 
-            var skillIcon = new Image();
+            Image skillIcon = new Image();
             skillIcon.AddToClassList("SkillIcon");
             container.Add(skillIcon);
-
+            // 如果当前技能配置有图标，显示它
+            if (SkillEditorData.CurrentSkillConfig?.skillIcon != null)
+            {
+                skillIcon.image = SkillEditorData.CurrentSkillConfig.skillIcon.texture;
+            }
             var selectButton = new Button();
             selectButton.AddToClassList("SelectIcon");
-            selectButton.text = "Select";
             selectButton.tooltip = "选择技能Icon";
-            selectButton.clicked += () =>
-            {
-                Debug.Log("选择技能Icon");
-            };
+            selectButton.clicked += () => OpenImageSelector(skillIcon);
             skillIcon.Add(selectButton);
+        }
+
+        // 打开图片选择器
+        private void OpenImageSelector(Image targetImage)
+        {
+            // 使用EditorUtility.OpenFilePanel打开文件选择对话框
+            string imagePath = EditorUtility.OpenFilePanel(
+                "选择技能图标",
+                "Assets",
+                "png,jpg,jpeg,tga,psd,tiff,gif,bmp");
+
+            if (!string.IsNullOrEmpty(imagePath))
+            {
+                // 将绝对路径转换为相对于Assets的路径
+                string relativePath = GetRelativeAssetPath(imagePath);
+
+                if (!string.IsNullOrEmpty(relativePath))
+                {
+                    // 加载选中的图片资源
+                    var selectedSprite = AssetDatabase.LoadAssetAtPath<Sprite>(relativePath);
+                    if (selectedSprite != null)
+                    {
+                        // 更新UI显示
+                        targetImage.image = selectedSprite.texture;
+
+                        // 保存到技能配置
+                        if (SkillEditorData.CurrentSkillConfig != null)
+                        {
+                            SkillEditorData.CurrentSkillConfig.skillIcon = selectedSprite;
+                            Debug.Log($"技能图标已设置为: {selectedSprite.name}");
+                        }
+                    }
+                    else
+                    {
+                        Debug.LogWarning($"无法加载图片资源: {relativePath}");
+                    }
+                }
+                else
+                {
+                    Debug.LogWarning("选择的文件不在Assets文件夹内请选择项目内的图片资源");
+                }
+            }
+        }
+
+        // 获取相对路径
+        private string GetRelativeAssetPath(string absolutePath)
+        {
+            // 获取项目Assets文件夹的绝对路径
+            string assetsPath = Application.dataPath;
+
+            // 检查选择的文件是否在Assets文件夹内
+            if (absolutePath.StartsWith(assetsPath))
+            {
+                // 转换为相对路径（相对于Assets父目录）
+                string relativePath = "Assets" + absolutePath.Substring(assetsPath.Length);
+                return relativePath.Replace('\\', '/'); // 统一使用正斜杠
+            }
+
+            return null;
         }
 
         private void CreateAddConfigButton(VisualElement parent)
@@ -671,10 +799,10 @@ namespace SkillEditor
         private VisualElement CreateLabeledContainer(VisualElement parent, string labelText)
         {
             var container = new VisualElement();
-            container.AddToClassList("ControlButtonContent");
+            container.AddToClassList("LabeledContainerContent");
 
             var label = new Label(labelText);
-            label.AddToClassList("ControlButtonContentTitle");
+            label.AddToClassList("LabeledContainerTitle");
             container.Add(label);
 
             parent.Add(container);

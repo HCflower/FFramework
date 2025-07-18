@@ -8,15 +8,15 @@ namespace SkillEditor
     /// </summary>
     public class SkillEditorTimeline
     {
-        private readonly SkillEditorData skillEditorData;
+        // SkillEditorData已为静态类，无需成员变量
         private readonly SkillEditorEvent skillEditorEvent;
         private VisualElement timelineContainer;
         private VisualElement timelineIMGUI;
         private VisualElement trackContent; // 添加轨道内容引用
 
-        public SkillEditorTimeline(SkillEditorData skillEditorData, SkillEditorEvent skillEditorEvent)
+        public SkillEditorTimeline(SkillEditorEvent skillEditorEvent)
         {
-            this.skillEditorData = skillEditorData;
+            // SkillEditorData为静态类，无需赋值
             this.skillEditorEvent = skillEditorEvent;
         }
 
@@ -53,7 +53,7 @@ namespace SkillEditor
         {
             if (timelineIMGUI != null)
             {
-                float newWidth = skillEditorData.CalculateTimelineWidth();
+                float newWidth = SkillEditorData.CalculateTimelineWidth();
                 timelineIMGUI.style.width = newWidth;
 
                 // 同步更新轨道内容宽度
@@ -72,7 +72,7 @@ namespace SkillEditor
         {
             if (timelineIMGUI != null)
             {
-                timelineIMGUI.style.left = -skillEditorData.TrackViewContentOffsetX;
+                timelineIMGUI.style.left = -SkillEditorData.TrackViewContentOffsetX;
             }
         }
 
@@ -80,7 +80,7 @@ namespace SkillEditor
         {
             timelineIMGUI = new VisualElement();
             timelineIMGUI.AddToClassList("TimeLineIMGUI");
-            timelineIMGUI.style.width = skillEditorData.CalculateTimelineWidth();
+            timelineIMGUI.style.width = SkillEditorData.CalculateTimelineWidth();
             timelineIMGUI.style.position = Position.Relative;
 
             DrawTimelineScale();
@@ -110,19 +110,19 @@ namespace SkillEditor
             float visibleWidth = timelineIMGUI.resolvedStyle.width;
             if (visibleWidth <= 0)
             {
-                visibleWidth = skillEditorData.CalculateTimelineWidth();
+                visibleWidth = SkillEditorData.CalculateTimelineWidth();
                 if (visibleWidth <= 0) visibleWidth = 800;
             }
 
             // 修复：更宽松的起始和结束帧计算
-            float scrollOffset = skillEditorData.TrackViewContentOffsetX;
-            float frameWidth = skillEditorData.FrameUnitWidth;
+            float scrollOffset = SkillEditorData.TrackViewContentOffsetX;
+            float frameWidth = SkillEditorData.FrameUnitWidth;
 
             // 向前多计算一帧，确保边界帧不丢失
             int startFrame = Mathf.Max(0, Mathf.FloorToInt((scrollOffset - frameWidth) / frameWidth));
 
             // 结束帧始终为MaxFrame，确保所有刻度都绘制
-            int endFrame = skillEditorData.MaxFrame;
+            int endFrame = SkillEditorData.MaxFrame;
 
             // 绘制可见区域的刻度
             DrawVisibleScaleTicks(startFrame, endFrame);
@@ -132,14 +132,14 @@ namespace SkillEditor
         private void DrawVisibleScaleTicks(int startFrame, int endFrame)
         {
             // timelineWidth始终用内容宽度，确保所有帧刻度都能显示
-            float timelineWidth = Mathf.Max(timelineIMGUI.resolvedStyle.width, skillEditorData.CalculateTimelineWidth());
+            float timelineWidth = Mathf.Max(timelineIMGUI.resolvedStyle.width, SkillEditorData.CalculateTimelineWidth());
             if (timelineWidth <= 0)
             {
                 timelineWidth = 800f;
             }
 
-            float frameWidth = skillEditorData.FrameUnitWidth;
-            float scrollOffset = skillEditorData.TrackViewContentOffsetX;
+            float frameWidth = SkillEditorData.FrameUnitWidth;
+            float scrollOffset = SkillEditorData.TrackViewContentOffsetX;
 
             // 修复：统一处理所有帧，包括0帧
             for (int frame = startFrame; frame <= endFrame; frame++)
@@ -151,8 +151,8 @@ namespace SkillEditor
                 // 检查是否在可视范围内
                 if (IsTickPositionVisible(adjustedPosition, timelineWidth))
                 {
-                    bool isMajorTick = frame % skillEditorData.MajorTickInterval == 0;
-                    bool isMaxFrame = frame == skillEditorData.MaxFrame;
+                    bool isMajorTick = frame % SkillEditorData.MajorTickInterval == 0;
+                    bool isMaxFrame = frame == SkillEditorData.MaxFrame;
 
                     CreateTickLine(adjustedPosition, isMajorTick);
 
@@ -168,7 +168,7 @@ namespace SkillEditor
         private bool IsTickPositionVisible(float position, float timelineWidth)
         {
             // 修复：添加容差，特别是对于放大情况
-            float tolerance = skillEditorData.FrameUnitWidth * 0.1f; // 10%的帧宽度作为容差
+            float tolerance = SkillEditorData.FrameUnitWidth * 0.1f; // 10%的帧宽度作为容差
 
             // 允许稍微超出边界的刻度也被显示
             return position >= -tolerance && position <= timelineWidth + tolerance;
@@ -242,7 +242,7 @@ namespace SkillEditor
                 if (evt.ctrlKey)
                 {
                     float zoomDelta = evt.delta.y > 0 ? -2f : 2f;
-                    skillEditorData.SetFrameUnitWidth(skillEditorData.FrameUnitWidth + zoomDelta);
+                    SkillEditorData.SetFrameUnitWidth(SkillEditorData.FrameUnitWidth + zoomDelta);
 
                     // 只触发事件，让外部统一处理刷新
                     skillEditorEvent.TriggerTimelineZoomChanged();
@@ -256,28 +256,28 @@ namespace SkillEditor
         {
             float mouseX = localMousePosition.x;
             // 加上滚动偏移量，得到在完整时间轴上的实际位置
-            float actualTimelineX = mouseX + skillEditorData.TrackViewContentOffsetX;
-            float exactFrame = actualTimelineX / skillEditorData.FrameUnitWidth;
+            float actualTimelineX = mouseX + SkillEditorData.TrackViewContentOffsetX;
+            float exactFrame = actualTimelineX / SkillEditorData.FrameUnitWidth;
             int nearestFrame = Mathf.RoundToInt(exactFrame);
-            nearestFrame = Mathf.Clamp(nearestFrame, 0, skillEditorData.MaxFrame);
+            nearestFrame = Mathf.Clamp(nearestFrame, 0, SkillEditorData.MaxFrame);
 
             skillEditorEvent.TriggerCurrentFrameChanged(nearestFrame);
         }
 
         public void UpdateCurrentFrame(int frame)
         {
-            skillEditorData.SetCurrentFrame(frame);
+            SkillEditorData.SetCurrentFrame(frame);
             UpdateFrameIndicatorPosition();
         }
 
         public void UpdateMaxFrame(int maxFrame)
         {
-            skillEditorData.SetMaxFrame(maxFrame);
+            SkillEditorData.SetMaxFrame(maxFrame);
 
             // 强制更新时间轴布局
             if (timelineIMGUI != null)
             {
-                float newWidth = skillEditorData.CalculateTimelineWidth();
+                float newWidth = SkillEditorData.CalculateTimelineWidth();
                 timelineIMGUI.style.width = newWidth;
                 timelineIMGUI.style.minWidth = newWidth;
 
@@ -295,7 +295,7 @@ namespace SkillEditor
             // 同步更新轨道内容宽度
             if (trackContent != null)
             {
-                float newWidth = skillEditorData.CalculateTimelineWidth();
+                float newWidth = SkillEditorData.CalculateTimelineWidth();
                 trackContent.style.width = newWidth;
                 trackContent.style.minWidth = newWidth;
             }
@@ -306,16 +306,16 @@ namespace SkillEditor
         /// </summary>
         public void SetTimelineOffset(float offsetX)
         {
-            if (skillEditorData != null)
+            // SkillEditorData为静态类，无需判空
             {
-                skillEditorData.TrackViewContentOffsetX = offsetX;
+                SkillEditorData.TrackViewContentOffsetX = offsetX;
                 RefreshTimeline();
             }
         }
 
         public void UpdateScrollOffset(float offsetX)
         {
-            skillEditorData.TrackViewContentOffsetX = offsetX;
+            SkillEditorData.TrackViewContentOffsetX = offsetX;
             // 重新绘制刻度以反映新的偏移
             DrawTimelineScale();
             UpdateFrameIndicatorPosition();
@@ -323,7 +323,7 @@ namespace SkillEditor
 
         private void DrawCurrentFrameIndicator()
         {
-            if (skillEditorData.CurrentFrame < 0 || skillEditorData.CurrentFrame > skillEditorData.MaxFrame) return;
+            if (SkillEditorData.CurrentFrame < 0 || SkillEditorData.CurrentFrame > SkillEditorData.MaxFrame) return;
 
             var existingIndicator = timelineContainer?.Q("Current-frame-indicator");
             existingIndicator?.RemoveFromHierarchy();
@@ -332,9 +332,9 @@ namespace SkillEditor
             indicator.name = "Current-frame-indicator";
             indicator.AddToClassList("Current-frame-indicator");
 
-            float xPosition = skillEditorData.CurrentFrame * skillEditorData.FrameUnitWidth;
+            float xPosition = SkillEditorData.CurrentFrame * SkillEditorData.FrameUnitWidth;
             // 应用滚动偏移，使指示器显示在正确的视觉位置
-            indicator.style.left = xPosition - skillEditorData.TrackViewContentOffsetX - 1;
+            indicator.style.left = xPosition - SkillEditorData.TrackViewContentOffsetX - 1;
 
             timelineContainer.Add(indicator);
         }
@@ -344,9 +344,9 @@ namespace SkillEditor
             var indicator = timelineContainer?.Q("Current-frame-indicator");
             if (indicator != null)
             {
-                float xPosition = skillEditorData.CurrentFrame * skillEditorData.FrameUnitWidth;
+                float xPosition = SkillEditorData.CurrentFrame * SkillEditorData.FrameUnitWidth;
                 // 帧指示器位置需要减去滚动偏移，使其显示在正确的视觉位置
-                float adjustedPosition = xPosition - skillEditorData.TrackViewContentOffsetX - 1;
+                float adjustedPosition = xPosition - SkillEditorData.TrackViewContentOffsetX - 1;
 
                 // 检查指示器是否在可视范围内
                 float timelineWidth = timelineIMGUI?.resolvedStyle.width ?? 800f;

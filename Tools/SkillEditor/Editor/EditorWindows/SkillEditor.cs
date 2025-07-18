@@ -10,7 +10,7 @@ namespace SkillEditor
     public class SkillEditor : EditorWindow
     {
         #region 管理器
-        private SkillEditorData skillEditorData;
+        // SkillEditorData已为静态类，无需成员变量
         private SkillEditorUIBuilder uiBuilder;
         private SkillEditorTimeline skillEditorTimeline;
         private SkillEditorScrollSync skillEditorScrollSync;
@@ -49,16 +49,16 @@ namespace SkillEditor
 
         private void OnDisable()
         {
-            skillEditorData?.SaveData();
+            SkillEditorData.SaveData();
             skillEditorEvent?.Cleanup();
         }
 
         private void InitializeManagers()
         {
-            skillEditorData = new SkillEditorData();
+            // SkillEditorData为静态类，无需实例化
             skillEditorEvent = new SkillEditorEvent();
-            skillEditorTimeline = new SkillEditorTimeline(skillEditorData, skillEditorEvent);
-            uiBuilder = new SkillEditorUIBuilder(skillEditorData, skillEditorEvent);
+            skillEditorTimeline = new SkillEditorTimeline(skillEditorEvent);
+            uiBuilder = new SkillEditorUIBuilder(skillEditorEvent);
             skillEditorScrollSync = new SkillEditorScrollSync();
 
             // 注册事件
@@ -94,22 +94,22 @@ namespace SkillEditor
         {
             if (trackContent != null)
             {
-                float newWidth = skillEditorData.CalculateTimelineWidth();
+                float newWidth = SkillEditorData.CalculateTimelineWidth();
                 trackContent.style.width = newWidth;
 
                 // 更新所有轨道元素的宽度
-                uiBuilder.RefreshTrackContent(trackContent, skillEditorData);
+                uiBuilder.RefreshTrackContent(trackContent);
 
                 // 计算轨道项的默认宽度（比如每个轨道项占用5帧的宽度）
-                float trackItemWidth = skillEditorData.FrameUnitWidth * 5f; // 可以根据需要调整
+                float trackItemWidth = SkillEditorData.FrameUnitWidth * 5f; // 可以根据需要调整
 
                 // 同步所有轨道宽度和轨道项宽度
-                foreach (var item in skillEditorData.tracks)
+                foreach (var item in SkillEditorData.tracks)
                 {
                     if (item.Track != null)
                     {
                         item.Track.SetWidth(newWidth);
-                        item.Track.UpdateTrackItemsWidth(trackItemWidth);
+                        item.Track.UpdateTrackItemsWidth();
                     }
                 }
             }
@@ -126,7 +126,7 @@ namespace SkillEditor
 
         private void CreateTrackStructure()
         {
-            var trackElements = uiBuilder.CreateTrackStructure(allTrackContent, skillEditorData);
+            var trackElements = uiBuilder.CreateTrackStructure(allTrackContent);
 
             // 修正解包字段名为TrackStructureResult的属性名（首字母大写）
             trackControlArea = trackElements.ControlArea;
@@ -162,7 +162,7 @@ namespace SkillEditor
 
         private void RefreshView()
         {
-            uiBuilder.RefreshGlobalControl(globalControlContent, skillEditorData);
+            uiBuilder.RefreshGlobalControl(globalControlContent);
             skillEditorTimeline.RefreshTimeline();
         }
 
@@ -182,10 +182,10 @@ namespace SkillEditor
 
             if (trackContent != null)
             {
-                float newWidth = skillEditorData.CalculateTimelineWidth();
+                float newWidth = SkillEditorData.CalculateTimelineWidth();
                 trackContent.style.width = newWidth;
                 trackContent.style.minWidth = newWidth;
-                uiBuilder.RefreshTrackContent(trackContent, skillEditorData);
+                uiBuilder.RefreshTrackContent(trackContent);
 
                 // 延迟检查滚动条状态
                 CheckAndForceScrollBar(newWidth);
@@ -248,7 +248,7 @@ namespace SkillEditor
 
         private void OnGlobalControlToggled(bool isShow)
         {
-            skillEditorData.IsGlobalControlShow = isShow;
+            SkillEditorData.IsGlobalControlShow = isShow;
             RefreshView();
         }
 

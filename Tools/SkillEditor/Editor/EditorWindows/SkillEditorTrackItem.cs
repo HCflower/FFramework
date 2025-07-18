@@ -10,25 +10,29 @@ namespace SkillEditor
     {
         private VisualElement trackItem;
         private VisualElement itemContent;
-
+        private float frameCount;             // 帧数
+        private TrackType trackType;          // 轨道类型
         // 轨道项构造函数
-        public SkillEditorTrackItem(VisualElement visual, string title, TrackType trackType)
+        public SkillEditorTrackItem(VisualElement visual, string title, TrackType trackType, float frameCount)
         {
+            this.frameCount = frameCount;
+            this.trackType = trackType;
             trackItem = new VisualElement();
             trackItem.styleSheets.Add(Resources.Load<StyleSheet>("USS/SkillEditorTrackStyle"));
-            itemContent = TrackItemContent(title, trackType);
+            itemContent = TrackItemContent(title);
             trackItem.Add(itemContent);
+            SetPixelsPerFrame();
             visual.Add(trackItem);
         }
 
-        // 设置轨道项的宽度
-        public void SetWidth(float width)
+        // 可由SkillEditorData统一管理
+        public void SetPixelsPerFrame()
         {
-            itemContent.style.width = width;
+            itemContent.style.width = frameCount * SkillEditorData.FrameUnitWidth;
         }
 
         // 设置轨道项的内容
-        public VisualElement TrackItemContent(string title, TrackType trackType)
+        public VisualElement TrackItemContent(string title)
         {
             VisualElement itemContent = new VisualElement();
             itemContent.AddToClassList("TrackItemContent");

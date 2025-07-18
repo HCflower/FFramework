@@ -11,8 +11,8 @@ namespace FFramework.Kit
     public class SkillConfig : ScriptableObject
     {
         [Header("时间轴设置")]
-        [Tooltip("帧率"), Min(1)] public int frameRate = 30;
-        [Tooltip("技能总帧数"), Min(1)] public int totalFrames = 60;
+        [Tooltip("帧率"), Min(1)] public float frameRate = 30;
+        [Tooltip("技能最大帧数"), Min(1)] public int maxFrames = 60;
 
         [Header("技能基础信息")]
         [Tooltip("技能拥有者")] public GameObject owner;
