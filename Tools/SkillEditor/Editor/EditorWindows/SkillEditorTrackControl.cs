@@ -64,45 +64,45 @@ namespace SkillEditor
         {
             trackControlAreaContent = new VisualElement();
             trackControlAreaContent.AddToClassList("TrackControlAreaContent");
-            // 添加Icon            
+
+            // 图标和标题映射
+            string icon = null;
+            string defaultTitle = null;
+            bool hasButton = false;
             switch (trackType)
             {
                 case TrackType.AnimationTrack:
-                    trackControlAreaContent.Add(CreateTrackControlIcon("d_AnimationClip Icon"));
-                    // 添加标题
-                    trackControlAreaContent.Add(CreateTrackControlTitle(trackName != null ? trackName : "动画轨道"));
+                    icon = "d_AnimationClip Icon";
+                    defaultTitle = "动画轨道";
                     break;
                 case TrackType.AudioTrack:
-                    trackControlAreaContent.Add(CreateTrackControlIcon("d_AudioImporter Icon"));
-                    // 添加标题
-                    trackControlAreaContent.Add(CreateTrackControlTitle(trackName != null ? trackName : "音频轨道"));
-                    // 添加控制器按钮
-                    trackControlAreaContent.Add(CreateTrackControlButton("MoreOptions"));
+                    icon = "d_AudioImporter Icon";
+                    defaultTitle = "音频轨道";
+                    hasButton = true;
                     break;
                 case TrackType.EffectTrack:
-                    trackControlAreaContent.Add(CreateTrackControlIcon("d_VisualEffectAsset Icon"));
-                    // 添加标题
-                    trackControlAreaContent.Add(CreateTrackControlTitle(trackName != null ? trackName : "特效轨道"));
-                    // 添加控制器按钮
-                    trackControlAreaContent.Add(CreateTrackControlButton("MoreOptions"));
+                    icon = "d_VisualEffectAsset Icon";
+                    defaultTitle = "特效轨道";
+                    hasButton = true;
                     break;
                 case TrackType.EventTrack:
-                    trackControlAreaContent.Add(CreateTrackControlIcon("SignalAsset Icon"));
-                    // 添加标题
-                    trackControlAreaContent.Add(CreateTrackControlTitle(trackName != null ? trackName : "事件轨道"));
-                    // 添加控制器按钮
-                    trackControlAreaContent.Add(CreateTrackControlButton("MoreOptions"));
+                    icon = "SignalAsset Icon";
+                    defaultTitle = "事件轨道";
+                    hasButton = true;
                     break;
                 case TrackType.AttackTrack:
-                    trackControlAreaContent.Add(CreateTrackControlIcon("d_BoxCollider Icon"));
-                    // 添加标题
-                    trackControlAreaContent.Add(CreateTrackControlTitle(trackName != null ? trackName : "攻击轨道"));
-                    // 添加控制器按钮
-                    trackControlAreaContent.Add(CreateTrackControlButton("MoreOptions"));
+                    icon = "d_BoxCollider Icon";
+                    defaultTitle = "攻击轨道";
+                    hasButton = true;
                     break;
                 default:
                     break;
             }
+            if (icon != null)
+                trackControlAreaContent.Add(CreateTrackControlIcon(icon));
+            trackControlAreaContent.Add(CreateTrackControlTitle(!string.IsNullOrEmpty(trackName) ? trackName : defaultTitle));
+            if (hasButton)
+                trackControlAreaContent.Add(CreateTrackControlButton("MoreOptions"));
             return trackControlAreaContent;
         }
 

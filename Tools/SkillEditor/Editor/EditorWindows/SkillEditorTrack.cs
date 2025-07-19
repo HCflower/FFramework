@@ -67,9 +67,20 @@ namespace SkillEditor
         {
             if (!CanAcceptDrag()) return;
             DragAndDrop.AcceptDrag();
+
+            // 1. 获取鼠标在轨道区域的X坐标
+            float mouseX = evt.localMousePosition.x;
+            float unit = SkillEditorData.FrameUnitWidth;
+            int frameIndex = Mathf.RoundToInt(mouseX / unit);
+
             foreach (var obj in DragAndDrop.objectReferences)
             {
-                AddTrackItem(obj);
+                var newItem = AddTrackItem(obj);
+                if (newItem != null)
+                {
+                    // 2. 设置轨道项起始位置并帧对齐
+                    newItem.SetLeft(frameIndex * unit);
+                }
             }
             evt.StopPropagation();
         }
@@ -78,8 +89,8 @@ namespace SkillEditor
         /// 添加轨道项，支持动画、音频、特效、事件、攻击轨道
         /// </summary>
         /// <param name="resource">资源对象或名称（AnimationClip/AudioClip/GameObject/string等）</param>
-        /// <returns>成功创建返回true，否则false</returns>
-        public bool AddTrackItem(object resource)
+        /// <returns>新建的轨道项对象，失败返回null</returns>
+        public SkillEditorTrackItem AddTrackItem(object resource)
         {
             SkillEditorTrackItem newItem = null;
             float frameRate = 30f;
@@ -124,15 +135,15 @@ namespace SkillEditor
             // 事件轨道和攻击轨道支持字符串名称
             else if ((trackType == TrackType.EventTrack || trackType == TrackType.AttackTrack) && resource is string)
             {
-                newItem = new SkillEditorTrackItem(trackArea, resource.ToString(), trackType, 0);
+                newItem = new SkillEditorTrackItem(trackArea, resource.ToString(), trackType, 5);
             }
 
             if (newItem != null)
             {
                 trackItems.Add(newItem);
-                return true;
+                return newItem;
             }
-            return false;
+            return null;
         }
 
         // 更新所有轨道项的宽度
@@ -140,7 +151,7 @@ namespace SkillEditor
         {
             foreach (var item in trackItems)
             {
-                item.SetPixelsPerFrame();
+                item.SetWidth();
             }
         }
 

@@ -364,7 +364,7 @@ namespace SkillEditor
             menu.AddItem(new GUIContent("创建 Animation Track"), hasAnimationTrack, () =>
             {
                 if (!hasAnimationTrack) CreateTrack(TrackType.AnimationTrack);
-                else Debug.LogWarning("已存在动画轨道，无法创建新的动画轨道。");
+                else Debug.LogWarning("(动画轨道只可存在一条)已存在动画轨道，无法创建新的动画轨道。");
             });
 
             // 创建音频轨道菜单项
@@ -387,7 +387,7 @@ namespace SkillEditor
         private void CreateTrack(TrackType trackType)
         {
             // 默认轨道名称可用类型+序号
-            string trackName = $"{trackType}_{SkillEditorData.tracks.Count + 1}";
+            string trackName = $"{trackType}";
             var trackControl = new SkillEditorTrackControl(trackControlContent, trackType, trackName);
             var track = new SkillEditorTrack(allTrackContent, trackType, SkillEditorData.CalculateTimelineWidth(), SkillEditorData.CurrentSkillConfig);
             var trackInfo = new SkillEditorTrackInfo(trackControl, track, trackType, trackName);

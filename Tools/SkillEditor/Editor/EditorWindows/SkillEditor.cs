@@ -10,11 +10,12 @@ namespace SkillEditor
     public class SkillEditor : EditorWindow
     {
         #region 管理器
-        // SkillEditorData已为静态类，无需成员变量
         private SkillEditorUIBuilder uiBuilder;
         private SkillEditorTimeline skillEditorTimeline;
         private SkillEditorScrollSync skillEditorScrollSync;
         private SkillEditorEvent skillEditorEvent;
+
+        public static SkillEditorTrackItem CurrentTrackItem;
         #endregion
 
         #region GUI元素
