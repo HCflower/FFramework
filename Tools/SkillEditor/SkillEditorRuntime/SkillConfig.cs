@@ -25,20 +25,8 @@ namespace FFramework.Kit
         [Header("技能参数")]
         [Tooltip("冷却时间")] public float cooldown = 1.0f;
 
-        [Header("动画轨道 (单轨道序列)")]
-        public AnimationTrack animationTrack = new AnimationTrack();
-
-        [Header("音效轨道 (多轨道并行)")]
-        public List<AudioTrack> audioTracks = new List<AudioTrack>();
-
-        [Header("特效轨道 (多轨道并行)")]
-        public List<EffectTrack> effectTracks = new List<EffectTrack>();
-
-        [Header("伤害检测轨道(多轨道并行)")]
-        public List<InjuryDetectionTrack> injuryDetectionTracks = new List<InjuryDetectionTrack>();
-
-        // [Header("事件轨道(多轨道并行)")]
-        // public List<EventTrack> eventTracks = new List<EventTrack>();
+        [Header("轨道管理")]
+        public TrackContainer trackContainer = new TrackContainer();
 
         #region 编辑器辅助方法
 
@@ -67,7 +55,7 @@ namespace FFramework.Kit
             info.AppendLine($"Frame {frame} ({FramesToTime(frame):F2}s):");
 
             // 检查各轨道的活动片段
-            foreach (var track in audioTracks)
+            foreach (var track in trackContainer.audioTracks)
             {
                 foreach (var clip in track.audioClips)
                 {
@@ -102,22 +90,161 @@ namespace FFramework.Kit
     #region  轨道
 
     /// <summary>
+    /// 轨道容器 - 统一管理所有轨道
+    /// </summary>
+    [Serializable]
+    public class TrackContainer
+    {
+        [Header("动画轨道 (单轨道序列)")]
+        public AnimationTrack animationTrack = new AnimationTrack();
+
+        [Header("音效轨道 (多轨道并行)")]
+        public List<AudioTrack> audioTracks = new List<AudioTrack>();
+
+        [Header("特效轨道 (多轨道并行)")]
+        public List<EffectTrack> effectTracks = new List<EffectTrack>();
+
+        [Header("伤害检测轨道(多轨道并行)")]
+        public List<InjuryDetectionTrack> injuryDetectionTracks = new List<InjuryDetectionTrack>();
+
+        [Header("事件轨道(多轨道并行)")]
+        public List<EventTrack> eventTracks = new List<EventTrack>();
+
+        /// <summary>
+        /// 获取所有轨道
+        /// </summary>
+        public IEnumerable<TrackBase> GetAllTracks()
+        {
+            yield return animationTrack;
+            foreach (var track in audioTracks) yield return track;
+            foreach (var track in effectTracks) yield return track;
+            foreach (var track in injuryDetectionTracks) yield return track;
+            foreach (var track in eventTracks) yield return track;
+        }
+
+        /// <summary>
+        /// 获取技能总时长
+        /// </summary>
+        public float GetTotalDuration(float frameRate)
+        {
+            float maxDuration = 0;
+            foreach (var track in GetAllTracks())
+            {
+                if (track.isEnabled)
+                    maxDuration = Mathf.Max(maxDuration, track.GetTrackDuration(frameRate));
+            }
+            return maxDuration;
+        }
+
+        /// <summary>
+        /// 添加新轨道
+        /// </summary>
+        public T AddTrack<T>() where T : TrackBase, new()
+        {
+            var track = new T();
+            if (track is AudioTrack audioTrack)
+                audioTracks.Add(audioTrack);
+            else if (track is EffectTrack effectTrack)
+                effectTracks.Add(effectTrack);
+            else if (track is InjuryDetectionTrack injuryTrack)
+                injuryDetectionTracks.Add(injuryTrack);
+            else if (track is EventTrack eventTrack)
+                eventTracks.Add(eventTrack);
+
+            return track;
+        }
+
+        /// <summary>
+        /// 验证所有轨道数据
+        /// </summary>
+        public bool ValidateAllTracks()
+        {
+            foreach (var track in GetAllTracks())
+            {
+                if (!track.ValidateTrack())
+                    return false;
+            }
+            return true;
+        }
+    }
+
+    /// <summary>
+    /// 轨道基类
+    /// </summary>
+    [Serializable]
+    public abstract class TrackBase
+    {
+        [Tooltip("轨道名称")] public string trackName;
+        [Tooltip("是否启用轨道")] public bool isEnabled = true;
+        [Tooltip("轨道优先级，数值越大优先级越高")] public int trackIndex;
+
+        public abstract float GetTrackDuration(float frameRate);
+
+        /// <summary>
+        /// 验证轨道数据有效性
+        /// </summary>
+        public virtual bool ValidateTrack()
+        {
+            return !string.IsNullOrEmpty(trackName);
+        }
+    }
+
+    /// <summary>
+    /// 片段基类
+    /// </summary>
+    [Serializable]
+    public abstract class ClipBase
+    {
+        [Tooltip("片段名称")] public string clipName;
+        [Tooltip("起始帧"), Min(0)] public int startFrame;
+        [Tooltip("持续帧数(-1表示完整播放)"), Min(-1)] public int durationFrame = -1;
+
+        public virtual int EndFrame => startFrame + (durationFrame > 0 ? durationFrame : 0);
+
+        /// <summary>
+        /// 判断指定帧是否在片段范围内
+        /// </summary>
+        public virtual bool IsFrameInRange(int frame)
+        {
+            return frame >= startFrame && frame <= EndFrame;
+        }
+
+        /// <summary>
+        /// 验证片段数据有效性
+        /// </summary>
+        public virtual bool ValidateClip()
+        {
+            return !string.IsNullOrEmpty(clipName) && startFrame >= 0;
+        }
+    }
+
+    /// <summary>
     /// 动画轨道 - 单轨道，动画按顺序播放
     /// </summary>
     [Serializable]
-    public class AnimationTrack
+    public class AnimationTrack : TrackBase
     {
-        [Tooltip("轨道名称")] public string trackName = "Animation";
-        [Tooltip("是否启用轨道")] public bool isEnabled = true;
         public List<AnimationClip> animationClips = new List<AnimationClip>();
 
-        [Serializable]
-        public class AnimationClip
+        public AnimationTrack()
         {
-            [Tooltip("动画名称")] public string clipName;
+            trackName = "Animation";
+        }
+
+        public override float GetTrackDuration(float frameRate)
+        {
+            int maxFrame = 0;
+            foreach (var clip in animationClips)
+            {
+                maxFrame = Mathf.Max(maxFrame, clip.EndFrame);
+            }
+            return maxFrame / frameRate;
+        }
+
+        [Serializable]
+        public class AnimationClip : ClipBase
+        {
             [Tooltip("动画片段")] public UnityEngine.AnimationClip clip;
-            [Tooltip("动画起始帧"), Min(0)] public int startFrame;
-            [Tooltip("动画持续帧数(-1表示完整播放)"), Min(-1)] public int durationFrame = -1;
             [Tooltip("动画播放速度"), Min(0)] public float playSpeed = 1.0f;
             [Tooltip("动画是否循环播放")] public bool loop = false;
             [Tooltip("是否应用动画根运动")] public bool applyRootMotion = false;
@@ -128,20 +255,29 @@ namespace FFramework.Kit
     /// 音效轨道 - 支持多轨道并行
     /// </summary>
     [Serializable]
-    public class AudioTrack
+    public class AudioTrack : TrackBase
     {
-        [Tooltip("轨道名称")] public string trackName = "Audio Track";
-        [Tooltip("是否启用轨道")] public bool isEnabled = true;
-        [Tooltip("轨道优先级，数值越大优先级越高")] public int trackIndex;
         public List<AudioClip> audioClips = new List<AudioClip>();
 
-        [Serializable]
-        public class AudioClip
+        public AudioTrack()
         {
-            [Tooltip("音效名称")] public string clipName;
+            trackName = "Audio Track";
+        }
+
+        public override float GetTrackDuration(float frameRate)
+        {
+            int maxFrame = 0;
+            foreach (var clip in audioClips)
+            {
+                maxFrame = Mathf.Max(maxFrame, clip.EndFrame);
+            }
+            return maxFrame / frameRate;
+        }
+
+        [Serializable]
+        public class AudioClip : ClipBase
+        {
             public UnityEngine.AudioClip clip;
-            [Tooltip("音效起始帧"), Min(0)] public int startFrame;
-            [Tooltip("音频持续帧数(-1表示完整播放)"), Min(-1)] public int durationFrame = -1;
             public float volume = 1.0f;
             public float pitch = 1.0f;
             public bool loop = false;
@@ -152,20 +288,29 @@ namespace FFramework.Kit
     /// 特效轨道 - 支持多轨道并行
     /// </summary>
     [Serializable]
-    public class EffectTrack
+    public class EffectTrack : TrackBase
     {
-        [Tooltip("轨道名称")] public string trackName = "Effect Track";
-        [Tooltip("是否启用轨道")] public bool isEnabled = true;
-        [Tooltip("轨道优先级，数值越大优先级越高")] public int trackIndex;
         public List<EffectClip> effectClips = new List<EffectClip>();
 
-        [Serializable]
-        public class EffectClip
+        public EffectTrack()
         {
-            [Tooltip("特效名称")] public string clipName;
+            trackName = "Effect Track";
+        }
+
+        public override float GetTrackDuration(float frameRate)
+        {
+            int maxFrame = 0;
+            foreach (var clip in effectClips)
+            {
+                maxFrame = Mathf.Max(maxFrame, clip.EndFrame);
+            }
+            return maxFrame / frameRate;
+        }
+
+        [Serializable]
+        public class EffectClip : ClipBase
+        {
             [Tooltip("特效资源")] public GameObject effectPrefab;
-            [Tooltip("特效起始帧"), Min(0)] public int startFrame;
-            [Tooltip("特效持续帧数(-1表示完整播放)"), Min(-1)] public int durationFrame = -1;
 
             [Header("Transform")]
             [Tooltip("特效位置")] public Vector3 position = Vector3.zero;
@@ -178,20 +323,28 @@ namespace FFramework.Kit
     /// 伤害检测轨道 - 支持多轨道并行
     /// </summary>
     [Serializable]
-    public class InjuryDetectionTrack
+    public class InjuryDetectionTrack : TrackBase
     {
-        [Tooltip("轨道名称")] public string trackName = "Damage Detection";
-        [Tooltip("是否启用轨道")] public bool isEnabled = true;
-        [Tooltip("轨道优先级，数值越大优先级越高")] public int trackIndex;
-
         public List<InjuryDetectionClip> injuryDetectionClips = new List<InjuryDetectionClip>();
 
-        [Serializable]
-        public class InjuryDetectionClip
+        public InjuryDetectionTrack()
         {
-            [Tooltip("伤害检测片段名称")] public string clipName;
-            [Tooltip("伤害检测起始帧"), Min(0)] public int startFrame;
-            [Tooltip("伤害检测持续帧数"), Min(1)] public int durationFrame = 1;
+            trackName = "Damage Detection";
+        }
+
+        public override float GetTrackDuration(float frameRate)
+        {
+            int maxFrame = 0;
+            foreach (var clip in injuryDetectionClips)
+            {
+                maxFrame = Mathf.Max(maxFrame, clip.EndFrame);
+            }
+            return maxFrame / frameRate;
+        }
+
+        [Serializable]
+        public class InjuryDetectionClip : ClipBase
+        {
             [Tooltip("目标层级")] public LayerMask targetLayers = -1;
             [Tooltip("是否是多段伤害检测")] public bool isMultiInjuryDetection = false;
             [Tooltip("多段伤害检测间隔"), Min(0)] public float multiInjuryDetectionInterval = 0.1f;
@@ -207,6 +360,8 @@ namespace FFramework.Kit
             [Tooltip("碰撞体位置")] public Vector3 position = Vector3.zero;
             [Tooltip("碰撞体旋转")] public Vector3 rotation = Vector3.zero;
             [Tooltip("碰撞体缩放")] public Vector3 scale = Vector3.one;
+
+            public override int EndFrame => startFrame + Mathf.Max(1, durationFrame);
         }
     }
 
@@ -214,20 +369,34 @@ namespace FFramework.Kit
     /// 事件轨道 - 支持多轨道并行
     /// </summary>
     [Serializable]
-    public class EventTrack
+    public class EventTrack : TrackBase
     {
-        [Tooltip("轨道名称")] public string trackName = "Event";
-        [Tooltip("是否启用轨道")] public bool isEnabled = true;
-        [Tooltip("轨道优先级，数值越大优先级越高")] public int trackIndex;
-
         public List<EventClip> eventClips = new List<EventClip>();
 
-        [Serializable]
-        public class EventClip
+        public EventTrack()
         {
-            [Tooltip("事件名称")] public string clipName;
-            [Tooltip("事件起始帧"), Min(1)] public int startFrame;
-            // TODO:实现事件注册
+            trackName = "Event";
+        }
+
+        public override float GetTrackDuration(float frameRate)
+        {
+            int maxFrame = 0;
+            foreach (var clip in eventClips)
+            {
+                maxFrame = Mathf.Max(maxFrame, clip.EndFrame);
+            }
+            return maxFrame / frameRate;
+        }
+
+        [Serializable]
+        public class EventClip : ClipBase
+        {
+            // TODO: 实现事件注册
+            [Header("事件参数")]
+            [Tooltip("事件类型")] public string eventType;
+            [Tooltip("事件参数")] public string eventParameters;
+
+            public override int EndFrame => startFrame; // 事件是瞬时的
         }
     }
 

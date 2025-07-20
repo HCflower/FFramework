@@ -46,6 +46,10 @@
     border: 0px;
     padding: 0px;
     justify-content: center;
+    
+    transition-property: background-color; /* 背景色过渡动画 */
+    transition-duration: 0.15s;           /* 过渡时间 */
+    transition-timing-function: ease-out;  /* 缓动函数 */
 }
 
 /* 轨道项标题 */
@@ -59,46 +63,104 @@
     overflow: hidden;          /* 隐藏超出部分 */
     white-space: nowrap;       /* 禁止文本换行 */
     text-overflow: ellipsis;   /* 超出部分显示省略号 */
+    color: rgb(210, 210, 210); /* 默认文字颜色 */
+    transition-property: color; /* 文字颜色过渡动画 */
+    transition-duration: 0.1s;  /* 过渡时间 */
+}
+
+/* 轨道项标题 - 鼠标悬停效果 */
+.TrackItemTitle:hover{
+    color: rgb(255, 255, 255); /* 悬停时文字变亮 */
 }
 
 /* 动画轨道项 */
 .TrackItem-Animation{
-    background-color:  rgba(42, 184, 206, 0.25);
+    background-color:  rgba(42, 184, 206, 0.35);
 
     border-left-width: 2px;
     border-left-color: rgba(42, 184, 206, 1);
 }
 
+/* 动画轨道项 - 鼠标悬停效果 */
+.TrackItem-Animation:hover{
+    background-color:  rgba(42, 184, 206, 0.75);
+}
+
+/* 动画轨道项 - 鼠标点击效果 */
+.TrackItem-Animation:active{
+    background-color:  rgba(42, 184, 206, 1.0);
+}
+
 /* 音频轨道项 */
 .TrackItem-Audio{
-    background-color: rgba(250, 193, 23, 0.25);
+    background-color: rgba(250, 193, 23, 0.35);
 
     border-left-width: 2px;
     border-left-color: rgba(250, 193, 23, 1);
 }
 
+/* 音频轨道项 - 鼠标悬停效果 */
+.TrackItem-Audio:hover{
+    background-color: rgba(250, 193, 23, 0.75);
+}
+
+/* 音频轨道项 - 鼠标点击效果 */
+.TrackItem-Audio:active{
+    background-color: rgba(250, 193, 23, 1.0);
+}
+
 /* 特效轨道项 */
 .TrackItem-Effect{
-    background-color: rgba(190, 42, 206, 0.25);
+    background-color: rgba(190, 42, 206, 0.35);
 
     border-left-width: 2px;
     border-left-color: rgba(190, 42, 206, 1); 
 }
 
+/* 特效轨道项 - 鼠标悬停效果 */
+.TrackItem-Effect:hover{
+    background-color: rgba(190, 42, 206, 0.75);
+}
+
+/* 特效轨道项 - 鼠标点击效果 */
+.TrackItem-Effect:active{
+    background-color: rgba(190, 42, 206, 1.0);
+}
+
 /* 攻击检测轨道项 */
 .TrackItem-Attack{
-    background-color: rgba(206, 45, 42, 0.25);
+    background-color: rgba(206, 45, 42, 0.35);
 
     border-left-width: 2px;
     border-left-color: rgba(206, 45, 42, 1);
 }
 
+/* 攻击检测轨道项 - 鼠标悬停效果 */
+.TrackItem-Attack:hover{
+    background-color: rgba(206, 45, 42, 0.75);
+}
+
+/* 攻击检测轨道项 - 鼠标点击效果 */
+.TrackItem-Attack:active{
+    background-color: rgba(206, 45, 42, 1.0);
+}
+
 /* 事件轨道项 */
 .TrackItem-Event{
-    background-color: rgba(42, 116, 206, 0.25);
+    background-color: rgba(42, 116, 206, 0.35);
 
     border-left-width: 2px;
     border-left-color: rgba(42, 116, 206, 1); 
+}
+
+/* 事件轨道项 - 鼠标悬停效果 */
+.TrackItem-Event:hover{
+    background-color: rgba(42, 116, 206, 0.75);
+}
+
+/* 事件轨道项 - 鼠标点击效果 */
+.TrackItem-Event:active{
+    background-color: rgba(42, 116, 206, 1.0);
 }
 
 

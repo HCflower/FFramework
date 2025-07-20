@@ -144,7 +144,7 @@
     flex-direction: column;  
 
     border-left-width: 2px;
-    border-left-color: rgba(70, 138, 167, 1);
+    border-left-color: rgba(167, 112, 70, 1);
 }
 
 /* 控制区域容器标题 */

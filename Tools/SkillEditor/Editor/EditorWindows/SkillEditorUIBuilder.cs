@@ -10,40 +10,84 @@ using System;
 namespace SkillEditor
 {
     /// <summary>
-    /// UI构建器
+    /// 技能编辑器UI构建器
+    /// 负责创建和管理技能编辑器的所有UI元素，包括主界面结构、全局控制区域、轨道管理区域等
+    /// 提供完整的UI构建、事件处理和动态更新功能
     /// </summary>
     public class SkillEditorUIBuilder
     {
-        private readonly SkillEditorEvent skillEditorEvent;
-        // SkillEditorData已为静态类，无需成员变量
-        private VisualElement allTrackContent;
-        private VisualElement trackControlContent; // 添加轨道控制区域引用
+        #region 私有字段
 
+        /// <summary>技能编辑器事件管理器</summary>
+        private readonly SkillEditorEvent skillEditorEvent;
+
+        /// <summary>所有轨道内容容器</summary>
+        private VisualElement allTrackContent;
+
+        /// <summary>轨道控制区域内容容器</summary>
+        private VisualElement trackControlContent;
+
+        #endregion
+
+        #region 构造函数
+
+        /// <summary>
+        /// UI构建器构造函数
+        /// 初始化事件管理器并订阅刷新事件
+        /// </summary>
+        /// <param name="skillEditorEvent">技能编辑器事件管理器实例</param>
         public SkillEditorUIBuilder(SkillEditorEvent skillEditorEvent)
         {
-            // SkillEditorData为静态类，无需赋值
             this.skillEditorEvent = skillEditorEvent;
+
             // 订阅刷新事件
             if (skillEditorEvent != null)
                 skillEditorEvent.OnRefreshRequested += OnRefreshRequested;
         }
 
+        #endregion
+
         #region 主要结构创建
+
+        /// <summary>
+        /// 创建主要内容区域
+        /// 作为整个编辑器界面的根容器
+        /// </summary>
+        /// <param name="parent">父容器</param>
+        /// <returns>创建的主内容容器</returns>
         public VisualElement CreateMainContent(VisualElement parent)
         {
             return CreateAndAddElement(parent, "MainContent");
         }
 
+        /// <summary>
+        /// 创建全局控制区域
+        /// 包含技能配置、播放控制等全局功能
+        /// </summary>
+        /// <param name="parent">父容器</param>
+        /// <returns>创建的全局控制区域容器</returns>
         public VisualElement CreateGlobalControlArea(VisualElement parent)
         {
             return CreateAndAddElement(parent, "GlobalControlContent");
         }
 
+        /// <summary>
+        /// 创建轨道区域
+        /// 包含所有轨道的显示和管理功能
+        /// </summary>
+        /// <param name="parent">父容器</param>
+        /// <returns>创建的轨道区域容器</returns>
         public VisualElement CreateTrackArea(VisualElement parent)
         {
             return CreateAndAddElement(parent, "TrackContent");
         }
 
+        /// <summary>
+        /// 创建轨道结构
+        /// 包括轨道控制区域和轨道内容区域的完整结构
+        /// </summary>
+        /// <param name="parent">父容器</param>
+        /// <returns>包含所有轨道相关容器的结构体</returns>
         public TrackStructureResult CreateTrackStructure(VisualElement parent)
         {
             // 创建轨道控制区域
@@ -73,19 +117,40 @@ namespace SkillEditor
             };
         }
 
-        // 新增结构体用于返回复杂结果
+        /// <summary>
+        /// 轨道结构创建结果
+        /// 包含轨道管理所需的所有UI容器引用
+        /// </summary>
         public struct TrackStructureResult
         {
+            /// <summary>轨道控制区域容器</summary>
             public VisualElement ControlArea;
+
+            /// <summary>轨道控制滚动视图</summary>
             public ScrollView ControlScrollView;
+
+            /// <summary>轨道控制内容容器</summary>
             public VisualElement ControlContent;
+
+            /// <summary>轨道区域容器</summary>
             public VisualElement TrackArea;
+
+            /// <summary>轨道滚动视图</summary>
             public ScrollView TrackScrollView;
+
+            /// <summary>轨道内容容器</summary>
             public VisualElement TrackContent;
         }
+
         #endregion
 
         #region 全局控制区域
+
+        /// <summary>
+        /// 刷新全局控制区域内容
+        /// 根据显示状态决定是显示完整功能面板还是展开按钮
+        /// </summary>
+        /// <param name="globalControlContent">全局控制内容容器</param>
         public void RefreshGlobalControl(VisualElement globalControlContent)
         {
             globalControlContent.Clear();
@@ -95,6 +160,11 @@ namespace SkillEditor
                 CreateGlobalControlShowButton(globalControlContent);
         }
 
+        /// <summary>
+        /// 创建全局控制展开按钮
+        /// 当全局控制区域收起时显示的展开按钮
+        /// </summary>
+        /// <param name="parent">父容器</param>
         private void CreateGlobalControlShowButton(VisualElement parent)
         {
             var buttonWrapper = CreateAndAddElement(parent, "GlobalControlShowButtonWrapper");
@@ -103,6 +173,11 @@ namespace SkillEditor
             buttonWrapper.Add(showButton);
         }
 
+        /// <summary>
+        /// 创建全局控制功能面板
+        /// 包含技能配置和控制按钮的完整功能界面
+        /// </summary>
+        /// <param name="parent">父容器</param>
         private void CreateGlobalControlFunction(VisualElement parent)
         {
             var scrollView = CreateScrollView(parent, "GlobalControlFunctionContent");
@@ -114,17 +189,56 @@ namespace SkillEditor
             CreateGlobalControlButtons(scrollView);
         }
 
+        /// <summary>
+        /// 创建技能配置区域
+        /// 包含技能配置文件选择、帧率设置、技能属性编辑等功能
+        /// </summary>
+        /// <param name="parent">父容器</param>
         private void CreateSkillConfigSection(VisualElement parent)
         {
+            // 技能配置文件选择
             CreateObjectField(parent, "技能配置:", typeof(SkillConfig), SkillEditorData.CurrentSkillConfig, (obj) =>
             {
                 SkillEditorData.CurrentSkillConfig = obj as SkillConfig;
                 skillEditorEvent.TriggerSkillConfigChanged(SkillEditorData.CurrentSkillConfig);
-                // 切换配置后刷新编辑器视图
                 skillEditorEvent.TriggerRefreshRequested();
             });
 
-            // 动画帧率输入框逻辑简化，闭包安全
+            // 动画帧率输入框
+            CreateFrameRateInput(parent);
+
+            // 技能图标选择器
+            CreateImageSelector(parent, "技能Icon:");
+
+            // 技能名称输入
+            CreateInputField(parent, "技能名称:", SkillEditorData.CurrentSkillConfig?.skillName ?? "", value =>
+            {
+                if (SkillEditorData.CurrentSkillConfig != null)
+                {
+                    SkillEditorData.CurrentSkillConfig.skillName = value;
+                }
+            });
+
+            // 技能ID输入
+            CreateSkillIdInput(parent);
+
+            // 技能描述输入
+            CreateMultilineInputField(parent, "技能描述:", SkillEditorData.CurrentSkillConfig?.description ?? "", value =>
+            {
+                if (SkillEditorData.CurrentSkillConfig != null)
+                {
+                    SkillEditorData.CurrentSkillConfig.description = value;
+                }
+            });
+        }
+
+        /// <summary>
+        /// 创建帧率输入控件
+        /// 带有输入验证和范围限制的帧率设置界面
+        /// </summary>
+        /// <param name="parent">父容器</param>
+        private void CreateFrameRateInput(VisualElement parent)
+        {
             TextField frameRateField = null;
             frameRateField = CreateInputField(parent, "动画帧率:", SkillEditorData.CurrentSkillConfig?.frameRate.ToString() ?? "30", value =>
             {
@@ -134,6 +248,7 @@ namespace SkillEditor
                     if (frameRateField != null) frameRateField.value = "30";
                     return;
                 }
+
                 if (float.TryParse(value, out float frameRate))
                 {
                     frameRate = Mathf.Clamp(frameRate, 1f, 120f);
@@ -146,19 +261,15 @@ namespace SkillEditor
                     if (frameRateField != null) frameRateField.value = SkillEditorData.CurrentSkillConfig.frameRate.ToString();
                 }
             });
-            // 技能Icon选择器（可扩展为真正的资源选择）
-            CreateImageSelector(parent, "技能Icon:");
+        }
 
-            // 技能名称
-            CreateInputField(parent, "技能名称:", SkillEditorData.CurrentSkillConfig?.skillName ?? "", value =>
-            {
-                if (SkillEditorData.CurrentSkillConfig != null)
-                {
-                    SkillEditorData.CurrentSkillConfig.skillName = value;
-                }
-            });
-
-            // 技能ID
+        /// <summary>
+        /// 创建技能ID输入控件
+        /// 带有输入验证的技能ID设置界面
+        /// </summary>
+        /// <param name="parent">父容器</param>
+        private void CreateSkillIdInput(VisualElement parent)
+        {
             CreateInputField(parent, "技能ID:", SkillEditorData.CurrentSkillConfig?.skillId.ToString() ?? "", value =>
             {
                 if (SkillEditorData.CurrentSkillConfig != null)
@@ -173,21 +284,17 @@ namespace SkillEditor
                     }
                 }
             });
-
-            // 技能描述
-            CreateMultilineInputField(parent, "技能描述:", SkillEditorData.CurrentSkillConfig?.description ?? "", value =>
-            {
-                if (SkillEditorData.CurrentSkillConfig != null)
-                {
-                    SkillEditorData.CurrentSkillConfig.description = value;
-                }
-            });
         }
 
+        /// <summary>
+        /// 创建全局控制按钮组
+        /// 包含隐藏面板、刷新视图、保存配置、添加配置、删除配置等功能按钮
+        /// </summary>
+        /// <param name="parent">父容器</param>
         private void CreateGlobalControlButtons(VisualElement parent)
         {
             // 隐藏全局控制区域按钮
-            CreateButton(parent, "↩", "隐藏全局控制区域", () =>
+            CreateButton(parent, "隐藏全局设置区域", "", () =>
             {
                 skillEditorEvent.TriggerGlobalControlToggled(false);
             });
@@ -201,7 +308,6 @@ namespace SkillEditor
             // 保存配置文件按钮
             CreateButton(parent, "保存配置文件", "", () =>
             {
-                // 保存逻辑
                 AssetDatabase.SaveAssetIfDirty(SkillEditorData.CurrentSkillConfig);
                 Debug.Log($"已保存技能配置: {SkillEditorData.CurrentSkillConfig?.skillName}");
             });
@@ -212,7 +318,7 @@ namespace SkillEditor
             // 删除配置文件按钮
             var deleteButton = CreateButton(parent, "删除配置文件", "", () =>
             {
-                // 删除逻辑
+                // TODO: 实现删除逻辑
             });
             deleteButton.style.backgroundColor = Color.red;
         }
@@ -220,6 +326,12 @@ namespace SkillEditor
         #endregion
 
         #region 轨道控制区域
+
+        /// <summary>
+        /// 刷新轨道内容区域
+        /// 更新轨道宽度并强制刷新滚动视图显示
+        /// </summary>
+        /// <param name="trackContent">轨道内容容器</param>
         public void RefreshTrackContent(VisualElement trackContent)
         {
             if (trackContent == null) return;
@@ -234,12 +346,23 @@ namespace SkillEditor
             }
         }
 
+        /// <summary>
+        /// 更新轨道内容区域的宽度
+        /// 根据时间轴长度设置轨道容器的宽度和最小宽度
+        /// </summary>
+        /// <param name="trackContent">轨道内容容器</param>
+        /// <param name="width">新的宽度值</param>
         private void UpdateTrackContentWidth(VisualElement trackContent, float width)
         {
             trackContent.style.width = width;
             trackContent.style.minWidth = width;
         }
 
+        /// <summary>
+        /// 创建轨道控制按钮区域
+        /// 包含播放控制按钮和帧输入区域
+        /// </summary>
+        /// <param name="parent">父容器</param>
         private void CreateTrackControlButtons(VisualElement parent)
         {
             var buttonContent = CreateAndAddElement(parent, "TrackItemControlButtonContent");
@@ -251,6 +374,11 @@ namespace SkillEditor
             CreateFrameInputArea(buttonContent);
         }
 
+        /// <summary>
+        /// 创建播放控制按钮组
+        /// 包含上一帧、播放/暂停、下一帧、循环播放等控制按钮
+        /// </summary>
+        /// <param name="parent">父容器</param>
         private void CreatePlaybackControls(VisualElement parent)
         {
             // 上一帧按钮
@@ -279,7 +407,11 @@ namespace SkillEditor
             });
         }
 
-        // 创建帧输入区域
+        /// <summary>
+        /// 创建帧输入区域
+        /// 包含当前帧输入框和最大帧输入框，支持动态更新
+        /// </summary>
+        /// <param name="parent">父容器</param>
         private void CreateFrameInputArea(VisualElement parent)
         {
             var frameInputContent = new VisualElement();
@@ -291,7 +423,7 @@ namespace SkillEditor
             {
                 skillEditorEvent.TriggerCurrentFrameChanged(value);
             });
-            currentFrameInput.name = "current-frame-input"; // 添加名称以便查找
+            currentFrameInput.name = "current-frame-input";
             frameInputContent.Add(currentFrameInput);
 
             // 分隔符
@@ -299,20 +431,34 @@ namespace SkillEditor
             separator.AddToClassList("SeparatorLabel");
             frameInputContent.Add(separator);
 
-            // 最大帧输入，优先用配置中的maxFrames（不为0），否则用SkillEditorData.MaxFrame
+            // 最大帧输入框创建和事件订阅
+            CreateMaxFrameInput(frameInputContent);
+        }
+
+        /// <summary>
+        /// 创建最大帧输入控件
+        /// 根据技能配置动态显示最大帧数，并支持修改
+        /// </summary>
+        /// <param name="parent">父容器</param>
+        private void CreateMaxFrameInput(VisualElement parent)
+        {
             IntegerField maxFrameInput = null;
             int maxFrameValue = (SkillEditorData.CurrentSkillConfig != null && SkillEditorData.CurrentSkillConfig.maxFrames > 0)
                 ? SkillEditorData.CurrentSkillConfig.maxFrames
                 : SkillEditorData.MaxFrame;
+
             maxFrameInput = CreateIntegerField("最大帧", maxFrameValue, (value) =>
             {
-                SkillEditorData.CurrentSkillConfig.maxFrames = value;
-                skillEditorEvent.TriggerMaxFrameChanged(value);
-                skillEditorEvent.TriggerRefreshRequested();
+                if (SkillEditorData.CurrentSkillConfig != null)
+                {
+                    SkillEditorData.CurrentSkillConfig.maxFrames = value;
+                    skillEditorEvent.TriggerMaxFrameChanged(value);
+                    skillEditorEvent.TriggerRefreshRequested();
+                }
             });
-            frameInputContent.Add(maxFrameInput);
+            parent.Add(maxFrameInput);
 
-            // 切换配置时自动刷新最大帧输入框显示
+            // 订阅配置切换事件以更新显示
             skillEditorEvent.OnSkillConfigChanged += (config) =>
             {
                 if (maxFrameInput != null)
@@ -322,6 +468,11 @@ namespace SkillEditor
             };
         }
 
+        /// <summary>
+        /// 创建搜索和添加轨道区域
+        /// 包含轨道搜索输入框和添加轨道按钮
+        /// </summary>
+        /// <param name="parent">父容器</param>
         private void CreateSearchAndAddArea(VisualElement parent)
         {
             var searchAddArea = CreateAndAddElement(parent, "SearchOrAddTrack");
@@ -333,21 +484,33 @@ namespace SkillEditor
             CreateAddTrackButton(searchAddArea);
         }
 
+        /// <summary>
+        /// 创建轨道搜索输入框
+        /// 提供轨道搜索功能的输入界面
+        /// </summary>
+        /// <param name="parent">父容器</param>
         private void CreateSearchInput(VisualElement parent)
         {
             var searchInput = new TextField();
             searchInput.AddToClassList("SearchTrackInput");
             searchInput.tooltip = "搜索轨道";
 
+            // 调整文本元素边距以适应搜索图标
             var textElement = searchInput.Q<TextElement>(className: "unity-text-element");
             if (textElement != null) textElement.style.marginLeft = 18;
 
+            // 添加搜索图标
             var searchIcon = new Image();
             searchIcon.AddToClassList("SearchTrackInputIcon");
             searchInput.Add(searchIcon);
             parent.Add(searchInput);
         }
 
+        /// <summary>
+        /// 创建添加轨道按钮
+        /// 点击后显示轨道类型选择菜单
+        /// </summary>
+        /// <param name="parent">父容器</param>
         private void CreateAddTrackButton(VisualElement parent)
         {
             var addButton = new Button();
@@ -355,134 +518,214 @@ namespace SkillEditor
             addButton.clicked += () => ShowTrackCreationMenu(addButton);
             parent.Add(addButton);
         }
+
+        #endregion
+
+        #region 轨道创建和管理
+
+        /// <summary>
+        /// 显示轨道创建菜单
+        /// 根据轨道类型限制显示可创建的轨道类型选项
+        /// </summary>
+        /// <param name="button">触发菜单的按钮元素</param>
         private void ShowTrackCreationMenu(VisualElement button)
         {
             var menu = new GenericMenu();
 
-            // 创建动画轨道菜单项（只允许一个）
+            // 检查是否已存在动画轨道（限制只能有一个）
             bool hasAnimationTrack = SkillEditorData.tracks.Exists(t => t.TrackType == TrackType.AnimationTrack);
+
+            // 创建动画轨道菜单项
             menu.AddItem(new GUIContent("创建 Animation Track"), hasAnimationTrack, () =>
             {
-                if (!hasAnimationTrack) CreateTrack(TrackType.AnimationTrack);
-                else Debug.LogWarning("(动画轨道只可存在一条)已存在动画轨道，无法创建新的动画轨道。");
+                if (!hasAnimationTrack)
+                    CreateTrack(TrackType.AnimationTrack);
+                else
+                    Debug.LogWarning("(动画轨道只可存在一条)已存在动画轨道，无法创建新的动画轨道。");
             });
 
-            // 创建音频轨道菜单项
+            // 创建其他类型轨道菜单项
             menu.AddItem(new GUIContent("创建 Audio Track"), false, () => CreateTrack(TrackType.AudioTrack));
-
-            // 创建特效轨道菜单项
             menu.AddItem(new GUIContent("创建 Effect Track"), false, () => CreateTrack(TrackType.EffectTrack));
-
-            // 创建攻击轨道菜单项
             menu.AddItem(new GUIContent("创建 Attack Track"), false, () => CreateTrack(TrackType.AttackTrack));
-
-            // 创建事件轨道菜单项
             menu.AddItem(new GUIContent("创建 Event Track"), false, () => CreateTrack(TrackType.EventTrack));
 
+            // 在按钮下方显示菜单
             var rect = button.worldBound;
             menu.DropDown(new Rect(rect.x, rect.yMax, 0, 0));
         }
 
-        // 创建轨道
+        /// <summary>
+        /// 创建指定类型的轨道
+        /// 创建轨道控制器和轨道内容，并订阅相关事件
+        /// </summary>
+        /// <param name="trackType">要创建的轨道类型</param>
         private void CreateTrack(TrackType trackType)
         {
-            // 默认轨道名称可用类型+序号
             string trackName = $"{trackType}";
+
+            // 创建轨道控制器和轨道内容
             var trackControl = new SkillEditorTrackControl(trackControlContent, trackType, trackName);
             var track = new SkillEditorTrack(allTrackContent, trackType, SkillEditorData.CalculateTimelineWidth(), SkillEditorData.CurrentSkillConfig);
+
+            // 创建轨道信息并添加到数据中
             var trackInfo = new SkillEditorTrackInfo(trackControl, track, trackType, trackName);
             SkillEditorData.tracks.Add(trackInfo);
 
-            // 重新订阅事件
+            // 订阅轨道事件
             SubscribeTrackEvents(trackControl);
-
-            // Debug.Log($"成功创建{trackType}轨道，当前轨道数量: {SkillEditorData.tracks.Count}");
         }
 
-        // 刷新事件
+        /// <summary>
+        /// 处理刷新请求事件
+        /// 清空现有轨道UI并重新创建所有轨道
+        /// </summary>
         public void OnRefreshRequested()
         {
             // 清空现有轨道UI
             trackControlContent?.Clear();
             allTrackContent?.Clear();
+
             // 重新创建所有轨道UI
             RefreshAllTracks();
         }
 
-        // 刷新所有轨道UI
+        /// <summary>
+        /// 刷新所有轨道UI
+        /// 重新创建所有轨道的UI元素，优先创建动画轨道
+        /// </summary>
         private void RefreshAllTracks()
         {
             if (SkillEditorData.tracks == null) return;
 
-            // 需要重新创建UI元素，而不是重用旧的
+            // 保存现有轨道信息并清空列表
             var tracksToRecreate = new List<SkillEditorTrackInfo>(SkillEditorData.tracks);
             SkillEditorData.tracks.Clear();
 
-            //TODO 优先创建动画轨道 - 实现轨道拖拽后可以考虑移除
-            foreach (var oldTrackInfo in tracksToRecreate.Where(t => t.TrackType == TrackType.AnimationTrack))
+            // 优先创建动画轨道
+            RecreateTracksByType(tracksToRecreate, TrackType.AnimationTrack);
+
+            // 创建其他类型轨道
+            RecreateTracksByType(tracksToRecreate, t => t != TrackType.AnimationTrack);
+        }
+
+        /// <summary>
+        /// 按类型重新创建轨道
+        /// </summary>
+        /// <param name="tracksToRecreate">需要重新创建的轨道列表</param>
+        /// <param name="targetType">目标轨道类型</param>
+        private void RecreateTracksByType(List<SkillEditorTrackInfo> tracksToRecreate, TrackType targetType)
+        {
+            foreach (var oldTrackInfo in tracksToRecreate.Where(t => t.TrackType == targetType))
             {
                 var newTrackControl = new SkillEditorTrackControl(trackControlContent, oldTrackInfo.TrackType, oldTrackInfo.TrackName);
                 var newTrack = new SkillEditorTrack(allTrackContent, oldTrackInfo.TrackType, SkillEditorData.CalculateTimelineWidth(), SkillEditorData.CurrentSkillConfig);
                 var newTrackInfo = new SkillEditorTrackInfo(newTrackControl, newTrack, oldTrackInfo.TrackType, oldTrackInfo.TrackName);
-                SkillEditorData.tracks.Add(newTrackInfo);
-                SubscribeTrackEvents(newTrackControl);
-            }
-            // 再创建其它类型轨道
-            foreach (var oldTrackInfo in tracksToRecreate.Where(t => t.TrackType != TrackType.AnimationTrack))
-            {
-                var newTrackControl = new SkillEditorTrackControl(trackControlContent, oldTrackInfo.TrackType, oldTrackInfo.TrackName);
-                var newTrack = new SkillEditorTrack(allTrackContent, oldTrackInfo.TrackType, SkillEditorData.CalculateTimelineWidth(), SkillEditorData.CurrentSkillConfig);
-                var newTrackInfo = new SkillEditorTrackInfo(newTrackControl, newTrack, oldTrackInfo.TrackType, oldTrackInfo.TrackName);
+
                 SkillEditorData.tracks.Add(newTrackInfo);
                 SubscribeTrackEvents(newTrackControl);
             }
         }
 
-        // 订阅轨道事件
+        /// <summary>
+        /// 按类型重新创建轨道（使用谓词筛选）
+        /// </summary>
+        /// <param name="tracksToRecreate">需要重新创建的轨道列表</param>
+        /// <param name="predicate">轨道类型筛选谓词</param>
+        private void RecreateTracksByType(List<SkillEditorTrackInfo> tracksToRecreate, Func<TrackType, bool> predicate)
+        {
+            foreach (var oldTrackInfo in tracksToRecreate.Where(t => predicate(t.TrackType)))
+            {
+                var newTrackControl = new SkillEditorTrackControl(trackControlContent, oldTrackInfo.TrackType, oldTrackInfo.TrackName);
+                var newTrack = new SkillEditorTrack(allTrackContent, oldTrackInfo.TrackType, SkillEditorData.CalculateTimelineWidth(), SkillEditorData.CurrentSkillConfig);
+                var newTrackInfo = new SkillEditorTrackInfo(newTrackControl, newTrack, oldTrackInfo.TrackType, oldTrackInfo.TrackName);
+
+                SkillEditorData.tracks.Add(newTrackInfo);
+                SubscribeTrackEvents(newTrackControl);
+            }
+        }
+
+        /// <summary>
+        /// 订阅轨道控制器事件
+        /// 包含删除轨道、激活状态变化、添加轨道项等事件处理
+        /// </summary>
+        /// <param name="trackControl">轨道控制器实例</param>
         private void SubscribeTrackEvents(SkillEditorTrackControl trackControl)
         {
-            trackControl.OnDeleteTrack += (ctrl) =>
-           {
-               var info = SkillEditorData.tracks.Find(t => t.Control == ctrl);
-               if (info != null)
-               {
-                   SkillEditorData.tracks.Remove(info);
-                   Debug.Log($"删除轨道: {info.TrackName}，剩余轨道数量: {SkillEditorData.tracks.Count}");
-                   skillEditorEvent?.TriggerRefreshRequested();
-               }
-           };
-            // 订阅激活/失活事件
-            trackControl.OnActiveStateChanged += (ctrl, isActive) =>
-            {
-                var info = SkillEditorData.tracks.Find(t => t.Control == ctrl);
-                if (info != null)
-                {
-                    info.IsActive = isActive;
-                    info.Control.RefreshState(isActive);
-                    Debug.Log($"轨道[{info.TrackName}]激活状态: {(isActive ? "激活" : "失活")}");
-                }
-            };
+            // 订阅轨道删除事件
+            trackControl.OnDeleteTrack += HandleTrackDelete;
+
+            // 订阅激活状态变化事件
+            trackControl.OnActiveStateChanged += HandleTrackActiveStateChanged;
+
             // 订阅添加轨道项事件
-            trackControl.OnAddTrackItem += (ctrl) =>
+            trackControl.OnAddTrackItem += HandleAddTrackItem;
+        }
+
+        /// <summary>
+        /// 处理轨道删除事件
+        /// 从数据中移除轨道并触发刷新
+        /// </summary>
+        /// <param name="ctrl">要删除的轨道控制器</param>
+        private void HandleTrackDelete(SkillEditorTrackControl ctrl)
+        {
+            var info = SkillEditorData.tracks.Find(t => t.Control == ctrl);
+            if (info != null)
             {
-                var info = SkillEditorData.tracks.Find(t => t.Control == ctrl);
-                if (info != null)
+                SkillEditorData.tracks.Remove(info);
+                Debug.Log($"删除轨道: {info.TrackName}，剩余轨道数量: {SkillEditorData.tracks.Count}");
+                skillEditorEvent?.TriggerRefreshRequested();
+            }
+        }
+
+        /// <summary>
+        /// 处理轨道激活状态变化事件
+        /// 更新轨道激活状态并刷新显示
+        /// </summary>
+        /// <param name="ctrl">轨道控制器</param>
+        /// <param name="isActive">新的激活状态</param>
+        private void HandleTrackActiveStateChanged(SkillEditorTrackControl ctrl, bool isActive)
+        {
+            var info = SkillEditorData.tracks.Find(t => t.Control == ctrl);
+            if (info != null)
+            {
+                info.IsActive = isActive;
+                info.Control.RefreshState(isActive);
+                Debug.Log($"轨道[{info.TrackName}]激活状态: {(isActive ? "激活" : "失活")}");
+            }
+        }
+
+        /// <summary>
+        /// 处理添加轨道项事件
+        /// 根据轨道类型添加相应的轨道项
+        /// </summary>
+        /// <param name="ctrl">轨道控制器</param>
+        private void HandleAddTrackItem(SkillEditorTrackControl ctrl)
+        {
+            var info = SkillEditorData.tracks.Find(t => t.Control == ctrl);
+            if (info != null)
+            {
+                if (info.TrackType == TrackType.EventTrack)
                 {
-                    if (info.TrackType == TrackType.EventTrack)
-                    {
-                        info.Track.AddTrackItem("Event");
-                    }
-                    else if (info.TrackType == TrackType.AttackTrack)
-                    {
-                        info.Track.AddTrackItem("Attack");
-                    }
+                    info.Track.AddTrackItem("Event");
                 }
-            };
+                else if (info.TrackType == TrackType.AttackTrack)
+                {
+                    info.Track.AddTrackItem("Attack");
+                }
+            }
         }
 
         #endregion
 
         #region 辅助方法
+
+        /// <summary>
+        /// 创建并添加带有指定样式类的UI元素
+        /// </summary>
+        /// <param name="parent">父容器</param>
+        /// <param name="className">要应用的CSS样式类名</param>
+        /// <returns>创建的UI元素</returns>
         private VisualElement CreateAndAddElement(VisualElement parent, string className)
         {
             var element = new VisualElement();
@@ -491,6 +734,12 @@ namespace SkillEditor
             return element;
         }
 
+        /// <summary>
+        /// 创建简单的滚动视图
+        /// </summary>
+        /// <param name="parent">父容器</param>
+        /// <param name="className">滚动视图样式类名</param>
+        /// <returns>创建的滚动视图</returns>
         private ScrollView CreateScrollView(VisualElement parent, string className)
         {
             var scrollView = new ScrollView();
@@ -500,12 +749,23 @@ namespace SkillEditor
             return scrollView;
         }
 
+        /// <summary>
+        /// 设置滚动视图的滚动条可见性
+        /// </summary>
+        /// <param name="scrollView">要设置的滚动视图</param>
+        /// <param name="horizontal">水平滚动条是否可见</param>
+        /// <param name="vertical">垂直滚动条是否可见</param>
         private void SetScrollViewVisibility(ScrollView scrollView, bool horizontal, bool vertical)
         {
             scrollView.horizontalScrollerVisibility = horizontal ? ScrollerVisibility.Auto : ScrollerVisibility.Hidden;
             scrollView.verticalScrollerVisibility = vertical ? ScrollerVisibility.Auto : ScrollerVisibility.Hidden;
         }
 
+        /// <summary>
+        /// 强制更新滚动视图显示
+        /// 通过临时切换滚动条可见性来刷新滚动视图的布局
+        /// </summary>
+        /// <param name="scrollView">要更新的滚动视图</param>
         private void ForceUpdateScrollView(ScrollView scrollView)
         {
             scrollView.MarkDirtyRepaint();
@@ -528,9 +788,18 @@ namespace SkillEditor
                 }
             };
         }
+
         #endregion
 
         #region 通用UI创建方法
+
+        /// <summary>
+        /// 创建简单按钮
+        /// </summary>
+        /// <param name="text">按钮显示文本</param>
+        /// <param name="tooltip">按钮提示文本</param>
+        /// <param name="onClick">点击事件处理</param>
+        /// <returns>创建的按钮</returns>
         public Button CreateButton(string text, string tooltip = "", Action onClick = null)
         {
             var button = new Button();
@@ -540,6 +809,15 @@ namespace SkillEditor
             return button;
         }
 
+        /// <summary>
+        /// 创建带容器的按钮
+        /// 自动为按钮添加包装容器和样式
+        /// </summary>
+        /// <param name="parent">父容器</param>
+        /// <param name="text">按钮显示文本</param>
+        /// <param name="tooltip">按钮提示文本</param>
+        /// <param name="onClick">点击事件处理</param>
+        /// <returns>创建的按钮</returns>
         public Button CreateButton(VisualElement parent, string text, string tooltip = "", Action onClick = null)
         {
             var controlContent = new VisualElement();
@@ -553,6 +831,15 @@ namespace SkillEditor
             return button;
         }
 
+        /// <summary>
+        /// 创建图标按钮
+        /// 使用指定图标路径创建带图标的按钮
+        /// </summary>
+        /// <param name="parent">父容器</param>
+        /// <param name="iconPath">图标资源路径</param>
+        /// <param name="tooltip">按钮提示文本</param>
+        /// <param name="onClick">点击事件处理</param>
+        /// <returns>创建的图标按钮</returns>
         public Button CreateIconButton(VisualElement parent, string iconPath, string tooltip = "", Action onClick = null)
         {
             var button = new Button();
@@ -565,6 +852,16 @@ namespace SkillEditor
             return button;
         }
 
+        /// <summary>
+        /// 创建对象字段
+        /// 用于选择Unity对象的输入字段
+        /// </summary>
+        /// <param name="parent">父容器</param>
+        /// <param name="labelText">标签文本</param>
+        /// <param name="objectType">对象类型</param>
+        /// <param name="currentValue">当前值</param>
+        /// <param name="onValueChanged">值变化事件处理</param>
+        /// <returns>创建的对象字段</returns>
         public ObjectField CreateObjectField(VisualElement parent, string labelText, Type objectType, UnityEngine.Object currentValue = null, Action<UnityEngine.Object> onValueChanged = null)
         {
             var container = CreateLabeledContainer(parent, labelText);
@@ -583,6 +880,14 @@ namespace SkillEditor
             return objectField;
         }
 
+        /// <summary>
+        /// 创建文本输入字段
+        /// </summary>
+        /// <param name="parent">父容器</param>
+        /// <param name="labelText">标签文本</param>
+        /// <param name="currentValue">当前值</param>
+        /// <param name="onValueChanged">值变化事件处理</param>
+        /// <returns>创建的文本输入字段</returns>
         public TextField CreateInputField(VisualElement parent, string labelText, string currentValue = "", Action<string> onValueChanged = null)
         {
             var container = CreateLabeledContainer(parent, labelText);
@@ -592,6 +897,7 @@ namespace SkillEditor
             inputField.value = currentValue;
             inputField.tooltip = labelText;
             inputField.style.fontSize = 10;
+
             if (onValueChanged != null)
             {
                 inputField.RegisterValueChangedCallback(evt => onValueChanged(evt.newValue));
@@ -601,6 +907,15 @@ namespace SkillEditor
             return inputField;
         }
 
+        /// <summary>
+        /// 创建多行文本输入字段
+        /// 用于输入较长的文本内容，如描述信息
+        /// </summary>
+        /// <param name="parent">父容器</param>
+        /// <param name="labelText">标签文本</param>
+        /// <param name="currentValue">当前值</param>
+        /// <param name="onValueChanged">值变化事件处理</param>
+        /// <returns>创建的多行文本输入字段</returns>
         public TextField CreateMultilineInputField(VisualElement parent, string labelText, string currentValue = "", Action<string> onValueChanged = null)
         {
             var inputField = CreateInputField(parent, labelText, currentValue, onValueChanged);
@@ -611,6 +926,14 @@ namespace SkillEditor
             return inputField;
         }
 
+        /// <summary>
+        /// 创建整数输入字段
+        /// 专门用于输入整数值，如帧数
+        /// </summary>
+        /// <param name="tooltip">提示文本</param>
+        /// <param name="currentValue">当前值</param>
+        /// <param name="onValueChanged">值变化事件处理</param>
+        /// <returns>创建的整数输入字段</returns>
         public IntegerField CreateIntegerField(string tooltip, int currentValue, Action<int> onValueChanged = null)
         {
             var integerField = new IntegerField();
@@ -626,18 +949,28 @@ namespace SkillEditor
             return integerField;
         }
 
+        /// <summary>
+        /// 创建图片选择器
+        /// 用于选择和显示技能图标等图片资源
+        /// </summary>
+        /// <param name="parent">父容器</param>
+        /// <param name="labelText">标签文本</param>
         public void CreateImageSelector(VisualElement parent, string labelText)
         {
             var container = CreateLabeledContainer(parent, labelText);
 
+            // 创建图片显示区域
             Image skillIcon = new Image();
             skillIcon.AddToClassList("SkillIcon");
             container.Add(skillIcon);
+
             // 如果当前技能配置有图标，显示它
             if (SkillEditorData.CurrentSkillConfig?.skillIcon != null)
             {
                 skillIcon.image = SkillEditorData.CurrentSkillConfig.skillIcon.texture;
             }
+
+            // 创建选择按钮
             var selectButton = new Button();
             selectButton.AddToClassList("SelectIcon");
             selectButton.tooltip = "选择技能Icon";
@@ -645,7 +978,54 @@ namespace SkillEditor
             skillIcon.Add(selectButton);
         }
 
-        // 打开图片选择器
+        /// <summary>
+        /// 创建带标签和内容的容器
+        /// 用于创建标准的标签-内容布局结构
+        /// </summary>
+        /// <param name="parent">父容器</param>
+        /// <param name="labelText">标签文本</param>
+        /// <returns>创建的内容容器</returns>
+        private VisualElement CreateLabeledContainer(VisualElement parent, string labelText)
+        {
+            var container = new VisualElement();
+            container.AddToClassList("LabeledContainerContent");
+
+            var label = new Label(labelText);
+            label.AddToClassList("LabeledContainerTitle");
+            container.Add(label);
+
+            parent.Add(container);
+            return container;
+        }
+
+        /// <summary>
+        /// 创建滚动视图及其内容容器
+        /// 返回滚动视图和内容容器的元组
+        /// </summary>
+        /// <param name="parent">父容器</param>
+        /// <param name="scrollViewClass">滚动视图样式类</param>
+        /// <param name="contentClass">内容容器样式类</param>
+        /// <returns>滚动视图和内容容器的元组</returns>
+        public (ScrollView scrollView, VisualElement content) CreateScrollView(VisualElement parent, string scrollViewClass, string contentClass)
+        {
+            var scrollView = new ScrollView();
+            scrollView.AddToClassList(scrollViewClass);
+
+            var content = new VisualElement();
+            content.AddToClassList(contentClass);
+            scrollView.Add(content);
+
+            parent.Add(scrollView);
+            return (scrollView, content);
+        }
+
+        #region 特殊功能UI创建
+
+        /// <summary>
+        /// 打开图片选择器对话框
+        /// 允许用户选择项目中的图片资源作为技能图标
+        /// </summary>
+        /// <param name="targetImage">目标图片显示元素</param>
         private void OpenImageSelector(Image targetImage)
         {
             // 使用EditorUtility.OpenFilePanel打开文件选择对话框
@@ -687,7 +1067,12 @@ namespace SkillEditor
             }
         }
 
-        // 获取相对路径
+        /// <summary>
+        /// 获取文件的相对Assets路径
+        /// 将绝对路径转换为Unity可识别的Assets相对路径
+        /// </summary>
+        /// <param name="absolutePath">文件的绝对路径</param>
+        /// <returns>相对于Assets的路径，如果文件不在Assets文件夹内则返回null</returns>
         private string GetRelativeAssetPath(string absolutePath)
         {
             // 获取项目Assets文件夹的绝对路径
@@ -704,6 +1089,11 @@ namespace SkillEditor
             return null;
         }
 
+        /// <summary>
+        /// 创建添加配置按钮
+        /// 支持内联编辑模式的配置文件创建按钮
+        /// </summary>
+        /// <param name="parent">父容器</param>
         private void CreateAddConfigButton(VisualElement parent)
         {
             var controlContent = new VisualElement();
@@ -719,23 +1109,31 @@ namespace SkillEditor
             parent.Add(controlContent);
         }
 
+        /// <summary>
+        /// 处理添加配置按钮点击事件
+        /// 将按钮转换为内联编辑模式，包含输入框和确认/取消按钮
+        /// </summary>
+        /// <param name="addButton">添加配置按钮</param>
         private void HandleAddConfigClick(Button addButton)
         {
             addButton.text = "";
             if (addButton.Q<TextField>() != null) return;
 
+            // 创建配置名称输入框
             var configName = new TextField();
             configName.AddToClassList("AddConfigInput");
             configName.tooltip = "请输入SkillConfig名称";
             configName.value = "";
             addButton.Add(configName);
 
+            // 创建确认按钮
             var confirmButton = new Button();
             confirmButton.text = "+";
             confirmButton.style.fontSize = 20;
             confirmButton.AddToClassList("AddConfigButton");
             addButton.Add(confirmButton);
 
+            // 创建取消按钮
             var cancelButton = new Button();
             cancelButton.text = "X";
             cancelButton.AddToClassList("AddConfigButton");
@@ -775,6 +1173,14 @@ namespace SkillEditor
             configName.Focus();
         }
 
+        /// <summary>
+        /// 重置添加配置按钮状态
+        /// 清除内联编辑元素并恢复按钮原始状态
+        /// </summary>
+        /// <param name="addButton">添加配置按钮</param>
+        /// <param name="configName">配置名称输入框</param>
+        /// <param name="confirmButton">确认按钮</param>
+        /// <param name="cancelButton">取消按钮</param>
         private void ResetAddConfigButton(Button addButton, TextField configName, Button confirmButton, Button cancelButton)
         {
             addButton.Remove(configName);
@@ -783,32 +1189,7 @@ namespace SkillEditor
             addButton.text = "创建配置文件";
         }
 
-        public (ScrollView scrollView, VisualElement content) CreateScrollView(VisualElement parent, string scrollViewClass, string contentClass)
-        {
-            var scrollView = new ScrollView();
-            scrollView.AddToClassList(scrollViewClass);
-
-            var content = new VisualElement();
-            content.AddToClassList(contentClass);
-            scrollView.Add(content);
-
-            parent.Add(scrollView);
-            return (scrollView, content);
-        }
-
-        private VisualElement CreateLabeledContainer(VisualElement parent, string labelText)
-        {
-            var container = new VisualElement();
-            container.AddToClassList("LabeledContainerContent");
-
-            var label = new Label(labelText);
-            label.AddToClassList("LabeledContainerTitle");
-            container.Add(label);
-
-            parent.Add(container);
-            return container;
-        }
         #endregion
     }
+    #endregion
 }
-

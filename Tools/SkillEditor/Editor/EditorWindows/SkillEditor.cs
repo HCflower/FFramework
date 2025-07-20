@@ -6,32 +6,48 @@ namespace SkillEditor
 {
     /// <summary>
     /// 技能编辑器 - 重构后的主类
+    /// 提供技能时间轴编辑功能，包括轨道管理、时间线控制和UI交互
     /// </summary>
     public class SkillEditor : EditorWindow
     {
         #region 管理器
+        /// <summary>UI构建器 - 负责创建和刷新编辑器界面</summary>
         private SkillEditorUIBuilder uiBuilder;
+        /// <summary>时间轴管理器 - 处理时间轴显示和帧控制</summary>
         private SkillEditorTimeline skillEditorTimeline;
+        /// <summary>滚动同步管理器 - 协调各滚动视图的同步</summary>
         private SkillEditorScrollSync skillEditorScrollSync;
+        /// <summary>事件系统 - 处理编辑器内部事件通信</summary>
         private SkillEditorEvent skillEditorEvent;
 
+        /// <summary>当前选中的轨道项</summary>
         public static SkillEditorTrackItem CurrentTrackItem;
         #endregion
 
         #region GUI元素
+        /// <summary>主内容容器</summary>
         private VisualElement mainContent;
+        /// <summary>全局控制区域</summary>
         private VisualElement globalControlContent;
+        /// <summary>所有轨道容器</summary>
         private VisualElement allTrackContent;
+        /// <summary>轨道控制区域</summary>
         private VisualElement trackControlArea;
+        /// <summary>轨道控制滚动视图</summary>
         private ScrollView trackControlScrollView;
+        /// <summary>轨道控制内容</summary>
         private VisualElement trackControlContent;
+        /// <summary>轨道显示区域</summary>
         private VisualElement trackArea;
+        /// <summary>轨道滚动视图</summary>
         private ScrollView trackScrollView;
+        /// <summary>轨道内容容器</summary>
         private VisualElement trackContent;
         #endregion
 
         /// <summary>
-        /// 技能编辑窗口
+        /// 创建技能编辑器窗口的菜单项
+        /// 可通过快捷键 Shift+S 快速打开
         /// </summary>
         [MenuItem("FFramework/⚔️SkillEditor #S", priority = 5)]
         public static void SkillEditorCreateWindow()
@@ -42,18 +58,30 @@ namespace SkillEditor
             window.Show();
         }
 
+        /// <summary>
+        /// 编辑器窗口启用时的初始化
+        /// 依次初始化管理器和UI界面
+        /// </summary>
         private void OnEnable()
         {
             InitializeManagers();
             InitializeUI();
         }
 
+        /// <summary>
+        /// 编辑器窗口禁用时的清理工作
+        /// 保存数据并清理事件监听
+        /// </summary>
         private void OnDisable()
         {
             SkillEditorData.SaveData();
             skillEditorEvent?.Cleanup();
         }
 
+        /// <summary>
+        /// 初始化各个管理器实例
+        /// 创建管理器对象并注册事件监听
+        /// </summary>
         private void InitializeManagers()
         {
             // SkillEditorData为静态类，无需实例化
@@ -62,14 +90,18 @@ namespace SkillEditor
             uiBuilder = new SkillEditorUIBuilder(skillEditorEvent);
             skillEditorScrollSync = new SkillEditorScrollSync();
 
-            // 注册事件
+            // 注册事件监听
             skillEditorEvent.OnCurrentFrameChanged += OnCurrentFrameChanged;
             skillEditorEvent.OnMaxFrameChanged += OnMaxFrameChanged;
             skillEditorEvent.OnGlobalControlToggled += OnGlobalControlToggled;
             skillEditorEvent.OnRefreshRequested += RefreshView;
-            skillEditorEvent.OnTimelineZoomChanged += OnTimelineZoomChanged; // 添加缩放事件处理
+            skillEditorEvent.OnTimelineZoomChanged += OnTimelineZoomChanged;
         }
 
+        /// <summary>
+        /// 初始化UI界面
+        /// 清空根元素，加载样式表，创建主体结构
+        /// </summary>
         private void InitializeUI()
         {
             rootVisualElement.Clear();
@@ -78,44 +110,49 @@ namespace SkillEditor
             RefreshView();
         }
 
+        /// <summary>
+        /// 时间轴缩放变化时的处理
+        /// 刷新时间轴显示并更新轨道内容宽度，同步滚动条状态
+        /// </summary>
         private void OnTimelineZoomChanged()
         {
-            // 只刷新时间轴，内部会同步轨道内容宽度
+            // 刷新时间轴，内部会同步轨道内容宽度
             skillEditorTimeline.RefreshTimeline();
             UpdateTrackContentWidth();
 
             // 延迟刷新滚动条状态，确保布局计算完成
-            EditorApplication.delayCall += () =>
-            {
-                ForceRefreshScrollBar();
-            };
+            EditorApplication.delayCall += ForceRefreshScrollBar;
         }
 
+        /// <summary>
+        /// 更新轨道内容区域的宽度
+        /// 根据时间轴缩放重新计算并应用宽度，同时更新所有轨道和轨道项
+        /// </summary>
         private void UpdateTrackContentWidth()
         {
-            if (trackContent != null)
+            if (trackContent == null) return;
+
+            float newWidth = SkillEditorData.CalculateTimelineWidth();
+            trackContent.style.width = newWidth;
+
+            // 更新所有轨道元素的宽度
+            uiBuilder.RefreshTrackContent(trackContent);
+
+            // 同步所有轨道宽度和轨道项位置及宽度
+            foreach (var item in SkillEditorData.tracks)
             {
-                float newWidth = SkillEditorData.CalculateTimelineWidth();
-                trackContent.style.width = newWidth;
-
-                // 更新所有轨道元素的宽度
-                uiBuilder.RefreshTrackContent(trackContent);
-
-                // 计算轨道项的默认宽度（比如每个轨道项占用5帧的宽度）
-                float trackItemWidth = SkillEditorData.FrameUnitWidth * 5f; // 可以根据需要调整
-
-                // 同步所有轨道宽度和轨道项宽度
-                foreach (var item in SkillEditorData.tracks)
+                if (item.Track != null)
                 {
-                    if (item.Track != null)
-                    {
-                        item.Track.SetWidth(newWidth);
-                        item.Track.UpdateTrackItemsWidth();
-                    }
+                    item.Track.SetWidth(newWidth);
+                    item.Track.RefreshTrackItems(); // 使用新的方法刷新轨道项位置和宽度
                 }
             }
         }
 
+        /// <summary>
+        /// 创建编辑器主体结构
+        /// 构建主内容区、全局控制区和轨道区域
+        /// </summary>
         private void CreateMainStructure()
         {
             mainContent = uiBuilder.CreateMainContent(rootVisualElement);
@@ -125,11 +162,15 @@ namespace SkillEditor
             CreateTrackStructure();
         }
 
+        /// <summary>
+        /// 创建轨道结构
+        /// 构建轨道控制区、轨道显示区，初始化时间轴和滚动同步
+        /// </summary>
         private void CreateTrackStructure()
         {
             var trackElements = uiBuilder.CreateTrackStructure(allTrackContent);
 
-            // 修正解包字段名为TrackStructureResult的属性名（首字母大写）
+            // 获取轨道结构元素
             trackControlArea = trackElements.ControlArea;
             trackControlScrollView = trackElements.ControlScrollView;
             trackControlContent = trackElements.ControlContent;
@@ -137,7 +178,7 @@ namespace SkillEditor
             trackScrollView = trackElements.TrackScrollView;
             trackContent = trackElements.TrackContent;
 
-            // 设置trackScrollView水平滚动条自动显示/隐藏
+            // 设置水平滚动条自动显示/隐藏
             if (trackScrollView != null)
             {
                 trackScrollView.horizontalScrollerVisibility = ScrollerVisibility.Auto;
@@ -145,22 +186,20 @@ namespace SkillEditor
 
             // 初始化时间轴
             skillEditorTimeline.InitializeTimeline(trackArea);
-
-            // 设置轨道内容引用，以便时间轴缩放时同步更新
             skillEditorTimeline.SetTrackContent(trackContent);
 
-            // 初始同步轨道内容宽度和所有轨道宽度
+            // 初始同步轨道内容宽度
             UpdateTrackContentWidth();
 
-            // 设置滚动同步
+            // 设置滚动同步和X轴滚动回调
             skillEditorScrollSync.SetupScrollSync(trackControlScrollView, trackScrollView, skillEditorTimeline);
-            // 注册X轴滚动回调，实现时间轴刻度和帧指示器同步偏移
-            skillEditorScrollSync.OnTrackScrollXChanged = (offsetX) =>
-            {
-                skillEditorTimeline.SetTimelineOffset(offsetX);
-            };
+            skillEditorScrollSync.OnTrackScrollXChanged = skillEditorTimeline.SetTimelineOffset;
         }
 
+        /// <summary>
+        /// 刷新整个编辑器视图
+        /// 更新全局控制区和时间轴显示
+        /// </summary>
         private void RefreshView()
         {
             uiBuilder.RefreshGlobalControl(globalControlContent);
@@ -169,14 +208,21 @@ namespace SkillEditor
 
         #region 事件处理
 
+        /// <summary>
+        /// 当前帧变化时的处理
+        /// 更新时间轴的帧指示器和帧输入框显示
+        /// </summary>
+        /// <param name="newFrame">新的帧数</param>
         private void OnCurrentFrameChanged(int newFrame)
         {
             skillEditorTimeline.UpdateCurrentFrame(newFrame);
-
-            // 更新帧输入框显示
             UpdateFrameInputDisplay(newFrame);
         }
 
+        /// <summary>
+        /// 更新时间轴和轨道内容
+        /// 刷新时间轴显示并重新计算轨道内容宽度
+        /// </summary>
         private void UpdateTimelineAndTrackContent()
         {
             skillEditorTimeline.RefreshTimeline();
@@ -193,6 +239,11 @@ namespace SkillEditor
             }
         }
 
+        /// <summary>
+        /// 检查并强制更新滚动条状态
+        /// 根据内容宽度和可用宽度决定是否显示水平滚动条
+        /// </summary>
+        /// <param name="contentWidth">内容宽度</param>
         private void CheckAndForceScrollBar(float contentWidth)
         {
             if (trackScrollView == null) return;
@@ -206,19 +257,18 @@ namespace SkillEditor
                 availableWidth = allTrackContent?.resolvedStyle.width ?? 800f;
             }
 
-            // 直接比较内容宽度和可用宽度
-            if (contentWidth > availableWidth)
-            {
-                trackScrollView.horizontalScrollerVisibility = ScrollerVisibility.Auto;
-            }
-            else
-            {
-                trackScrollView.horizontalScrollerVisibility = ScrollerVisibility.Hidden;
-            }
+            // 根据内容宽度决定滚动条显示状态
+            trackScrollView.horizontalScrollerVisibility = contentWidth > availableWidth
+                ? ScrollerVisibility.Auto
+                : ScrollerVisibility.Hidden;
 
             trackScrollView.MarkDirtyRepaint();
         }
 
+        /// <summary>
+        /// 强制刷新滚动条状态
+        /// 延迟执行确保布局计算完成后更新滚动条
+        /// </summary>
         private void ForceRefreshScrollBar()
         {
             if (trackScrollView == null || trackContent == null) return;
@@ -233,52 +283,55 @@ namespace SkillEditor
                     float contentWidth = trackContent.resolvedStyle.width;
                     float availableWidth = trackArea?.resolvedStyle.width ?? 800f;
 
-                    if (contentWidth > availableWidth + 1f)
-                    {
-                        trackScrollView.horizontalScrollerVisibility = ScrollerVisibility.Auto;
-                    }
-                    else
-                    {
-                        trackScrollView.horizontalScrollerVisibility = ScrollerVisibility.Hidden;
-                    }
+                    trackScrollView.horizontalScrollerVisibility = contentWidth > availableWidth + 1f
+                        ? ScrollerVisibility.Auto
+                        : ScrollerVisibility.Hidden;
 
                     trackScrollView.MarkDirtyRepaint();
                 };
             };
         }
 
+        /// <summary>
+        /// 全局控制区显示状态切换处理
+        /// 更新数据状态并刷新视图
+        /// </summary>
+        /// <param name="isShow">是否显示全局控制区</param>
         private void OnGlobalControlToggled(bool isShow)
         {
             SkillEditorData.IsGlobalControlShow = isShow;
             RefreshView();
         }
 
+        /// <summary>
+        /// 更新帧输入框的显示值
+        /// 同步当前帧到UI输入框，不触发值变化事件
+        /// </summary>
+        /// <param name="frame">要显示的帧数</param>
         private void UpdateFrameInputDisplay(int frame)
         {
-            // 找到当前帧输入框并更新其显示值
             var currentFrameInput = rootVisualElement.Q<IntegerField>("current-frame-input");
-            if (currentFrameInput != null)
-            {
-                currentFrameInput.SetValueWithoutNotify(frame);
-            }
+            currentFrameInput?.SetValueWithoutNotify(frame);
         }
 
+        /// <summary>
+        /// 最大帧数变化时的处理
+        /// 更新时间轴管理器并延迟刷新相关内容和滚动条
+        /// </summary>
+        /// <param name="newMaxFrame">新的最大帧数</param>
         private void OnMaxFrameChanged(int newMaxFrame)
         {
-            // 先更新时间轴管理器
+            // 更新时间轴管理器
             skillEditorTimeline.UpdateMaxFrame(newMaxFrame);
 
-            // 延迟更新轨道内容和宽度，确保时间轴更新完成
+            // 延迟更新确保时间轴更新完成
             EditorApplication.delayCall += () =>
             {
                 UpdateTimelineAndTrackContent();
-                UpdateTrackContentWidth(); // 这里会同时更新轨道项宽度
+                UpdateTrackContentWidth();
 
-                // 额外延迟刷新滚动条，确保内容宽度更新完成
-                EditorApplication.delayCall += () =>
-                {
-                    ForceRefreshScrollBar();
-                };
+                // 额外延迟刷新滚动条
+                EditorApplication.delayCall += ForceRefreshScrollBar;
             };
         }
 

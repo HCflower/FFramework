@@ -2,7 +2,6 @@ using UnityEngine;
 
 namespace SkillEditor
 {
-    [CreateAssetMenu(menuName = "SkillEditor/AnimationTrackItemData")]
     public class AnimationTrackItemData : ScriptableObject
     {
         public string trackName;
