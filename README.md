@@ -2,7 +2,7 @@
 
 FFramework 是一个用于游戏开发的 C# 框架，旨在提高开发效率、简化项目结构，并支持模块化扩展。
 本框架适合中小型 Unity 项目，也可根据实际需求进行定制和扩展。
-参考->QFramework [https://github.com/liangxiegame/QFramework]。
+参考->QFramework https://github.com/liangxiegame/QFramework
 
 ## 一、架构规范
 
