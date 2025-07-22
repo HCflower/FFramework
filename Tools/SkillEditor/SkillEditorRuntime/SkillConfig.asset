@@ -26,65 +26,30 @@ MonoBehaviour:
       isEnabled: 1
       trackIndex: 0
       animationClips:
-      - clipName: 
-        startFrame: 0
-        durationFrame: 0
-        clip: {fileID: 0}
-        playSpeed: 0
-        loop: 0
+      - clipName: Jump_Idle
+        startFrame: 3
+        durationFrame: 32
+        clip: {fileID: 7400000, guid: 3815f3daf7d9638429e1dd2ffc3866e9, type: 2}
+        playSpeed: 1
+        isLoop: 0
         applyRootMotion: 0
     audioTracks:
     - trackName: 
       isEnabled: 0
       trackIndex: 0
-      audioClips:
-      - clipName: 
-        startFrame: 0
-        durationFrame: 0
-        clip: {fileID: 0}
-        volume: 0
-        pitch: 0
-        loop: 0
+      audioClips: []
     effectTracks:
     - trackName: 
       isEnabled: 0
       trackIndex: 0
-      effectClips:
-      - clipName: 
-        startFrame: 0
-        durationFrame: 0
-        effectPrefab: {fileID: 0}
-        position: {x: 0, y: 0, z: 0}
-        rotation: {x: 0, y: 0, z: 0}
-        scale: {x: 0, y: 0, z: 0}
+      effectClips: []
     injuryDetectionTracks:
     - trackName: 
       isEnabled: 0
       trackIndex: 0
-      injuryDetectionClips:
-      - clipName: 
-        startFrame: 0
-        durationFrame: 0
-        targetLayers:
-          serializedVersion: 2
-          m_Bits: 0
-        isMultiInjuryDetection: 0
-        multiInjuryDetectionInterval: 0
-        colliderType: 0
-        innerCircleRadius: 0
-        outerCircleRadius: 0
-        sectorAngle: 0
-        sectorThickness: 0
-        position: {x: 0, y: 0, z: 0}
-        rotation: {x: 0, y: 0, z: 0}
-        scale: {x: 0, y: 0, z: 0}
+      injuryDetectionClips: []
     eventTracks:
     - trackName: 
       isEnabled: 0
       trackIndex: 0
-      eventClips:
-      - clipName: 
-        startFrame: 0
-        durationFrame: 0
-        eventType: 
-        eventParameters: 
+      eventClips: []

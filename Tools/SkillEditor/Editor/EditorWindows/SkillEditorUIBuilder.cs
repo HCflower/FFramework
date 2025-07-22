@@ -563,6 +563,7 @@ namespace SkillEditor
         private void CreateTrack(TrackType trackType)
         {
             string trackName = $"{trackType}";
+            Debug.Log($"CreateTrack: 创建轨道 {trackType}");
 
             // 创建轨道控制器和轨道内容
             var trackControl = new SkillEditorTrackControl(trackControlContent, trackType, trackName);
@@ -571,10 +572,292 @@ namespace SkillEditor
             // 创建轨道信息并添加到数据中
             var trackInfo = new SkillEditorTrackInfo(trackControl, track, trackType, trackName);
             SkillEditorData.tracks.Add(trackInfo);
+            Debug.Log($"CreateTrack: 轨道 {trackType} 创建成功，当前轨道总数: {SkillEditorData.tracks.Count}");
 
             // 订阅轨道事件
             SubscribeTrackEvents(trackControl);
+
+            // 如果配置文件中有对应轨道的数据，自动创建轨道项
+            Debug.Log($"CreateTrack: 准备为轨道 {trackType} 创建轨道项");
+            CreateTrackItemsFromConfig(track, trackType);
         }
+
+        /// <summary>
+        /// 根据技能配置自动创建所有包含数据的轨道
+        /// </summary>
+        public void CreateTracksFromConfig()
+        {
+            var skillConfig = SkillEditorData.CurrentSkillConfig;
+            if (skillConfig?.trackContainer == null)
+            {
+                Debug.Log("CreateTracksFromConfig: 没有技能配置或轨道容器");
+                return;
+            }
+
+            Debug.Log($"CreateTracksFromConfig: 开始检查配置 {skillConfig.skillName}");
+
+            // 检查动画轨道
+            if (HasAnimationTrackData(skillConfig) && !HasTrackType(TrackType.AnimationTrack))
+            {
+                Debug.Log("CreateTracksFromConfig: 创建动画轨道");
+                CreateTrack(TrackType.AnimationTrack);
+            }
+
+            // 检查音频轨道
+            if (HasAudioTrackData(skillConfig) && !HasTrackType(TrackType.AudioTrack))
+            {
+                CreateTrack(TrackType.AudioTrack);
+            }
+
+            // 检查特效轨道
+            if (HasEffectTrackData(skillConfig) && !HasTrackType(TrackType.EffectTrack))
+            {
+                CreateTrack(TrackType.EffectTrack);
+            }
+
+            // 检查伤害检测轨道
+            if (HasInjuryDetectionTrackData(skillConfig) && !HasTrackType(TrackType.AttackTrack))
+            {
+                CreateTrack(TrackType.AttackTrack);
+            }
+
+            // 检查事件轨道
+            if (HasEventTrackData(skillConfig) && !HasTrackType(TrackType.EventTrack))
+            {
+                CreateTrack(TrackType.EventTrack);
+            }
+        }
+
+        /// <summary>
+        /// 检查是否已存在指定类型的轨道
+        /// </summary>
+        /// <param name="trackType">轨道类型</param>
+        /// <returns>如果存在返回true，否则返回false</returns>
+        private bool HasTrackType(TrackType trackType)
+        {
+            return SkillEditorData.tracks.Any(t => t.TrackType == trackType);
+        }
+
+        /// <summary>
+        /// 根据配置数据为指定轨道创建轨道项
+        /// </summary>
+        /// <param name="track">轨道实例</param>
+        /// <param name="trackType">轨道类型</param>
+        private void CreateTrackItemsFromConfig(SkillEditorTrack track, TrackType trackType)
+        {
+            var skillConfig = SkillEditorData.CurrentSkillConfig;
+            if (skillConfig?.trackContainer == null)
+            {
+                Debug.Log($"CreateTrackItemsFromConfig: 没有技能配置或轨道容器，轨道类型: {trackType}");
+                return;
+            }
+
+            Debug.Log($"CreateTrackItemsFromConfig: 为轨道类型 {trackType} 创建轨道项");
+
+            switch (trackType)
+            {
+                case TrackType.AnimationTrack:
+                    CreateAnimationTrackItemsFromConfig(track, skillConfig);
+                    break;
+                case TrackType.AudioTrack:
+                    CreateAudioTrackItemsFromConfig(track, skillConfig);
+                    break;
+                case TrackType.EffectTrack:
+                    CreateEffectTrackItemsFromConfig(track, skillConfig);
+                    break;
+                case TrackType.AttackTrack:
+                    CreateInjuryDetectionTrackItemsFromConfig(track, skillConfig);
+                    break;
+                case TrackType.EventTrack:
+                    CreateEventTrackItemsFromConfig(track, skillConfig);
+                    break;
+            }
+        }
+
+        #region 轨道数据检查方法
+
+        /// <summary>
+        /// 检查动画轨道是否有数据
+        /// </summary>
+        private bool HasAnimationTrackData(SkillConfig skillConfig)
+        {
+            bool hasData = skillConfig.trackContainer.animationTrack != null &&
+                   skillConfig.trackContainer.animationTrack.animationClips != null &&
+                   skillConfig.trackContainer.animationTrack.animationClips.Count > 0;
+
+            Debug.Log($"HasAnimationTrackData: {hasData}");
+            if (hasData)
+            {
+                Debug.Log($"HasAnimationTrackData: 找到 {skillConfig.trackContainer.animationTrack.animationClips.Count} 个动画片段");
+            }
+
+            return hasData;
+        }
+
+        /// <summary>
+        /// 检查音频轨道是否有数据
+        /// </summary>
+        private bool HasAudioTrackData(SkillConfig skillConfig)
+        {
+            return skillConfig.trackContainer.audioTracks != null &&
+                   skillConfig.trackContainer.audioTracks.Count > 0 &&
+                   skillConfig.trackContainer.audioTracks.Any(track => track.audioClips != null && track.audioClips.Count > 0);
+        }
+
+        /// <summary>
+        /// 检查特效轨道是否有数据
+        /// </summary>
+        private bool HasEffectTrackData(SkillConfig skillConfig)
+        {
+            return skillConfig.trackContainer.effectTracks != null &&
+                   skillConfig.trackContainer.effectTracks.Count > 0 &&
+                   skillConfig.trackContainer.effectTracks.Any(track => track.effectClips != null && track.effectClips.Count > 0);
+        }
+
+        /// <summary>
+        /// 检查伤害检测轨道是否有数据
+        /// </summary>
+        private bool HasInjuryDetectionTrackData(SkillConfig skillConfig)
+        {
+            return skillConfig.trackContainer.injuryDetectionTracks != null &&
+                   skillConfig.trackContainer.injuryDetectionTracks.Count > 0 &&
+                   skillConfig.trackContainer.injuryDetectionTracks.Any(track => track.injuryDetectionClips != null && track.injuryDetectionClips.Count > 0);
+        }
+
+        /// <summary>
+        /// 检查事件轨道是否有数据
+        /// </summary>
+        private bool HasEventTrackData(SkillConfig skillConfig)
+        {
+            return skillConfig.trackContainer.eventTracks != null &&
+                   skillConfig.trackContainer.eventTracks.Count > 0 &&
+                   skillConfig.trackContainer.eventTracks.Any(track => track.eventClips != null && track.eventClips.Count > 0);
+        }
+
+        #endregion
+
+        #region 轨道项创建方法
+
+        /// <summary>
+        /// 从配置创建动画轨道项
+        /// </summary>
+        private void CreateAnimationTrackItemsFromConfig(SkillEditorTrack track, SkillConfig skillConfig)
+        {
+            var animationTrack = skillConfig.trackContainer.animationTrack;
+            if (animationTrack?.animationClips == null)
+            {
+                Debug.Log("CreateAnimationTrackItemsFromConfig: 没有动画片段数据");
+                return;
+            }
+
+            Debug.Log($"CreateAnimationTrackItemsFromConfig: 找到 {animationTrack.animationClips.Count} 个动画片段");
+
+            foreach (var clip in animationTrack.animationClips.ToList())
+            {
+                if (clip.clip != null)
+                {
+                    Debug.Log($"CreateAnimationTrackItemsFromConfig: 创建轨道项 {clip.clip.name} 起始帧 {clip.startFrame}");
+                    // 从配置加载时，设置addToConfig为false，避免重复添加到配置文件
+                    track.AddTrackItem(clip.clip, clip.startFrame, false);
+                }
+                else
+                {
+                    Debug.LogWarning($"CreateAnimationTrackItemsFromConfig: 片段数据中 clip 为空");
+                }
+            }
+        }
+
+        /// <summary>
+        /// 从配置创建音频轨道项
+        /// </summary>
+        private void CreateAudioTrackItemsFromConfig(SkillEditorTrack track, SkillConfig skillConfig)
+        {
+            var audioTracks = skillConfig.trackContainer.audioTracks;
+            if (audioTracks == null) return;
+
+            foreach (var audioTrack in audioTracks)
+            {
+                if (audioTrack.audioClips != null)
+                {
+                    foreach (var clip in audioTrack.audioClips)
+                    {
+                        if (clip.clip != null)
+                        {
+                            // 从配置加载时，设置addToConfig为false，避免重复添加到配置文件
+                            track.AddTrackItem(clip.clip, clip.startFrame, false);
+                        }
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// 从配置创建特效轨道项
+        /// </summary>
+        private void CreateEffectTrackItemsFromConfig(SkillEditorTrack track, SkillConfig skillConfig)
+        {
+            var effectTracks = skillConfig.trackContainer.effectTracks;
+            if (effectTracks == null) return;
+
+            foreach (var effectTrack in effectTracks)
+            {
+                if (effectTrack.effectClips != null)
+                {
+                    foreach (var clip in effectTrack.effectClips)
+                    {
+                        if (clip.effectPrefab != null)
+                        {
+                            // 从配置加载时，设置addToConfig为false，避免重复添加到配置文件
+                            track.AddTrackItem(clip.effectPrefab, clip.startFrame, false);
+                        }
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// 从配置创建伤害检测轨道项
+        /// </summary>
+        private void CreateInjuryDetectionTrackItemsFromConfig(SkillEditorTrack track, SkillConfig skillConfig)
+        {
+            var injuryTracks = skillConfig.trackContainer.injuryDetectionTracks;
+            if (injuryTracks == null) return;
+
+            foreach (var injuryTrack in injuryTracks)
+            {
+                if (injuryTrack.injuryDetectionClips != null)
+                {
+                    foreach (var clip in injuryTrack.injuryDetectionClips)
+                    {
+                        // 从配置加载时，设置addToConfig为false，避免重复添加到配置文件
+                        track.AddTrackItem(clip.clipName, clip.startFrame, false);
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// 从配置创建事件轨道项
+        /// </summary>
+        private void CreateEventTrackItemsFromConfig(SkillEditorTrack track, SkillConfig skillConfig)
+        {
+            var eventTracks = skillConfig.trackContainer.eventTracks;
+            if (eventTracks == null) return;
+
+            foreach (var eventTrack in eventTracks)
+            {
+                if (eventTrack.eventClips != null)
+                {
+                    foreach (var clip in eventTrack.eventClips)
+                    {
+                        // 从配置加载时，设置addToConfig为false，避免重复添加到配置文件
+                        track.AddTrackItem(clip.clipName, clip.startFrame, false);
+                    }
+                }
+            }
+        }
+
+        #endregion
 
         /// <summary>
         /// 处理刷新请求事件
@@ -582,12 +865,20 @@ namespace SkillEditor
         /// </summary>
         public void OnRefreshRequested()
         {
+            Debug.Log("OnRefreshRequested: 开始刷新");
+
             // 清空现有轨道UI
             trackControlContent?.Clear();
             allTrackContent?.Clear();
 
-            // 重新创建所有轨道UI
+            // 重新创建所有轨道UI（包含轨道项）
             RefreshAllTracks();
+
+            // 根据配置创建配置中存在但UI中还没有的轨道
+            Debug.Log("OnRefreshRequested: 准备从配置创建新轨道");
+            CreateTracksFromConfig();
+
+            Debug.Log("OnRefreshRequested: 刷新完成");
         }
 
         /// <summary>
@@ -598,6 +889,8 @@ namespace SkillEditor
         {
             if (SkillEditorData.tracks == null) return;
 
+            Debug.Log($"RefreshAllTracks: 开始重建 {SkillEditorData.tracks.Count} 个现有轨道");
+
             // 保存现有轨道信息并清空列表
             var tracksToRecreate = new List<SkillEditorTrackInfo>(SkillEditorData.tracks);
             SkillEditorData.tracks.Clear();
@@ -607,6 +900,8 @@ namespace SkillEditor
 
             // 创建其他类型轨道
             RecreateTracksByType(tracksToRecreate, t => t != TrackType.AnimationTrack);
+
+            Debug.Log($"RefreshAllTracks: 完成重建，当前轨道数量: {SkillEditorData.tracks.Count}");
         }
 
         /// <summary>
@@ -624,6 +919,10 @@ namespace SkillEditor
 
                 SkillEditorData.tracks.Add(newTrackInfo);
                 SubscribeTrackEvents(newTrackControl);
+
+                // 重新创建轨道项 - 从当前配置文件加载数据
+                Debug.Log($"RecreateTracksByType: 为重建的轨道 {targetType} 创建轨道项");
+                CreateTrackItemsFromConfig(newTrack, oldTrackInfo.TrackType);
             }
         }
 
@@ -642,6 +941,10 @@ namespace SkillEditor
 
                 SkillEditorData.tracks.Add(newTrackInfo);
                 SubscribeTrackEvents(newTrackControl);
+
+                // 重新创建轨道项 - 从当前配置文件加载数据
+                Debug.Log($"RecreateTracksByType: 为重建的轨道 {oldTrackInfo.TrackType} 创建轨道项");
+                CreateTrackItemsFromConfig(newTrack, oldTrackInfo.TrackType);
             }
         }
 

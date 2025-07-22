@@ -177,7 +177,21 @@ namespace SkillEditor
         /// <param name="resource">要添加的资源对象</param>
         /// <param name="startFrame">轨道项的起始帧位置，默认为0</param>
         /// <returns>成功创建的轨道项，失败时返回null</returns>
-        public SkillEditorTrackItem AddTrackItem(object resource, float startFrame = 0)
+        public SkillEditorTrackItem AddTrackItem(object resource, int startFrame = 0)
+        {
+            return AddTrackItem(resource, startFrame, true);
+        }
+
+        /// <summary>
+        /// 添加轨道项到当前轨道
+        /// 支持多种资源类型：AnimationClip、AudioClip、GameObject、字符串等
+        /// 根据资源类型和轨道类型自动计算持续帧数
+        /// </summary>
+        /// <param name="resource">要添加的资源对象</param>
+        /// <param name="startFrame">轨道项的起始帧位置，默认为0</param>
+        /// <param name="addToConfig">是否将数据添加到技能配置中，从配置加载时应设为false</param>
+        /// <returns>成功创建的轨道项，失败时返回null</returns>
+        public SkillEditorTrackItem AddTrackItem(object resource, int startFrame, bool addToConfig)
         {
             SkillEditorTrackItem newItem = null;
             float frameRate = GetFrameRate();
@@ -187,6 +201,12 @@ namespace SkillEditor
             {
                 int frameCount = Mathf.RoundToInt(clip.length * frameRate);
                 newItem = new SkillEditorTrackItem(trackArea, clip.name, trackType, frameCount, startFrame);
+
+                // 仅在需要时添加动画数据到技能配置
+                if (addToConfig)
+                {
+                    AddAnimationClipToConfig(clip, startFrame, frameCount, frameRate);
+                }
             }
             // 音频轨道
             else if (trackType == TrackType.AudioTrack && resource is AudioClip audio)
@@ -257,6 +277,39 @@ namespace SkillEditor
         #endregion
 
         #region 私有辅助方法
+
+        /// <summary>
+        /// 将动画片段添加到技能配置的动画轨道中
+        /// </summary>
+        /// <param name="animationClip">Unity动画片段</param>
+        /// <param name="startFrame">起始帧</param>
+        /// <param name="frameCount">总帧数</param>
+        /// <param name="frameRate">帧率</param>
+        private void AddAnimationClipToConfig(AnimationClip animationClip, int startFrame, int frameCount, float frameRate)
+        {
+            if (skillConfig?.trackContainer?.animationTrack == null) return;
+
+            // 创建技能配置中的动画片段数据
+            var configAnimClip = new FFramework.Kit.AnimationTrack.AnimationClip
+            {
+                clipName = animationClip.name,
+                startFrame = startFrame,
+                durationFrame = frameCount,
+                clip = animationClip,
+                playSpeed = 1.0f,
+                isLoop = false,
+                applyRootMotion = false
+            };
+
+            // 添加到动画轨道
+            skillConfig.trackContainer.animationTrack.animationClips.Add(configAnimClip);
+
+            // 标记技能配置为已修改
+            if (skillConfig != null)
+            {
+                UnityEditor.EditorUtility.SetDirty(skillConfig);
+            }
+        }
 
         /// <summary>
         /// 获取当前技能配置的帧率

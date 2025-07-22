@@ -1,3 +1,4 @@
+using System.Linq;
 using UnityEngine.UIElements;
 using UnityEngine;
 
@@ -19,7 +20,7 @@ namespace SkillEditor
         private VisualElement itemContent;
 
         /// <summary>轨道项持续帧数</summary>
-        private float frameCount;
+        private int frameCount;
 
         /// <summary>所属轨道类型</summary>
         private TrackType trackType;
@@ -34,7 +35,10 @@ namespace SkillEditor
         private float originalLeft;
 
         /// <summary>轨道项的起始帧位置</summary>
-        private float startFrame;
+        private int startFrame;
+
+        /// <summary>当前轨道项数据对象</summary>
+        private AnimationTrackItemData currentTrackItemData;
 
         #endregion
 
@@ -49,7 +53,7 @@ namespace SkillEditor
         /// <param name="trackType">轨道类型，决定样式和行为</param>
         /// <param name="frameCount">轨道项持续帧数，影响宽度显示</param>
         /// <param name="startFrame">轨道项的起始帧位置，默认为0</param>
-        public SkillEditorTrackItem(VisualElement visual, string title, TrackType trackType, float frameCount, float startFrame = 0)
+        public SkillEditorTrackItem(VisualElement visual, string title, TrackType trackType, int frameCount, int startFrame = 0)
         {
             this.frameCount = frameCount;
             this.trackType = trackType;
@@ -80,7 +84,7 @@ namespace SkillEditor
         /// 根据帧位置和当前帧单位宽度计算实际的像素位置
         /// </summary>
         /// <param name="frame">起始帧位置</param>
-        public void SetStartFrame(float frame)
+        public void SetStartFrame(int frame)
         {
             startFrame = frame;
             UpdatePosition();
@@ -94,7 +98,7 @@ namespace SkillEditor
         public void SetLeft(float left)
         {
             // 根据像素位置计算对应的帧位置
-            startFrame = left / SkillEditorData.FrameUnitWidth;
+            startFrame = (int)(left / SkillEditorData.FrameUnitWidth);
             trackItem.style.left = left;
         }
 
@@ -267,9 +271,11 @@ namespace SkillEditor
         /// </summary>
         private void SelectTrackItemInInspector()
         {
-            var trackItemData = CreateTrackItemData();
-            if (trackItemData != null)
-                UnityEditor.Selection.activeObject = trackItemData;
+            if (currentTrackItemData == null)
+            {
+                currentTrackItemData = CreateTrackItemData() as AnimationTrackItemData;
+            }
+            UnityEditor.Selection.activeObject = currentTrackItemData;
         }
 
         /// <summary>
@@ -286,7 +292,19 @@ namespace SkillEditor
 
             // 更新像素位置和对应的帧位置
             trackItem.style.left = newLeft;
-            startFrame = newLeft / SkillEditorData.FrameUnitWidth;
+            int newStartFrame = (int)(newLeft / SkillEditorData.FrameUnitWidth);
+
+            // 如果起始帧发生变化，更新数据但不立即刷新Inspector
+            if (newStartFrame != startFrame)
+            {
+                SetStartFrame(newStartFrame);
+
+                // 只更新数据对象，不调用刷新（避免拖拽时频繁刷新）
+                if (currentTrackItemData != null)
+                {
+                    currentTrackItemData.startFrame = startFrame;
+                }
+            }
         }
 
         /// <summary>
@@ -299,6 +317,15 @@ namespace SkillEditor
             if (!isDragging) return;
             isDragging = false;
             trackItem.ReleasePointer(evt.pointerId);
+
+            int finalStartFrame = (int)(trackItem.style.left.value.value / SkillEditorData.FrameUnitWidth);
+            SetStartFrame(finalStartFrame); // 更新检查器面板的起始帧
+
+            // 更新Inspector显示
+            if (currentTrackItemData != null)
+            {
+                UpdateInspectorPanel();
+            }
         }
 
         #endregion
@@ -371,19 +398,113 @@ namespace SkillEditor
         }
 
         /// <summary>
+        /// 强制刷新Inspector面板，确保数据变更后立即显示
+        /// </summary>
+        private void UpdateInspectorPanel()
+        {
+            if (currentTrackItemData != null)
+            {
+                // 同步轨道项的起始帧位置到数据对象
+                currentTrackItemData.startFrame = startFrame;
+
+                // 标记对象为脏状态，这会触发属性绑定的更新
+                UnityEditor.EditorUtility.SetDirty(currentTrackItemData);
+            }
+        }
+
+        /// <summary>
         /// 创建动画轨道项的数据对象
         /// </summary>
         /// <param name="itemName">轨道项名称</param>
         /// <returns>动画轨道项数据对象</returns>
         private AnimationTrackItemData CreateAnimationTrackItemData(string itemName)
         {
+            // 如果已存在数据对象，更新基础信息
+            if (currentTrackItemData != null)
+            {
+                UpdateBasicTrackItemData(currentTrackItemData, itemName);
+                SyncWithConfigData(currentTrackItemData, itemName);
+                return currentTrackItemData;
+            }
+
+            // 创建新的动画轨道项数据对象
             var animData = ScriptableObject.CreateInstance<AnimationTrackItemData>();
-            animData.trackName = itemName;
-            animData.frameCount = frameCount;
-            // TODO: 补充动画相关参数
-            // animData.animationClip = ...;
-            // animData.isLoop = ...;
+            UpdateBasicTrackItemData(animData, itemName);
+            SetDefaultAnimationData(animData);
+            SyncWithConfigData(animData, itemName);
+
+            currentTrackItemData = animData;
             return animData;
+        }
+
+        /// <summary>
+        /// 更新轨道项的基础数据
+        /// </summary>
+        /// <param name="data">要更新的数据对象</param>
+        /// <param name="itemName">轨道项名称</param>
+        private void UpdateBasicTrackItemData(AnimationTrackItemData data, string itemName)
+        {
+            data.trackItemName = itemName;
+            data.frameCount = frameCount;
+            data.startFrame = startFrame;
+        }
+
+        /// <summary>
+        /// 设置动画数据的默认值
+        /// </summary>
+        /// <param name="data">要设置的数据对象</param>
+        private void SetDefaultAnimationData(AnimationTrackItemData data)
+        {
+            data.durationFrame = frameCount; // 默认持续帧数为轨道项帧数
+            data.playSpeed = 1f; // 默认播放速度为1
+            data.isLoop = false; // 默认不循环播放
+            data.applyRootMotion = false; // 默认不应用根运动
+            data.animationClip = null; // 默认动画片段为空
+        }
+
+        /// <summary>
+        /// 从技能配置同步动画数据
+        /// </summary>
+        /// <param name="data">要同步的数据对象</param>
+        /// <param name="itemName">轨道项名称</param>
+        private void SyncWithConfigData(AnimationTrackItemData data, string itemName)
+        {
+            var configClip = GetCorrespondingConfigClip(itemName, startFrame);
+            if (configClip?.clip != null)
+            {
+                data.animationClip = configClip.clip;
+                data.durationFrame = configClip.durationFrame;
+                data.playSpeed = configClip.playSpeed;
+                data.isLoop = configClip.isLoop;
+                data.applyRootMotion = configClip.applyRootMotion;
+            }
+        }
+
+        /// <summary>
+        /// 从技能配置中获取对应的动画片段配置数据
+        /// </summary>
+        /// <param name="clipName">片段名称</param>
+        /// <param name="startFrame">起始帧</param>
+        /// <returns>对应的动画片段配置，找不到时返回null</returns>
+        private FFramework.Kit.AnimationTrack.AnimationClip GetCorrespondingConfigClip(string clipName, int startFrame)
+        {
+            var skillConfig = SkillEditorData.CurrentSkillConfig;
+            if (skillConfig?.trackContainer?.animationTrack == null)
+                return null;
+
+            // 优先通过名称查找
+            var candidateClips = skillConfig.trackContainer.animationTrack.animationClips
+                .Where(clip => clip.clipName == clipName).ToList();
+
+            if (candidateClips.Count == 0)
+                return null;
+
+            if (candidateClips.Count == 1)
+                return candidateClips[0];
+
+            // 如果有多个同名片段，通过起始帧匹配
+            var exactMatch = candidateClips.FirstOrDefault(clip => clip.startFrame == startFrame);
+            return exactMatch ?? candidateClips[0];
         }
 
         /// <summary>
@@ -395,7 +516,7 @@ namespace SkillEditor
         private AnimationTrackItemData CreateDefaultTrackItemData(string itemName)
         {
             var baseData = ScriptableObject.CreateInstance<AnimationTrackItemData>();
-            baseData.trackName = itemName;
+            baseData.trackItemName = itemName;
             baseData.frameCount = frameCount;
             return baseData;
         }

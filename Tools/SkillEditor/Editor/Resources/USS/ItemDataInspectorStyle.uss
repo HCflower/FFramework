@@ -1,0 +1,42 @@
+/* 标题区域 */
+.ItemDataViewTitle {
+    width: 100%;
+    height: 30px;
+    margin: 0px;
+    padding: 0px;
+
+    -unity-text-align: middle-center;
+    -unity-font-style: bold;
+    font-size: 14px;
+    color: #ffffff;
+}
+
+/* 数据项区域 */
+.ItemDataViewContent {
+    width: 100%;
+    height: 20px;
+    margin: 0px;
+    margin-top: 2px;
+    padding: 0px;
+    padding-left: 2px;
+    padding-right: 2px;
+
+    border-left-width: 2px;
+    border-color: rgba(255, 255, 255, 1);
+    flex-direction: row;
+    align-items: center;
+}
+
+.ObjectField, .TextField, .Toggle {
+    width: 100%;  
+    max-width: none;  
+    height: 20px;
+    margin: 0px;
+    padding: 0px;
+
+    position: relative;  
+    right: auto;  
+    flex-grow: 1;   /* 允许输入区域根据可用空间扩展 */
+    flex-shrink: 1; /* 允许在空间不足时收缩 */
+    flex-basis: 0;  /* 初始宽度为0，完全依赖flex-grow */
+}
