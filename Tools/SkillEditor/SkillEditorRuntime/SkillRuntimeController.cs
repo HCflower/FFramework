@@ -252,13 +252,13 @@ namespace FFramework.Kit
                     audioSource.clip = clip.clip;
                     audioSource.volume = clip.volume;
                     audioSource.pitch = clip.pitch;
-                    audioSource.loop = clip.loop;
+                    audioSource.loop = clip.isLoop;
                     audioSource.Play();
 
                     activeAudioClips[clip] = audioSource;
 
                     // 如果不是循环播放，在播放完成后清理
-                    if (!clip.loop)
+                    if (!clip.isLoop)
                     {
                         StartCoroutine(CleanupAudioAfterPlay(clip, audioSource));
                     }

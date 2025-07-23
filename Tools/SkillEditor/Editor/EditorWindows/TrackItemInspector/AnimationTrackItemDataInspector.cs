@@ -1,6 +1,6 @@
-using System.Linq;
 using UnityEngine.UIElements;
 using UnityEditor.UIElements;
+using System.Linq;
 using UnityEditor;
 using UnityEngine;
 
@@ -92,6 +92,15 @@ namespace SkillEditor
             rootMotionContent.Add(rootMotionToggle);
             root.Add(rootMotionContent);
 
+            // 删除轨道项
+            VisualElement deleteContent = ItemDataViewContent("");
+            Button deleteButton = new Button(OnDeleteButtonClicked)
+            {
+                text = "删除动画轨道项"
+            };
+            deleteButton.AddToClassList("DeleteButton");
+            deleteContent.Add(deleteButton);
+            root.Add(deleteContent);
             return root;
         }
 
@@ -99,10 +108,14 @@ namespace SkillEditor
         {
             VisualElement content = new VisualElement();
             content.AddToClassList("ItemDataViewContent");
-            //标题文本
-            Label title = new Label(titleName);
-            title.style.width = 100;
-            content.Add(title);
+            content.AddToClassList("ItemDataViewContent-Animation"); // 添加动画轨道项特有的样式类
+            if (!string.IsNullOrEmpty(titleName))
+            {
+                //标题文本
+                Label title = new Label(titleName);
+                title.style.width = 100;
+                content.Add(title);
+            }
             return content;
         }
 
@@ -212,6 +225,105 @@ namespace SkillEditor
         private void OnApplyRootMotionChanged(bool newApplyRootMotion)
         {
             UpdateAnimationTrackConfig(configClip => configClip.applyRootMotion = newApplyRootMotion, "根运动状态更新");
+        }
+
+        /// <summary>
+        /// 删除按钮点击事件处理
+        /// </summary>
+        private void OnDeleteButtonClicked()
+        {
+            if (UnityEditor.EditorUtility.DisplayDialog("删除确认",
+                $"确定要删除动画轨道项 \"{targetData.trackItemName}\" 吗？\n\n此操作将会：\n• 从界面移除此轨道项\n• 删除对应的配置数据\n• 删除轨道项数据文件\n• 无法撤销",
+                "确认删除", "取消"))
+            {
+                DeleteAnimationTrackItem();
+            }
+        }
+
+        /// <summary>
+        /// 删除动画轨道项的完整流程
+        /// 包括移除UI元素、删除配置数据和触发界面刷新
+        /// </summary>
+        private void DeleteAnimationTrackItem()
+        {
+            var skillConfig = SkillEditorData.CurrentSkillConfig;
+            if (skillConfig?.trackContainer?.animationTrack == null || targetData == null)
+            {
+                Debug.LogWarning("无法删除轨道项：技能配置或动画轨道为空");
+                return;
+            }
+
+            // 查找要删除的动画片段配置
+            FFramework.Kit.AnimationTrack.AnimationClip targetConfigClip = null;
+
+            // 优先通过名称查找动画片段配置
+            var candidateClips = skillConfig.trackContainer.animationTrack.animationClips
+                .Where(clip => clip.clipName == targetData.trackItemName).ToList();
+
+            if (candidateClips.Count > 0)
+            {
+                if (candidateClips.Count == 1)
+                {
+                    targetConfigClip = candidateClips[0];
+                }
+                else
+                {
+                    // 如果有多个同名片段，尝试通过起始帧匹配
+                    var exactMatch = candidateClips.FirstOrDefault(clip => clip.startFrame == targetData.startFrame);
+                    if (exactMatch != null)
+                    {
+                        targetConfigClip = exactMatch;
+                    }
+                    else
+                    {
+                        targetConfigClip = candidateClips[0];
+                    }
+                }
+            }
+
+            if (targetConfigClip != null)
+            {
+                // 从配置中移除动画片段数据
+                skillConfig.trackContainer.animationTrack.animationClips.Remove(targetConfigClip);
+
+                // 标记技能配置为已修改
+                MarkSkillConfigDirty();
+
+                // 删除轨道项的ScriptableObject数据文件
+                if (targetData != null)
+                {
+                    UnityEditor.AssetDatabase.DeleteAsset(UnityEditor.AssetDatabase.GetAssetPath(targetData));
+                }
+
+                // 清空Inspector选择
+                UnityEditor.Selection.activeObject = null;
+
+                // 触发界面刷新以移除UI元素
+                var window = UnityEditor.EditorWindow.GetWindow<SkillEditor>();
+                if (window != null)
+                {
+                    // 使用EditorApplication.delayCall确保在下一帧执行刷新
+                    UnityEditor.EditorApplication.delayCall += () =>
+                    {
+                        window.Repaint();
+
+                        // 通过反射获取skillEditorEvent实例并触发刷新
+                        var skillEditorEventField = typeof(SkillEditor).GetField("skillEditorEvent",
+                            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                        if (skillEditorEventField != null)
+                        {
+                            var skillEditorEvent = skillEditorEventField.GetValue(window) as SkillEditorEvent;
+                            skillEditorEvent?.TriggerRefreshRequested();
+                        }
+                    };
+                }
+
+                Debug.Log($"动画轨道项 \"{targetData.trackItemName}\" 删除成功");
+            }
+            else
+            {
+                Debug.LogWarning($"无法删除轨道项：找不到对应的动画片段配置 \"{targetData.trackItemName}\"");
+            }
         }
 
         /// <summary>

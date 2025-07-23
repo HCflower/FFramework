@@ -1,6 +1,7 @@
 using System.Linq;
 using UnityEngine.UIElements;
 using UnityEngine;
+using System;
 
 namespace SkillEditor
 {
@@ -38,7 +39,7 @@ namespace SkillEditor
         private int startFrame;
 
         /// <summary>当前轨道项数据对象</summary>
-        private AnimationTrackItemData currentTrackItemData;
+        private BaseTrackItemData currentTrackItemData;
 
         #endregion
 
@@ -73,6 +74,25 @@ namespace SkillEditor
 
             // 注册拖拽事件
             RegisterDragEvents();
+        }
+
+        #endregion
+
+        #region 公共属性
+
+        /// <summary>
+        /// 获取当前轨道项的数据对象
+        /// </summary>
+        public BaseTrackItemData ItemData
+        {
+            get
+            {
+                if (currentTrackItemData == null)
+                {
+                    currentTrackItemData = CreateTrackItemData();
+                }
+                return currentTrackItemData;
+            }
         }
 
         #endregion
@@ -273,7 +293,7 @@ namespace SkillEditor
         {
             if (currentTrackItemData == null)
             {
-                currentTrackItemData = CreateTrackItemData() as AnimationTrackItemData;
+                currentTrackItemData = CreateTrackItemData();
             }
             UnityEditor.Selection.activeObject = currentTrackItemData;
         }
@@ -372,7 +392,7 @@ namespace SkillEditor
         /// 根据轨道类型创建相应的ScriptableObject数据
         /// </summary>
         /// <returns>创建的轨道项数据对象</returns>
-        private ScriptableObject CreateTrackItemData()
+        private BaseTrackItemData CreateTrackItemData()
         {
             string itemName = GetTrackItemName();
 
@@ -380,8 +400,16 @@ namespace SkillEditor
             {
                 case TrackType.AnimationTrack:
                     return CreateAnimationTrackItemData(itemName);
+                case TrackType.AudioTrack:
+                    return CreateAudioTrackItemData(itemName);
+                case TrackType.EffectTrack:
+                    return CreateEffectTrackItemData(itemName);
+                case TrackType.EventTrack:
+                    return CreateEventTrackItemData(itemName);
+                case TrackType.AttackTrack:
+                    return CreateAttackTrackItemData(itemName);
                 default:
-                    return CreateDefaultTrackItemData(itemName);
+                    return null;
             }
         }
 
@@ -412,6 +440,7 @@ namespace SkillEditor
             }
         }
 
+        #region 动画轨道项数据创建方法
         /// <summary>
         /// 创建动画轨道项的数据对象
         /// </summary>
@@ -420,21 +449,21 @@ namespace SkillEditor
         private AnimationTrackItemData CreateAnimationTrackItemData(string itemName)
         {
             // 如果已存在数据对象，更新基础信息
-            if (currentTrackItemData != null)
+            if (currentTrackItemData != null && currentTrackItemData is AnimationTrackItemData animData)
             {
-                UpdateBasicTrackItemData(currentTrackItemData, itemName);
-                SyncWithConfigData(currentTrackItemData, itemName);
-                return currentTrackItemData;
+                UpdateBasicTrackItemData(animData, itemName);
+                SyncWithConfigData(animData, itemName);
+                return animData;
             }
 
             // 创建新的动画轨道项数据对象
-            var animData = ScriptableObject.CreateInstance<AnimationTrackItemData>();
-            UpdateBasicTrackItemData(animData, itemName);
-            SetDefaultAnimationData(animData);
-            SyncWithConfigData(animData, itemName);
+            var newAnimData = ScriptableObject.CreateInstance<AnimationTrackItemData>();
+            UpdateBasicTrackItemData(newAnimData, itemName);
+            SetDefaultAnimationData(newAnimData);
+            SyncWithConfigData(newAnimData, itemName);
 
-            currentTrackItemData = animData;
-            return animData;
+            currentTrackItemData = newAnimData;
+            return newAnimData;
         }
 
         /// <summary>
@@ -507,20 +536,89 @@ namespace SkillEditor
             return exactMatch ?? candidateClips[0];
         }
 
+        #endregion
+
+        #region 音频轨道项数据创建方法
+
         /// <summary>
-        /// 创建默认类型轨道项的数据对象
-        /// 用于不需要特殊处理的轨道类型
+        /// 创建音频轨道项的数据对象
         /// </summary>
         /// <param name="itemName">轨道项名称</param>
-        /// <returns>默认轨道项数据对象</returns>
-        private AnimationTrackItemData CreateDefaultTrackItemData(string itemName)
+        /// <returns>音频轨道项数据对象</returns>
+        private AudioTrackItemData CreateAudioTrackItemData(string itemName)
         {
-            var baseData = ScriptableObject.CreateInstance<AnimationTrackItemData>();
-            baseData.trackItemName = itemName;
-            baseData.frameCount = frameCount;
-            return baseData;
+            return CreateAudioTrackItemData(itemName, null, 1.0f, 1.0f, false);
         }
 
+        /// <summary>
+        /// 创建音频轨道项数据（完整版本）
+        /// </summary>
+        /// <param name="itemName">轨道项名称</param>
+        /// <param name="audioClip">音频剪辑</param>
+        /// <param name="volume">音量</param>
+        /// <param name="pitch">音调</param>
+        /// <param name="isLoop">是否循环</param>
+        /// <returns>音频轨道项数据对象</returns>
+        private AudioTrackItemData CreateAudioTrackItemData(string itemName, AudioClip audioClip, float volume, float pitch, bool isLoop)
+        {
+            var audioData = ScriptableObject.CreateInstance<AudioTrackItemData>();
+            audioData.trackItemName = itemName;
+            audioData.frameCount = frameCount;
+            audioData.startFrame = startFrame;
+            audioData.durationFrame = frameCount;
+            audioData.audioClip = audioClip;
+            audioData.volume = volume;
+            audioData.pitch = pitch;
+            audioData.isLoop = isLoop;
+            return audioData;
+        }
+
+        /// <summary>
+        /// 创建特效轨道项的数据对象
+        /// </summary>
+        /// <param name="itemName">轨道项名称</param>
+        /// <returns>特效轨道项数据对象</returns>
+        private BaseTrackItemData CreateEffectTrackItemData(string itemName)
+        {
+            var effectData = ScriptableObject.CreateInstance<EffectTrackItemData>();
+            effectData.trackItemName = itemName;
+            effectData.frameCount = frameCount;
+            effectData.startFrame = startFrame;
+            effectData.durationFrame = frameCount;
+            return effectData;
+        }
+
+        /// <summary>
+        /// 创建攻击轨道项的数据对象
+        /// </summary>
+        /// <param name="itemName">轨道项名称</param>
+        /// <returns>攻击轨道项数据对象</returns>
+        private BaseTrackItemData CreateAttackTrackItemData(string itemName)
+        {
+            var attackData = ScriptableObject.CreateInstance<AttackTrackItemData>();
+            attackData.trackItemName = itemName;
+            attackData.frameCount = frameCount;
+            attackData.startFrame = startFrame;
+            attackData.durationFrame = frameCount;
+            return attackData;
+        }
+
+        /// <summary>
+        /// 创建事件轨道项的数据对象
+        /// </summary>
+        /// param name="itemName">轨道项名称</param>
+        /// <returns>事件轨道项数据对象</returns>
+        private BaseTrackItemData CreateEventTrackItemData(string itemName)
+        {
+            var eventData = ScriptableObject.CreateInstance<EventTrackItemData>();
+            eventData.trackItemName = itemName;
+            eventData.frameCount = frameCount;
+            eventData.startFrame = startFrame;
+            eventData.durationFrame = frameCount;
+            return eventData;
+        }
+
+        #endregion
         #endregion
     }
 }

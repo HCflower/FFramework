@@ -76,6 +76,9 @@ namespace SkillEditor
         {
             SkillEditorData.SaveData();
             skillEditorEvent?.Cleanup();
+
+            // 清理编辑器数据，释放内存资源
+            SkillEditorData.ResetData();
         }
 
         /// <summary>

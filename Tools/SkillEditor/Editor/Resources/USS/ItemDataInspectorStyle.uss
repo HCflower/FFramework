@@ -5,8 +5,10 @@
     margin: 0px;
     padding: 0px;
 
+    border-width: 1px;
+    border-color: rgba(255, 255, 255, 1);
+    background-color: rgba(255, 255, 255, 0.15);
     -unity-text-align: middle-center;
-    -unity-font-style: bold;
     font-size: 14px;
     color: #ffffff;
 }
@@ -27,6 +29,31 @@
     align-items: center;
 }
 
+.ItemDataViewContent-Animation{
+    border-left-width: 2px;
+    border-left-color: rgb(42, 184, 206);
+}
+
+.ItemDataViewContent-Audio{
+    border-left-width: 2px;
+    border-left-color: rgb(250, 193, 23);
+}
+
+.ItemDataViewContent-Effect{
+    border-left-width: 2px;
+    border-left-color: rgb(190, 42, 206);
+}
+
+.ItemDataViewContent-Attack{
+    border-left-width: 2px;
+    border-left-color: rgb(206, 45, 42);
+}
+
+.ItemDataViewContent-Event{
+    border-left-width: 2px;
+    border-left-color: rgb(42, 116, 206);
+}
+
 .ObjectField, .TextField, .Toggle {
     width: 100%;  
     max-width: none;  
@@ -39,4 +66,15 @@
     flex-grow: 1;   /* 允许输入区域根据可用空间扩展 */
     flex-shrink: 1; /* 允许在空间不足时收缩 */
     flex-basis: 0;  /* 初始宽度为0，完全依赖flex-grow */
+}
+
+.DeleteButton{
+    width:100%;
+    height: 26px;
+
+    margin: 2px;
+    -unity-text-align: middle-center;
+    -unity-font-style: bold;
+    font-size: 12px;
+    background-color: rgba(163, 49, 49, 1);
 }

@@ -119,6 +119,8 @@ namespace SkillEditor
             MajorTickInterval = 5;
             IsPlaying = false;
             IsLoop = false;
+            // 编辑器刷新
+            AssetDatabase.Refresh();
         }
 
         /// <summary>
@@ -179,6 +181,9 @@ namespace SkillEditor
 
         /// <summary>轨道是否激活状态</summary>
         public bool IsActive { get; set; } = true;
+
+        /// <summary>轨道索引，用于多轨道类型的索引标识</summary>
+        public int TrackIndex { get; set; } = 0;
 
         /// <summary>
         /// 构造函数，创建轨道信息实例

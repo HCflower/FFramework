@@ -27,29 +27,86 @@ MonoBehaviour:
       trackIndex: 0
       animationClips:
       - clipName: Jump_Idle
-        startFrame: 3
+        startFrame: 5
         durationFrame: 32
         clip: {fileID: 7400000, guid: 3815f3daf7d9638429e1dd2ffc3866e9, type: 2}
         playSpeed: 1
         isLoop: 0
         applyRootMotion: 0
     audioTracks:
-    - trackName: 
-      isEnabled: 0
+    - trackName: Audio Track 1
+      isEnabled: 1
       trackIndex: 0
-      audioClips: []
+      audioClips:
+      - clipName: 032-033_hit
+        startFrame: 19
+        durationFrame: 24
+        clip: {fileID: 8300000, guid: a2fb213c8a76ee641b91674426aea94a, type: 3}
+        volume: 1
+        pitch: 1
+        isLoop: 0
+    - trackName: Audio Track 2
+      isEnabled: 1
+      trackIndex: 0
+      audioClips:
+      - clipName: 032-033_exp
+        startFrame: 11
+        durationFrame: 17
+        clip: {fileID: 8300000, guid: b327bfd452fdb6c4da680e4e823b0865, type: 3}
+        volume: 1
+        pitch: 1
+        isLoop: 0
     effectTracks:
     - trackName: 
       isEnabled: 0
       trackIndex: 0
-      effectClips: []
+      effectClips:
+      - clipName: basicslash
+        startFrame: 6
+        durationFrame: 48
+        effectPrefab: {fileID: 6389406066330802589, guid: 5ef8d476ac4025a4e85cc5e7c5004889, type: 3}
+        position: {x: 0, y: 0, z: 0}
+        rotation: {x: 0, y: 0, z: 0}
+        scale: {x: 1, y: 1, z: 1}
+    - trackName: Effect Track 2
+      isEnabled: 1
+      trackIndex: 0
+      effectClips:
+      - clipName: LightningSlash
+        startFrame: 15
+        durationFrame: 48
+        effectPrefab: {fileID: 174940048960636371, guid: 80271a6cac0af2d4b91d8f165572ff1d, type: 3}
+        position: {x: 0, y: 0, z: 0}
+        rotation: {x: 0, y: 0, z: 0}
+        scale: {x: 1, y: 1, z: 1}
     injuryDetectionTracks:
     - trackName: 
       isEnabled: 0
       trackIndex: 0
-      injuryDetectionClips: []
+      injuryDetectionClips:
+      - clipName: Attack
+        startFrame: 0
+        durationFrame: 5
+        targetLayers:
+          serializedVersion: 2
+          m_Bits: 4294967295
+        isMultiInjuryDetection: 0
+        multiInjuryDetectionInterval: 0.1
+        colliderType: 0
+        innerCircleRadius: 0
+        outerCircleRadius: 1
+        sectorAngle: 0
+        sectorThickness: 0.1
+        position: {x: 0, y: 0, z: 0}
+        rotation: {x: 0, y: 0, z: 0}
+        scale: {x: 1, y: 1, z: 1}
     eventTracks:
     - trackName: 
       isEnabled: 0
       trackIndex: 0
-      eventClips: []
+      eventClips:
+      - clipName: Event
+        startFrame: 0
+        durationFrame: 5
+        eventType: Event
+        eventParameters: 

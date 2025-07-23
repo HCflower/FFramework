@@ -260,7 +260,7 @@ namespace SkillEditor
             // 子轨道管理选项（仅特定轨道类型支持）
             if (TrackType == TrackType.AttackTrack || TrackType == TrackType.EventTrack)
             {
-                menu.AddItem(new GUIContent("添加子轨道"), false, () =>
+                menu.AddItem(new GUIContent("添加轨道项"), false, () =>
                 {
                     OnAddTrackItem?.Invoke(this);
                 });
