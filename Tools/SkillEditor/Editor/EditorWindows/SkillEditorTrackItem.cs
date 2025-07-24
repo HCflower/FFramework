@@ -1,6 +1,6 @@
-using System.Linq;
 using UnityEngine.UIElements;
 using UnityEngine;
+using System.Linq;
 using System;
 
 namespace SkillEditor
@@ -142,6 +142,16 @@ namespace SkillEditor
         }
 
         /// <summary>
+        /// 更新轨道项的帧数，并重新计算宽度
+        /// </summary>
+        /// <param name="newFrameCount">新的帧数</param>
+        public void UpdateFrameCount(int newFrameCount)
+        {
+            frameCount = newFrameCount;
+            SetWidth();
+        }
+
+        /// <summary>
         /// 获取轨道项的起始帧位置
         /// </summary>
         /// <returns>起始帧位置</returns>
@@ -206,7 +216,7 @@ namespace SkillEditor
         {
             VisualElement itemContent = new VisualElement();
             itemContent.AddToClassList("TrackItemContent");
-
+            itemContent.tooltip = title;
             // 应用轨道类型特定样式
             AddTrackTypeStyleClass(itemContent);
 
@@ -240,6 +250,7 @@ namespace SkillEditor
                 TrackType.EffectTrack => "TrackItem-Effect",
                 TrackType.EventTrack => "TrackItem-Event",
                 TrackType.AttackTrack => "TrackItem-Attack",
+                TrackType.TransformTrack => "TrackItem-Transform",
                 _ => ""
             };
         }
@@ -408,6 +419,8 @@ namespace SkillEditor
                     return CreateEventTrackItemData(itemName);
                 case TrackType.AttackTrack:
                     return CreateAttackTrackItemData(itemName);
+                case TrackType.TransformTrack:
+                    return CreateTransformTrackItemData(itemName);
                 default:
                     return null;
             }
@@ -618,6 +631,20 @@ namespace SkillEditor
             return eventData;
         }
 
+        /// <summary>
+        /// 创建变换轨道项的数据对象
+        /// </summary>
+        /// <param name="itemName">轨道项名称</param>
+        /// <returns>变换轨道项数据对象</returns>
+        private BaseTrackItemData CreateTransformTrackItemData(string itemName)
+        {
+            var transformData = ScriptableObject.CreateInstance<TransformTrackItemData>();
+            transformData.trackItemName = itemName;
+            transformData.frameCount = frameCount;
+            transformData.startFrame = startFrame;
+            transformData.durationFrame = frameCount;
+            return transformData;
+        }
         #endregion
         #endregion
     }

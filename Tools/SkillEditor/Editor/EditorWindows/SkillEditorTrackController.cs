@@ -9,21 +9,21 @@ namespace SkillEditor
     /// 负责管理轨道的可视化控制面板，包括图标显示、标题编辑、状态控制和右键菜单功能
     /// 提供轨道激活/失活、重命名、删除和子轨道管理等功能
     /// </summary>
-    public class SkillEditorTrackControl : VisualElement
+    public class SkillEditorTrackController : VisualElement
     {
         #region 事件定义
 
         /// <summary>轨道激活状态变化事件</summary>
-        public event System.Action<SkillEditorTrackControl, bool> OnActiveStateChanged;
+        public event System.Action<SkillEditorTrackController, bool> OnActiveStateChanged;
 
         /// <summary>轨道名称更改事件</summary>
-        public event System.Action<SkillEditorTrackControl, string> OnTrackNameChanged;
+        public event System.Action<SkillEditorTrackController, string> OnTrackNameChanged;
 
         /// <summary>轨道删除事件</summary>
-        public System.Action<SkillEditorTrackControl> OnDeleteTrack;
+        public System.Action<SkillEditorTrackController> OnDeleteTrack;
 
         /// <summary>子轨道添加事件</summary>
-        public event System.Action<SkillEditorTrackControl> OnAddTrackItem;
+        public event System.Action<SkillEditorTrackController> OnAddTrackItem;
 
         #endregion
 
@@ -59,7 +59,7 @@ namespace SkillEditor
         /// <param name="visual">父容器，控制器将添加到此容器中</param>
         /// <param name="trackType">轨道类型，决定显示的图标和样式</param>
         /// <param name="trackName">自定义轨道名称，为空则使用默认名称</param>
-        public SkillEditorTrackControl(VisualElement visual, TrackType trackType, string trackName = null)
+        public SkillEditorTrackController(VisualElement visual, TrackType trackType, string trackName = null)
         {
             TrackType = trackType;
             TrackName = trackName;
@@ -105,6 +105,9 @@ namespace SkillEditor
                     break;
                 case TrackType.AttackTrack:
                     trackControlArea.AddToClassList("TrackControlArea-Attack");
+                    break;
+                case TrackType.TransformTrack:
+                    trackControlArea.AddToClassList("TrackControlArea-Transform");
                     break;
             }
 
@@ -225,6 +228,8 @@ namespace SkillEditor
                     return ("SignalAsset Icon", "事件轨道", true);
                 case TrackType.AttackTrack:
                     return ("d_BoxCollider Icon", "攻击轨道", true);
+                case TrackType.TransformTrack:
+                    return ("d_Transform Icon", "变化轨道", true);
                 default:
                     return (null, "未知轨道", false);
             }
@@ -258,7 +263,7 @@ namespace SkillEditor
             });
 
             // 子轨道管理选项（仅特定轨道类型支持）
-            if (TrackType == TrackType.AttackTrack || TrackType == TrackType.EventTrack)
+            if (TrackType == TrackType.AttackTrack || TrackType == TrackType.EventTrack || TrackType == TrackType.TransformTrack)
             {
                 menu.AddItem(new GUIContent("添加轨道项"), false, () =>
                 {

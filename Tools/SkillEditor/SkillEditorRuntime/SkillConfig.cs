@@ -110,6 +110,9 @@ namespace FFramework.Kit
         [Header("事件轨道(多轨道并行)")]
         public List<EventTrack> eventTracks = new List<EventTrack>();
 
+        [Header("变换轨道(多轨道并行)")]
+        public List<TransformTrack> transformTracks = new List<TransformTrack>();
+
         /// <summary>
         /// 获取所有轨道
         /// </summary>
@@ -120,6 +123,7 @@ namespace FFramework.Kit
             foreach (var track in effectTracks) yield return track;
             foreach (var track in injuryDetectionTracks) yield return track;
             foreach (var track in eventTracks) yield return track;
+            foreach (var track in transformTracks) yield return track;
         }
 
         /// <summary>
@@ -150,6 +154,8 @@ namespace FFramework.Kit
                 injuryDetectionTracks.Add(injuryTrack);
             else if (track is EventTrack eventTrack)
                 eventTracks.Add(eventTrack);
+            else if (track is TransformTrack transformTrack)
+                transformTracks.Add(transformTrack);
 
             return track;
         }
@@ -398,6 +404,131 @@ namespace FFramework.Kit
 
             public override int EndFrame => startFrame; // 事件是瞬时的
         }
+    }
+
+    /// <summary>
+    /// 变换轨道 - 支持多轨道并行
+    /// 用于控制对象的位置、旋转、缩放变换动画
+    /// </summary>
+    [Serializable]
+    public class TransformTrack : TrackBase
+    {
+        public List<TransformClip> transformClips = new List<TransformClip>();
+
+        public TransformTrack()
+        {
+            trackName = "Transform";
+        }
+
+        public override float GetTrackDuration(float frameRate)
+        {
+            int maxFrame = 0;
+            foreach (var clip in transformClips)
+            {
+                maxFrame = Mathf.Max(maxFrame, clip.EndFrame);
+            }
+            return maxFrame / frameRate;
+        }
+
+        [Serializable]
+        public class TransformClip : ClipBase
+        {
+            [Header("变换类型")]
+            [Tooltip("是否启用位置变换")] public bool enablePosition = true;
+            [Tooltip("是否启用旋转变换")] public bool enableRotation = false;
+            [Tooltip("是否启用缩放变换")] public bool enableScale = false;
+
+            [Header("起始变换")]
+            [Tooltip("起始位置")] public Vector3 startPosition = Vector3.zero;
+            [Tooltip("起始旋转")] public Vector3 startRotation = Vector3.zero;
+            [Tooltip("起始缩放")] public Vector3 startScale = Vector3.one;
+
+            [Header("目标变换")]
+            [Tooltip("目标位置")] public Vector3 endPosition = Vector3.zero;
+            [Tooltip("目标旋转")] public Vector3 endRotation = Vector3.zero;
+            [Tooltip("目标缩放")] public Vector3 endScale = Vector3.one;
+
+            [Header("动画设置")]
+            [Tooltip("动画曲线类型")] public AnimationCurveType curveType = AnimationCurveType.Linear;
+            [Tooltip("自定义动画曲线")] public AnimationCurve customCurve = AnimationCurve.Linear(0, 0, 1, 1);
+            [Tooltip("是否相对于当前变换")] public bool isRelative = false;
+            [Tooltip("目标对象（为空则影响技能拥有者）")] public GameObject targetObject;
+
+            /// <summary>
+            /// 根据时间进度获取插值后的位置
+            /// </summary>
+            /// <param name="progress">时间进度 (0-1)</param>
+            /// <returns>插值后的位置</returns>
+            public Vector3 GetInterpolatedPosition(float progress)
+            {
+                if (!enablePosition) return startPosition;
+
+                float curveValue = GetCurveValue(progress);
+                return Vector3.Lerp(startPosition, endPosition, curveValue);
+            }
+
+            /// <summary>
+            /// 根据时间进度获取插值后的旋转
+            /// </summary>
+            /// <param name="progress">时间进度 (0-1)</param>
+            /// <returns>插值后的旋转</returns>
+            public Vector3 GetInterpolatedRotation(float progress)
+            {
+                if (!enableRotation) return startRotation;
+
+                float curveValue = GetCurveValue(progress);
+                return Vector3.Lerp(startRotation, endRotation, curveValue);
+            }
+
+            /// <summary>
+            /// 根据时间进度获取插值后的缩放
+            /// </summary>
+            /// <param name="progress">时间进度 (0-1)</param>
+            /// <returns>插值后的缩放</returns>
+            public Vector3 GetInterpolatedScale(float progress)
+            {
+                if (!enableScale) return startScale;
+
+                float curveValue = GetCurveValue(progress);
+                return Vector3.Lerp(startScale, endScale, curveValue);
+            }
+
+            /// <summary>
+            /// 根据曲线类型和进度获取曲线值
+            /// </summary>
+            /// <param name="progress">时间进度 (0-1)</param>
+            /// <returns>曲线值</returns>
+            private float GetCurveValue(float progress)
+            {
+                switch (curveType)
+                {
+                    case AnimationCurveType.Linear:
+                        return progress;
+                    case AnimationCurveType.EaseIn:
+                        return progress * progress;
+                    case AnimationCurveType.EaseOut:
+                        return 1f - (1f - progress) * (1f - progress);
+                    case AnimationCurveType.EaseInOut:
+                        return progress < 0.5f ? 2f * progress * progress : 1f - 2f * (1f - progress) * (1f - progress);
+                    case AnimationCurveType.Custom:
+                        return customCurve.Evaluate(progress);
+                    default:
+                        return progress;
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// 动画曲线类型
+    /// </summary>
+    public enum AnimationCurveType
+    {
+        [Tooltip("线性插值")] Linear,
+        [Tooltip("缓入")] EaseIn,
+        [Tooltip("缓出")] EaseOut,
+        [Tooltip("缓入缓出")] EaseInOut,
+        [Tooltip("自定义曲线")] Custom
     }
 
     #endregion

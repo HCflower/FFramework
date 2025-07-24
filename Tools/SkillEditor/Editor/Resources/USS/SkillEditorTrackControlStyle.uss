@@ -37,6 +37,11 @@
     border-left-color: rgb(42, 116, 206);
 }
 
+.TrackControlArea-Transform{
+    border-left-width: 1px;
+    border-left-color: rgba(30, 172, 77, 1);
+}
+
 /* 轨道控制区域 */
 .TrackControlAreaContent{
     width: 100%;

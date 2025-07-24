@@ -34,59 +34,79 @@ MonoBehaviour:
         isLoop: 0
         applyRootMotion: 0
     audioTracks:
-    - trackName: Audio Track 1
+    - trackName: "\u97F3\u9891\u8F68\u9053"
       isEnabled: 1
       trackIndex: 0
       audioClips:
       - clipName: 032-033_hit
-        startFrame: 19
+        startFrame: 8
         durationFrame: 24
         clip: {fileID: 8300000, guid: a2fb213c8a76ee641b91674426aea94a, type: 3}
         volume: 1
         pitch: 1
         isLoop: 0
-    - trackName: Audio Track 2
+    - trackName: "\u97F3\u9891\u8F68\u9053 2"
       isEnabled: 1
       trackIndex: 0
       audioClips:
-      - clipName: 032-033_exp
-        startFrame: 11
-        durationFrame: 17
-        clip: {fileID: 8300000, guid: b327bfd452fdb6c4da680e4e823b0865, type: 3}
+      - clipName: 032-033_hit
+        startFrame: 8
+        durationFrame: 24
+        clip: {fileID: 8300000, guid: a2fb213c8a76ee641b91674426aea94a, type: 3}
         volume: 1
         pitch: 1
         isLoop: 0
     effectTracks:
-    - trackName: 
-      isEnabled: 0
+    - trackName: "\u7279\u6548\u8F68\u9053"
+      isEnabled: 1
       trackIndex: 0
       effectClips:
       - clipName: basicslash
-        startFrame: 6
+        startFrame: 7
         durationFrame: 48
         effectPrefab: {fileID: 6389406066330802589, guid: 5ef8d476ac4025a4e85cc5e7c5004889, type: 3}
         position: {x: 0, y: 0, z: 0}
         rotation: {x: 0, y: 0, z: 0}
         scale: {x: 1, y: 1, z: 1}
-    - trackName: Effect Track 2
+    - trackName: "\u7279\u6548\u8F68\u9053 2"
       isEnabled: 1
       trackIndex: 0
       effectClips:
-      - clipName: LightningSlash
-        startFrame: 15
+      - clipName: fireslash
+        startFrame: 19
         durationFrame: 48
-        effectPrefab: {fileID: 174940048960636371, guid: 80271a6cac0af2d4b91d8f165572ff1d, type: 3}
+        effectPrefab: {fileID: 5942177893964023165, guid: 438c0b7b02dcafa4996592b62d22671f, type: 3}
         position: {x: 0, y: 0, z: 0}
         rotation: {x: 0, y: 0, z: 0}
         scale: {x: 1, y: 1, z: 1}
     injuryDetectionTracks:
-    - trackName: 
-      isEnabled: 0
+    - trackName: "\u4F24\u5BB3\u68C0\u6D4B\u8F68\u9053"
+      isEnabled: 1
       trackIndex: 0
       injuryDetectionClips:
       - clipName: Attack
-        startFrame: 0
-        durationFrame: 5
+        startFrame: 3
+        durationFrame: 3
+        targetLayers:
+          serializedVersion: 2
+          m_Bits: 4294967295
+        isMultiInjuryDetection: 0
+        multiInjuryDetectionInterval: 0.1
+        colliderType: 0
+        innerCircleRadius: 0
+        outerCircleRadius: 1
+        sectorAngle: 0
+        sectorThickness: 0.1
+        position: {x: 0, y: 0, z: 0}
+        rotation: {x: 0, y: 0, z: 0}
+        scale: {x: 1, y: 1, z: 1}
+    - trackName: "\u4F24\u5BB3\u68C0\u6D4B\u8F68\u9053 2"
+      isEnabled: 1
+      trackIndex: 0
+      injuryDetectionClips:
+      - clipName: Attack
+        startFrame: 2
+        durationFrame: 2
         targetLayers:
           serializedVersion: 2
           m_Bits: 4294967295
@@ -101,12 +121,56 @@ MonoBehaviour:
         rotation: {x: 0, y: 0, z: 0}
         scale: {x: 1, y: 1, z: 1}
     eventTracks:
-    - trackName: 
-      isEnabled: 0
+    - trackName: "\u4E8B\u4EF6\u8F68\u9053"
+      isEnabled: 1
       trackIndex: 0
       eventClips:
       - clipName: Event
-        startFrame: 0
+        startFrame: 10
         durationFrame: 5
         eventType: Event
         eventParameters: 
+    transformTracks:
+    - trackName: "\u53D8\u5316\u8F68\u9053"
+      isEnabled: 1
+      trackIndex: 0
+      transformClips:
+      - clipName: Transform
+        startFrame: 5
+        durationFrame: 30
+        enablePosition: 1
+        enableRotation: 0
+        enableScale: 0
+        startPosition: {x: 0, y: 0, z: 0}
+        startRotation: {x: 0, y: 0, z: 0}
+        startScale: {x: 1, y: 1, z: 1}
+        endPosition: {x: 0, y: 0, z: 1}
+        endRotation: {x: 0, y: 0, z: 0}
+        endScale: {x: 1, y: 1, z: 1}
+        curveType: 0
+        customCurve:
+          serializedVersion: 2
+          m_Curve:
+          - serializedVersion: 3
+            time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 1
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 1
+            inSlope: 1
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          m_PreInfinity: 2
+          m_PostInfinity: 2
+          m_RotationOrder: 4
+        isRelative: 0
+        targetObject: {fileID: 0}

@@ -37,6 +37,11 @@
     border-right-color: rgb(42, 116, 206);
 }
 
+.TrackArea-Transform{
+    border-right-width: 1px;
+    border-right-color: rgba(30, 172, 77, 1);
+}
+
 /* 轨道项区域 */
 .TrackItemContent{
     width: auto;
@@ -58,13 +63,13 @@
     -unity-text-align: middle-center;
     -unity-font-style: bold;
     font-size: 10px;
-    min-font-size: 8px;        /* 最小字体大小 */
-    max-font-size: 14px;       /* 最大字体大小 */
-    overflow: hidden;          /* 隐藏超出部分 */
-    white-space: nowrap;       /* 禁止文本换行 */
-    text-overflow: ellipsis;   /* 超出部分显示省略号 */
+    min-font-size: 8px;          /* 最小字体大小 */
+    max-font-size: 14px;         /* 最大字体大小 */
+    overflow: hidden;            /* 隐藏超出部分 */
+    white-space: nowrap;         /* 禁止文本换行 */
+    text-overflow: ellipsis;     /* 超出部分显示省略号 */
     color: rgb(210, 210, 210); /* 默认文字颜色 */
-    transition-property: color; /* 文字颜色过渡动画 */
+    transition-property: color;  /* 文字颜色过渡动画 */
     transition-duration: 0.05s;  /* 过渡时间 */
 }
 
@@ -163,5 +168,20 @@
     background-color: rgba(42, 116, 206, 1.0);
 }
 
+/* 变换轨道项 */
+.TrackItem-Transform{
+    background-color: rgba(30, 172, 77, 0.45);
+    border-left-width: 2px;
+    border-left-color: rgba(30, 172, 77, 1);
+}
 
+/* 变换轨道项 - 鼠标悬停效果 */
+.TrackItem-Transform:hover{
+    background-color: rgba(30, 172, 77, 0.75);
+}
+
+/* 变换轨道项 - 鼠标点击效果 */
+.TrackItem-Transform:active{
+    background-color: rgba(30, 172, 77, 1.0);
+}
 
