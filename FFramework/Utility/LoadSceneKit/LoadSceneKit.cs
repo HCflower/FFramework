@@ -1,155 +1,234 @@
 using UnityEngine.SceneManagement;
-using System.Collections;
+using Cysharp.Threading.Tasks;
 using UnityEngine;
 using System;
 
 namespace FFramework.Kit
 {
     /// <summary>
-    /// 场景加载工具类
+    /// 优化的场景加载工具类
+    /// 功能：同步/异步场景切换，自动卸载旧场景，进度监控，事件回调
     /// </summary>
     public static class LoadSceneKit
     {
         // 当前正在进行的异步操作
-        private static AsyncOperation currentAsyncOp;
+        private static AsyncOperation currentLoadOp;
+        private static AsyncOperation currentUnloadOp;
 
-        // 加载进度(0-1)
-        public static float LoadingProgress => currentAsyncOp?.progress ?? 0;
+        // 状态记录
+        private static string currentSceneName;
+        private static string previousSceneName;
+        private static bool isProcessing = false;        // 加载进度(0-1)
+        public static float LoadingProgress => currentLoadOp?.progress ?? 0f;
 
-        // 是否正在加载场景
-        public static bool IsLoading => currentAsyncOp != null && !currentAsyncOp.isDone;
+        // 卸载进度(0-1) 
+        public static float UnloadingProgress => currentUnloadOp?.progress ?? 0f;
+
+        // 总进度(0-1) - 加载50% + 卸载50%
+        public static float TotalProgress => (LoadingProgress + UnloadingProgress) * 0.5f;
+
+        // 是否正在处理场景切换
+        public static bool IsProcessing => isProcessing;
 
         /// <summary>
-        /// 同步加载场景
+        /// 同步切换场景
         /// </summary>
-        /// <param name="sceneName">场景名称</param>
-        /// <param name="mode">加载模式</param>
-        public static void LoadScene(string sceneName, LoadSceneMode mode = LoadSceneMode.Single)
+        /// <param name="sceneName">目标场景名称</param>
+        /// <param name="onChangeScene">场景切换开始时的回调（用于显示加载面板等）</param>
+        /// <param name="onComplete">完成回调(是否成功)</param>
+        public static void LoadScene(string sceneName, Action onChangeScene = null, Action<bool> onComplete = null)
         {
-            if (IsLoading)
+            if (isProcessing)
             {
-                Debug.LogWarning($"The scene is loading asynchronously, please do not call synchronous loading at the same time!");
+                Debug.LogWarning("场景正在切换中，请等待当前操作完成！");
+                onComplete?.Invoke(false);
                 return;
             }
 
-            SceneManager.LoadScene(sceneName, mode);
-        }
-
-        /// <summary>
-        /// 异步加载场景
-        /// </summary>
-        /// <param name="sceneName">场景名称</param>
-        /// <param name="onComplete">加载完成回调</param>
-        /// <param name="mode">加载模式</param>
-        /// <param name="allowActivation">是否允许立即激活场景</param>
-        public static void LoadSceneAsync(string sceneName, Action onComplete = null,
-            LoadSceneMode mode = LoadSceneMode.Single, bool allowActivation = false)
-        {
-            if (IsLoading)
+            try
             {
-                Debug.LogWarning($"The scene is already loading, please wait for the current load to complete!");
-                return;
-            }
+                // 触发场景切换事件
+                onChangeScene?.Invoke();
 
-            // 使用协程执行异步加载
-            CoroutineRunner.StartStaticCoroutine(LoadSceneAsyncCoroutine(sceneName, onComplete, mode, allowActivation));
-        }
+                // 记录当前场景
+                previousSceneName = SceneManager.GetActiveScene().name;
 
-        private static IEnumerator LoadSceneAsyncCoroutine(string sceneName, Action onComplete,
-            LoadSceneMode mode, bool allowActivation)
-        {
-            currentAsyncOp = SceneManager.LoadSceneAsync(sceneName, mode);
-            currentAsyncOp.allowSceneActivation = allowActivation;
+                // 同步加载新场景
+                SceneManager.LoadScene(sceneName, LoadSceneMode.Additive);
 
-            // 等待加载完成
-            while (!currentAsyncOp.isDone)
-            {
-                // 如果不允许立即激活，需要手动检查进度
-                if (!allowActivation && currentAsyncOp.progress >= 0.9f)
+                // 设置新场景为激活状态
+                Scene newScene = SceneManager.GetSceneByName(sceneName);
+                if (newScene.IsValid())
                 {
-                    // 此时可以调用 AllowActivation() 来激活场景
-                    AllowActivation();
-                    break;
+                    SceneManager.SetActiveScene(newScene);
+                    currentSceneName = sceneName;
+
+                    // 卸载旧场景
+                    if (!string.IsNullOrEmpty(previousSceneName) && previousSceneName != sceneName)
+                    {
+                        SceneManager.UnloadSceneAsync(previousSceneName);
+                    }
+
+                    onComplete?.Invoke(true);
                 }
-                yield return null;
+                else
+                {
+                    Debug.LogError($"场景 {sceneName} 加载失败！");
+                    onComplete?.Invoke(false);
+                }
             }
-
-            currentAsyncOp = null;
-            onComplete?.Invoke();
-        }
-
-        //允许激活已加载的场景(当allowActivation=false时使用)
-        public static void AllowActivation()
-        {
-            if (currentAsyncOp != null)
+            catch (Exception e)
             {
-                currentAsyncOp.allowSceneActivation = true;
+                Debug.LogError($"场景切换失败: {e.Message}");
+                onComplete?.Invoke(false);
             }
         }
 
         /// <summary>
-        /// 获取场景加载进度(0-1)
+        /// 异步切换场景
         /// </summary>
-        public static float GetLoadingProgress()
+        /// <param name="sceneName">目标场景名称</param>
+        /// <param name="onChangeScene">场景切换开始时的回调（用于显示加载面板等）</param>
+        /// <param name="onComplete">完成回调(是否成功)</param>
+        public static void LoadSceneAsync(string sceneName, Action onChangeScene = null, Action<bool> onComplete = null)
         {
-            return LoadingProgress;
+            if (isProcessing)
+            {
+                Debug.LogWarning("场景正在切换中，请等待当前操作完成！");
+                onComplete?.Invoke(false);
+                return;
+            }
+
+            // 使用UniTask执行异步切换
+            LoadSceneAsyncTask(sceneName, onChangeScene, onComplete).Forget();
         }
 
         /// <summary>
-        /// 同步卸载场景（实际上是等待异步卸载完成）
+        /// 异步切换场景 - UniTask版本
         /// </summary>
-        /// <param name="sceneName">场景名称</param>
-        /// <returns>是否成功卸载</returns>
-        public static bool UnloadScene(string sceneName)
+        /// <param name="sceneName">目标场景名称</param>
+        /// <param name="onChangeScene">场景切换开始时的回调</param>
+        /// <param name="onComplete">完成回调</param>
+        public static async UniTask<bool> LoadSceneAsyncTask(string sceneName, Action onChangeScene = null, Action<bool> onComplete = null)
         {
-            if (IsLoading)
+            if (isProcessing)
             {
-                Debug.LogWarning($"Loading the scene asynchronously, do not call uninstall at the same time!");
+                Debug.LogWarning("场景正在切换中，请等待当前操作完成！");
+                onComplete?.Invoke(false);
                 return false;
             }
 
-            return SceneManager.UnloadSceneAsync(sceneName).isDone;
+            isProcessing = true;
+            bool success = false;
+
+            try
+            {
+                // 触发场景切换事件
+                onChangeScene?.Invoke();
+
+                // 记录当前场景
+                previousSceneName = SceneManager.GetActiveScene().name;
+
+                // 第一阶段：异步加载新场景
+                currentLoadOp = SceneManager.LoadSceneAsync(sceneName, LoadSceneMode.Additive);
+                if (currentLoadOp == null)
+                {
+                    Debug.LogError($"无法开始加载场景: {sceneName}");
+                    isProcessing = false;
+                    onComplete?.Invoke(false);
+                    return false;
+                }
+
+                currentLoadOp.allowSceneActivation = false;
+
+                // 等待加载到90%
+                await UniTask.WaitUntil(() => currentLoadOp.progress >= 0.9f);
+
+                // 激活新场景
+                currentLoadOp.allowSceneActivation = true;
+
+                // 等待加载完全完成
+                await currentLoadOp.ToUniTask();
+
+                // 设置新场景为激活状态
+                Scene newScene = SceneManager.GetSceneByName(sceneName);
+                if (newScene.IsValid())
+                {
+                    SceneManager.SetActiveScene(newScene);
+                    currentSceneName = sceneName;
+
+                    // 第二阶段：卸载旧场景
+                    if (!string.IsNullOrEmpty(previousSceneName) && previousSceneName != sceneName)
+                    {
+                        currentUnloadOp = SceneManager.UnloadSceneAsync(previousSceneName);
+
+                        if (currentUnloadOp != null)
+                        {
+                            // 等待卸载完成
+                            await currentUnloadOp.ToUniTask();
+                        }
+                    }
+
+                    success = true;
+                }
+                else
+                {
+                    Debug.LogError($"场景 {sceneName} 加载失败！");
+                }
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"异步场景切换失败: {e.Message}");
+            }
+            finally
+            {
+                // 清理操作引用
+                currentLoadOp = null;
+                currentUnloadOp = null;
+                isProcessing = false;
+
+                onComplete?.Invoke(success);
+            }
+
+            return success;
+        }        /// <summary>
+                 /// 获取当前场景名称
+                 /// </summary>
+        public static string GetCurrentSceneName()
+        {
+            return currentSceneName ?? SceneManager.GetActiveScene().name;
         }
 
         /// <summary>
-        /// 异步卸载场景
+        /// 获取加载阶段进度(0-0.5)
         /// </summary>
-        /// <param name="sceneName">场景名称</param>
-        /// <param name="onComplete">卸载完成回调</param>
-        public static void UnloadSceneAsync(string sceneName, Action<bool> onComplete = null)
+        public static float GetLoadProgress()
         {
-            if (IsLoading)
-            {
-                Debug.LogWarning($"The scene is already loading, please wait for the current load to complete!");
-                onComplete?.Invoke(false);
-                return;
-            }
-            // 使用协程执行异步卸载
-            CoroutineRunner.StartStaticCoroutine(UnloadSceneAsyncCoroutine(sceneName, onComplete));
+            return LoadingProgress * 0.5f;
         }
 
-        //卸载场景协程
-        private static IEnumerator UnloadSceneAsyncCoroutine(string sceneName, Action<bool> onComplete)
+        /// <summary>
+        /// 获取卸载阶段进度(0-0.5)
+        /// </summary>
+        public static float GetUnloadProgress()
         {
-            // 检查场景是否已加载
-            Scene sceneToUnload = SceneManager.GetSceneByName(sceneName);
-            if (!sceneToUnload.IsValid())
-            {
-                Debug.LogWarning($"Scene {sceneName} does not exist or is not loaded, cannot be uninstalled!！");
-                onComplete?.Invoke(false);
-                yield break;
-            }
+            return UnloadingProgress * 0.5f;
+        }
 
-            currentAsyncOp = SceneManager.UnloadSceneAsync(sceneName);
+        /// <summary>
+        /// 获取总进度(0-1)
+        /// </summary>
+        public static float GetTotalProgress()
+        {
+            return TotalProgress;
+        }
 
-            // 等待卸载完成
-            while (currentAsyncOp != null && !currentAsyncOp.isDone)
-            {
-                yield return null;
-            }
-
-            currentAsyncOp = null;
-            onComplete?.Invoke(true);
+        /// <summary>
+        /// 获取进度详情
+        /// </summary>
+        public static (float load, float unload, float total) GetProgressDetails()
+        {
+            return (LoadingProgress, UnloadingProgress, TotalProgress);
         }
     }
 }
