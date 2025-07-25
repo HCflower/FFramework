@@ -452,7 +452,6 @@ namespace FFramework.Kit
             [Tooltip("动画曲线类型")] public AnimationCurveType curveType = AnimationCurveType.Linear;
             [Tooltip("自定义动画曲线")] public AnimationCurve customCurve = AnimationCurve.Linear(0, 0, 1, 1);
             [Tooltip("是否相对于当前变换")] public bool isRelative = false;
-            [Tooltip("目标对象（为空则影响技能拥有者）")] public GameObject targetObject;
 
             /// <summary>
             /// 根据时间进度获取插值后的位置

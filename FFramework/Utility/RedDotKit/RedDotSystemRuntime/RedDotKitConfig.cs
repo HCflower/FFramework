@@ -32,17 +32,12 @@ namespace FFramework.Kit
             [Tooltip("当前节点Key")] public RedDotKey nodeKey;
             [Tooltip("红点数量"), Min(0)] public int redDotCount = 0;
             [Tooltip("是否显示数量")] public bool isShowRedDotCount = true;
+            [Tooltip("是否激活")] public bool isActive = true;
             [Tooltip("当前节点的父节点Key")] public List<RedDotKey> parentKeys = new List<RedDotKey>();
         }
 
         [Serializable]
         private class SerializedData
-        {
-            public List<TreeDefinition> RedDotTrees;
-        }
-
-        [Serializable]
-        private class Wrapper
         {
             public List<TreeDefinition> RedDotTrees;
         }
@@ -118,8 +113,8 @@ namespace FFramework.Kit
                 if (System.IO.File.Exists(loadPath))
                 {
                     string json = System.IO.File.ReadAllText(loadPath);
-                    var wrapper = JsonUtility.FromJson<Wrapper>(json);
-                    RedDotTrees = wrapper.RedDotTrees;
+                    var data = JsonUtility.FromJson<SerializedData>(json);
+                    RedDotTrees = data.RedDotTrees;
 
                     // 更新configJsonPath为实际加载的路径
                     configJsonPath = loadPath;

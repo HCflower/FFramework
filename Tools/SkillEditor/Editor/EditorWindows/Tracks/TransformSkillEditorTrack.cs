@@ -166,7 +166,6 @@ namespace SkillEditor
                 clipName = transformName,
                 startFrame = startFrame,
                 durationFrame = frameCount,
-                targetObject = targetObject,
                 enablePosition = true,
                 enableRotation = false,
                 enableScale = false,

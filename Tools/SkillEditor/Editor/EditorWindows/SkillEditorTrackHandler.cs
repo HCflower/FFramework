@@ -1004,7 +1004,6 @@ namespace SkillEditor
                         transformData.curveType = clip.curveType;
                         transformData.customCurve = clip.customCurve;
                         transformData.isRelative = clip.isRelative;
-                        transformData.targetObject = clip.targetObject;
 
                         // 标记数据已修改
                         UnityEditor.EditorUtility.SetDirty(transformData);
