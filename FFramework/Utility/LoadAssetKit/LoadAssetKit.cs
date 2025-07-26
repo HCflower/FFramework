@@ -1,5 +1,6 @@
 using System.Collections.Generic;
-using System.Collections;
+using Cysharp.Threading.Tasks;
+using System.Threading;
 using UnityEngine;
 using System;
 
@@ -7,7 +8,6 @@ namespace FFramework.Kit
 {
     /// <summary>
     /// 资源加载工具
-    /// TODO:待测试 
     /// </summary>
     public static class LoadAssetKit
     {
@@ -75,26 +75,55 @@ namespace FFramework.Kit
             // 异步加载模式
             else
             {
-                CoroutineRunner.StartStaticCoroutine(LoadAssetAsyncFromRes(resPath, callback, isCache));
+                LoadAssetAsyncFromRes(resPath, callback, isCache, CancellationToken.None).Forget();
                 return null;
             }
         }
 
+        /// <summary>
+        /// 从Resource文件夹异步加载资源
+        /// </summary>
+        /// <typeparam name="T">资源类型</typeparam>
+        /// <param name="resPath">资源路径</param>
+        /// <param name="isCache">是否缓存</param>
+        /// <param name="cancellationToken">取消令牌</param>
+        /// <returns>加载的资源</returns>
+        public static async UniTask<T> LoadAssetFromResAsync<T>(string resPath, bool isCache = true, CancellationToken cancellationToken = default) where T : UnityEngine.Object
+        {
+            // 参数检查
+            if (string.IsNullOrEmpty(resPath))
+            {
+                Debug.LogError("[LoadAssetKit]:The resource path cannot be empty!");
+                return null;
+            }
+
+            // 检查缓存
+            if (assetCacheDic.TryGetValue(resPath, out var cachedAsset))
+            {
+                return cachedAsset as T;
+            }
+
+            var asset = await LoadAssetAsyncFromRes<T>(resPath, null, isCache, cancellationToken);
+            return asset;
+        }
+
         // 异步加载协程
-        private static IEnumerator LoadAssetAsyncFromRes<T>(string resPath, Action<T> callback, bool isCache = true) where T : UnityEngine.Object
+        private static async UniTask<T> LoadAssetAsyncFromRes<T>(string resPath, Action<T> callback, bool isCache = true, CancellationToken cancellationToken = default) where T : UnityEngine.Object
         {
             ResourceRequest request = Resources.LoadAsync<T>(resPath);
-            yield return request;
+            await request.ToUniTask(cancellationToken: cancellationToken);
 
             if (request.asset == null)
             {
                 Debug.LogError($"[ResourceLoader]:Asynchronous load failure:{resPath} (Type: {typeof(T)})");
                 callback?.Invoke(null);
-                yield break;
+                return null;
             }
 
             if (isCache) assetCacheDic[resPath] = request.asset;
-            callback?.Invoke(request.asset as T);
+            var result = request.asset as T;
+            callback?.Invoke(result);
+            return result;
         }
 
         // 统一处理结果返回
@@ -115,9 +144,40 @@ namespace FFramework.Kit
         //包依赖
         private static AssetBundleManifest manifest = null;
         //AB加载路径
-        private static string loadPathUrl => Application.persistentDataPath + "/";
+        private static string loadPathUrl = Application.persistentDataPath + "/";
         //AssetBundle包管理字典
         private static readonly Dictionary<string, AssetBundleData> assetBundleDic = new Dictionary<string, AssetBundleData>();
+
+        /// <summary>
+        /// 设置AssetBundle加载路径
+        /// </summary>
+        /// <param name="path">新的加载路径（需要以 "/" 结尾）</param>
+        public static void SetAssetBundleLoadPath(string path)
+        {
+            if (string.IsNullOrEmpty(path))
+            {
+                Debug.LogError("[LoadAssetKit]: AssetBundle load path cannot be null or empty!");
+                return;
+            }
+
+            // 确保路径以 "/" 结尾
+            if (!path.EndsWith("/"))
+            {
+                path += "/";
+            }
+
+            loadPathUrl = path;
+            Debug.Log($"[LoadAssetKit]: AssetBundle load path set to: {loadPathUrl}");
+        }
+
+        /// <summary>
+        /// 获取当前AssetBundle加载路径
+        /// </summary>
+        /// <returns>当前加载路径</returns>
+        public static string GetAssetBundleLoadPath()
+        {
+            return loadPathUrl;
+        }
 
         //AssetBundle包数据类
         public class AssetBundleData
@@ -303,17 +363,29 @@ namespace FFramework.Kit
         /// </summary>
         public static void LoadResAsync(string abName, string resName, Action<UnityEngine.Object> callBack)
         {
-            CoroutineRunner.StartStaticCoroutine(ReallyLoadResAsync(abName, resName, callBack));
+            ReallyLoadResAsync(abName, resName, callBack, CancellationToken.None).Forget();
+        }
+
+        /// <summary>
+        /// 异步加载方法
+        /// abName -> AssetBundle包名
+        /// resName -> 资源名
+        /// cancellationToken -> 取消令牌
+        /// </summary>
+        public static async UniTask<UnityEngine.Object> LoadResAsync(string abName, string resName, CancellationToken cancellationToken = default)
+        {
+            return await ReallyLoadResAsync(abName, resName, null, cancellationToken);
         }
 
         //异步加载资源
-        private static IEnumerator ReallyLoadResAsync(string abName, string resName, Action<UnityEngine.Object> callBack)
+        private static async UniTask<UnityEngine.Object> ReallyLoadResAsync(string abName, string resName, Action<UnityEngine.Object> callBack, CancellationToken cancellationToken = default)
         {
             LoadAssetBundle(abName);
             //加载资源
             AssetBundleRequest requestObj = assetBundleDic[abName].AssetBundle.LoadAssetAsync(resName);
-            yield return requestObj;
-            callBack(requestObj.asset);
+            await requestObj.ToUniTask(cancellationToken: cancellationToken);
+            callBack?.Invoke(requestObj.asset);
+            return requestObj.asset;
         }
 
         /// <summary>
@@ -325,17 +397,30 @@ namespace FFramework.Kit
         /// </summary>
         public static void LoadResAsync(string abName, string resName, System.Type type, Action<UnityEngine.Object> callBack)
         {
-            CoroutineRunner.StartStaticCoroutine(ReallyLoadResAsync(abName, resName, type, callBack));
+            ReallyLoadResAsync(abName, resName, type, callBack, CancellationToken.None).Forget();
+        }
+
+        /// <summary>
+        /// 异步加载方法(Lua中常用)
+        /// abName -> AssetBundle包名
+        /// resName -> 资源名
+        /// type -> 资源类型 
+        /// cancellationToken -> 取消令牌
+        /// </summary>
+        public static async UniTask<UnityEngine.Object> LoadResAsync(string abName, string resName, System.Type type, CancellationToken cancellationToken = default)
+        {
+            return await ReallyLoadResAsync(abName, resName, type, null, cancellationToken);
         }
 
         //异步加载资源
-        private static IEnumerator ReallyLoadResAsync(string abName, string resName, System.Type type, Action<UnityEngine.Object> callBack)
+        private static async UniTask<UnityEngine.Object> ReallyLoadResAsync(string abName, string resName, System.Type type, Action<UnityEngine.Object> callBack, CancellationToken cancellationToken = default)
         {
             LoadAssetBundle(abName);
             //加载资源
             AssetBundleRequest requestObj = assetBundleDic[abName].AssetBundle.LoadAssetAsync(resName, type);
-            yield return requestObj;
-            callBack(requestObj.asset);
+            await requestObj.ToUniTask(cancellationToken: cancellationToken);
+            callBack?.Invoke(requestObj.asset);
+            return requestObj.asset;
         }
 
         /// <summary>
@@ -347,17 +432,31 @@ namespace FFramework.Kit
         /// </summary>
         public static void LoadResAsync<T>(string abName, string resName, Action<T> callBack) where T : UnityEngine.Object
         {
-            CoroutineRunner.StartStaticCoroutine(ReallyLoadResAsync<T>(abName, resName, callBack));
+            ReallyLoadResAsync<T>(abName, resName, callBack, CancellationToken.None).Forget();
+        }
+
+        /// <summary>
+        /// 异步加载方法(C#中常用)
+        /// T -> 资源类型
+        /// abName -> AssetBundle包名
+        /// resName -> 资源名
+        /// cancellationToken -> 取消令牌
+        /// </summary>
+        public static async UniTask<T> LoadResAsync<T>(string abName, string resName, CancellationToken cancellationToken = default) where T : UnityEngine.Object
+        {
+            return await ReallyLoadResAsync<T>(abName, resName, null, cancellationToken);
         }
 
         //异步加载资源
-        private static IEnumerator ReallyLoadResAsync<T>(string abName, string resName, Action<T> callBack) where T : UnityEngine.Object
+        private static async UniTask<T> ReallyLoadResAsync<T>(string abName, string resName, Action<T> callBack, CancellationToken cancellationToken = default) where T : UnityEngine.Object
         {
             LoadAssetBundle(abName);
             //加载资源
             AssetBundleRequest requestObj = assetBundleDic[abName].AssetBundle.LoadAssetAsync<T>(resName);
-            yield return requestObj;
-            callBack(requestObj.asset as T);
+            await requestObj.ToUniTask(cancellationToken: cancellationToken);
+            var result = requestObj.asset as T;
+            callBack?.Invoke(result);
+            return result;
         }
 
         #endregion
@@ -405,6 +504,21 @@ namespace FFramework.Kit
             assetBundleDic.Clear();
             mainAssetBundle = null;
             manifest = null;
+            isLoadMainAssetBundle = false;
+        }
+
+        /// <summary>
+        /// 清理所有缓存（包括Resources和AssetBundle）
+        /// </summary>
+        public static void ClearAllCache()
+        {
+            // 清理Resources缓存
+            ClearCache();
+
+            // 清理AssetBundle缓存
+            UnLoadAllAssetBundle();
+
+            Debug.Log("[LoadAssetKit]: All caches cleared.");
         }
 
         #endregion
