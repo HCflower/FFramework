@@ -49,8 +49,8 @@ namespace SkillEditor
             if (!(resource is string eventName))
                 return null;
 
-            // 事件轨道项默认5帧长度
-            int frameCount = 5;
+            // 事件轨道项默认1帧长度
+            int frameCount = 1;
             var newItem = new SkillEditorTrackItem(trackArea, eventName, trackType, frameCount, startFrame);
 
             // 添加到技能配置

@@ -113,6 +113,9 @@ namespace FFramework.Kit
         [Header("变换轨道(多轨道并行)")]
         public List<TransformTrack> transformTracks = new List<TransformTrack>();
 
+        [Header("摄像机轨道(单轨道)")]
+        public CameraTrack cameraTrack;
+
         /// <summary>
         /// 获取所有轨道
         /// </summary>
@@ -124,6 +127,7 @@ namespace FFramework.Kit
             foreach (var track in injuryDetectionTracks) yield return track;
             foreach (var track in eventTracks) yield return track;
             foreach (var track in transformTracks) yield return track;
+            yield return cameraTrack;
         }
 
         /// <summary>
@@ -156,6 +160,8 @@ namespace FFramework.Kit
                 eventTracks.Add(eventTrack);
             else if (track is TransformTrack transformTrack)
                 transformTracks.Add(transformTrack);
+            else if (track is CameraTrack cameraTrackItem)
+                cameraTrack = cameraTrackItem;
 
             return track;
         }
@@ -528,6 +534,117 @@ namespace FFramework.Kit
         [Tooltip("缓出")] EaseOut,
         [Tooltip("缓入缓出")] EaseInOut,
         [Tooltip("自定义曲线")] Custom
+    }
+
+    /// <summary>
+    /// 摄像机轨道 - 控制摄像机的移动、旋转和视野变化
+    /// </summary>
+    [Serializable]
+    public class CameraTrack : TrackBase
+    {
+        public List<CameraClip> cameraClips = new List<CameraClip>();
+
+        public CameraTrack()
+        {
+            trackName = "Camera";
+        }
+
+        public override float GetTrackDuration(float frameRate)
+        {
+            int maxFrame = 0;
+            foreach (var clip in cameraClips)
+            {
+                maxFrame = Mathf.Max(maxFrame, clip.EndFrame);
+            }
+            return maxFrame / frameRate;
+        }
+
+        [Serializable]
+        public class CameraClip : ClipBase
+        {
+            [Header("摄像机类型")]
+            [Tooltip("是否启用位置变换")] public bool enablePosition = true;
+            [Tooltip("是否启用旋转变换")] public bool enableRotation = true;
+            [Tooltip("是否启用视野变换")] public bool enableFieldOfView = false;
+
+            [Header("起始状态")]
+            [Tooltip("起始位置")] public Vector3 startPosition = Vector3.zero;
+            [Tooltip("起始旋转")] public Vector3 startRotation = Vector3.zero;
+            [Tooltip("起始视野角度")] public float startFieldOfView = 60f;
+
+            [Header("目标状态")]
+            [Tooltip("目标位置")] public Vector3 endPosition = Vector3.zero;
+            [Tooltip("目标旋转")] public Vector3 endRotation = Vector3.zero;
+            [Tooltip("目标视野角度")] public float endFieldOfView = 60f;
+
+            [Header("动画设置")]
+            [Tooltip("动画曲线类型")] public AnimationCurveType curveType = AnimationCurveType.Linear;
+            [Tooltip("自定义动画曲线")] public AnimationCurve customCurve = AnimationCurve.Linear(0, 0, 1, 1);
+            [Tooltip("是否相对于当前状态")] public bool isRelative = false;
+
+            /// <summary>
+            /// 根据时间进度获取插值后的位置
+            /// </summary>
+            /// <param name="progress">时间进度 (0-1)</param>
+            /// <returns>插值后的位置</returns>
+            public Vector3 GetInterpolatedPosition(float progress)
+            {
+                if (!enablePosition) return startPosition;
+
+                float curveValue = GetCurveValue(progress);
+                return Vector3.Lerp(startPosition, endPosition, curveValue);
+            }
+
+            /// <summary>
+            /// 根据时间进度获取插值后的旋转
+            /// </summary>
+            /// <param name="progress">时间进度 (0-1)</param>
+            /// <returns>插值后的旋转</returns>
+            public Vector3 GetInterpolatedRotation(float progress)
+            {
+                if (!enableRotation) return startRotation;
+
+                float curveValue = GetCurveValue(progress);
+                return Vector3.Lerp(startRotation, endRotation, curveValue);
+            }
+
+            /// <summary>
+            /// 根据时间进度获取插值后的视野角度
+            /// </summary>
+            /// <param name="progress">时间进度 (0-1)</param>
+            /// <returns>插值后的视野角度</returns>
+            public float GetInterpolatedFieldOfView(float progress)
+            {
+                if (!enableFieldOfView) return startFieldOfView;
+
+                float curveValue = GetCurveValue(progress);
+                return Mathf.Lerp(startFieldOfView, endFieldOfView, curveValue);
+            }
+
+            /// <summary>
+            /// 根据曲线类型和进度获取曲线值
+            /// </summary>
+            /// <param name="progress">时间进度 (0-1)</param>
+            /// <returns>曲线值</returns>
+            private float GetCurveValue(float progress)
+            {
+                switch (curveType)
+                {
+                    case AnimationCurveType.Linear:
+                        return progress;
+                    case AnimationCurveType.EaseIn:
+                        return progress * progress;
+                    case AnimationCurveType.EaseOut:
+                        return 1f - (1f - progress) * (1f - progress);
+                    case AnimationCurveType.EaseInOut:
+                        return progress < 0.5f ? 2f * progress * progress : 1f - 2f * (1f - progress) * (1f - progress);
+                    case AnimationCurveType.Custom:
+                        return customCurve.Evaluate(progress);
+                    default:
+                        return progress;
+                }
+            }
+        }
     }
 
     #endregion

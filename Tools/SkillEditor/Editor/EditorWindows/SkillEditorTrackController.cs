@@ -109,6 +109,9 @@ namespace SkillEditor
                 case TrackType.TransformTrack:
                     trackControlArea.AddToClassList("TrackControlArea-Transform");
                     break;
+                case TrackType.CameraTrack:
+                    trackControlArea.AddToClassList("TrackControlArea-Camera");
+                    break;
             }
 
             visual.Add(trackControlArea);
@@ -230,6 +233,8 @@ namespace SkillEditor
                     return ("d_BoxCollider Icon", "攻击轨道", true);
                 case TrackType.TransformTrack:
                     return ("d_Transform Icon", "变化轨道", true);
+                case TrackType.CameraTrack:
+                    return ("d_Camera Icon", "相机轨道", true);
                 default:
                     return (null, "未知轨道", false);
             }
@@ -263,7 +268,7 @@ namespace SkillEditor
             });
 
             // 子轨道管理选项（仅特定轨道类型支持）
-            if (TrackType == TrackType.AttackTrack || TrackType == TrackType.EventTrack || TrackType == TrackType.TransformTrack)
+            if (TrackType == TrackType.AttackTrack || TrackType == TrackType.EventTrack || TrackType == TrackType.TransformTrack || TrackType == TrackType.CameraTrack)
             {
                 menu.AddItem(new GUIContent("添加轨道项"), false, () =>
                 {

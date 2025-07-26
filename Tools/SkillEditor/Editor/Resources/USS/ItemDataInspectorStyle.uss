@@ -99,10 +99,10 @@
 /* 分隔线 */
 .Separator{
     max-width: none;  
-    height: 2px;
+    height: 1px;
     margin-top: 1px;
     margin-right:7px;
-    background-color: rgba(255, 255, 255, 0.94);
+    background-color: #585858;
     flex-grow: 0;   /* 不允许扩展 */
     flex-shrink: 0; /* 不允许收缩 */
 }

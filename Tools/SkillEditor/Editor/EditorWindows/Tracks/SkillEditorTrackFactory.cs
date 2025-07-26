@@ -39,6 +39,10 @@ namespace SkillEditor
 
                 case TrackType.TransformTrack:
                     return new TransformSkillEditorTrack(visual, width, skillConfig, trackIndex);
+
+                case TrackType.CameraTrack:
+                    return new CameraSkillEditorTrack(visual, width, skillConfig, trackIndex);
+
                 default:
                     UnityEngine.Debug.LogWarning($"未知的轨道类型: {trackType}");
                     return null;
@@ -72,6 +76,9 @@ namespace SkillEditor
                 case TrackType.TransformTrack:
                     return "变化轨道";
 
+                case TrackType.CameraTrack:
+                    return "摄像机轨道";
+
                 default:
                     return "未知轨道";
             }
@@ -87,7 +94,8 @@ namespace SkillEditor
             switch (trackType)
             {
                 case TrackType.AnimationTrack:
-                    return false; // 动画轨道通常只有一个
+                case TrackType.CameraTrack:
+                    return false; // 动画轨道和摄像机轨道只有一个
 
                 case TrackType.AudioTrack:
                 case TrackType.EffectTrack:

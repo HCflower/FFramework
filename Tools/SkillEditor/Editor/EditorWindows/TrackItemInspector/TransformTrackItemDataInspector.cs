@@ -39,7 +39,6 @@ namespace SkillEditor
             CreateCurveTypeField();
             CreateCurveField("自定义曲线:", "customCurve", OnCustomCurveChanged);
             CreateToggleField("相对变换:", "isRelative", OnIsRelativeChanged);
-            CreateObjectField<GameObject>("目标对象:", "targetObject", OnTargetObjectChanged);
         }
         protected override void PerformDelete()
         {
@@ -155,15 +154,6 @@ namespace SkillEditor
                 // TODO: 同步到配置文件
                 MarkSkillConfigDirty();
             }, "相对变换设置更新");
-        }
-
-        private void OnTargetObjectChanged(GameObject newValue)
-        {
-            SafeExecute(() =>
-            {
-                // TODO: 同步到配置文件
-                MarkSkillConfigDirty();
-            }, "目标对象更新");
         }
 
         private void OnCustomCurveChanged(AnimationCurve newValue)

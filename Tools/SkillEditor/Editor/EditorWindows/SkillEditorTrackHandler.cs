@@ -96,6 +96,9 @@ namespace SkillEditor
             // 检查是否已存在动画轨道（限制只能有一个）
             bool hasAnimationTrack = SkillEditorData.tracks.Exists(t => t.TrackType == TrackType.AnimationTrack);
 
+            // 检查是否已存在摄像机轨道（限制只能有一个）
+            bool hasCameraTrack = SkillEditorData.tracks.Exists(t => t.TrackType == TrackType.CameraTrack);
+
             // 创建动画轨道菜单项
             menu.AddItem(new GUIContent("创建 Animation Track"), hasAnimationTrack, () =>
             {
@@ -103,6 +106,15 @@ namespace SkillEditor
                     CreateTrack(TrackType.AnimationTrack);
                 else
                     Debug.LogWarning("(动画轨道只可存在一条)已存在动画轨道，无法创建新的动画轨道。");
+            });
+
+            // 创建摄像机轨道菜单项
+            menu.AddItem(new GUIContent("创建 Camera Track"), hasCameraTrack, () =>
+            {
+                if (!hasCameraTrack)
+                    CreateTrack(TrackType.CameraTrack);
+                else
+                    Debug.LogWarning("(摄像机轨道只可存在一条)已存在摄像机轨道，无法创建新的摄像机轨道。");
             });
 
             // 创建其他类型轨道菜单项
@@ -164,6 +176,12 @@ namespace SkillEditor
                 CreateTrack(TrackType.AnimationTrack);
             }
 
+            // 检查摄像机轨道
+            if (HasCameraTrackData(skillConfig) && !HasTrackType(TrackType.CameraTrack))
+            {
+                CreateTrack(TrackType.CameraTrack);
+            }
+
             // 为每个音频轨道数据创建对应的UI轨道
             CreateAudioTracksFromConfig(skillConfig);
 
@@ -178,6 +196,8 @@ namespace SkillEditor
 
             // 为每个变换轨道数据创建对应的UI轨道
             CreateTransformTracksFromConfig(skillConfig);
+
+
         }
 
         /// <summary>
@@ -273,6 +293,15 @@ namespace SkillEditor
                     CreateTrackWithIndex(TrackType.TransformTrack, i);
                 }
             }
+        }
+
+        /// <summary>
+        /// 为每个摄像机轨道数据创建对应的UI轨道
+        /// </summary>
+        private void CreateCameraTracksFromConfig(SkillConfig skillConfig)
+        {
+            // 摄像机轨道改为单轨道模式，此方法不再需要
+            // 摄像机轨道的创建逻辑已移至CreateTracksFromConfig方法中的单轨道检查
         }
 
         /// <summary>
@@ -390,6 +419,15 @@ namespace SkillEditor
                         Debug.Log("创建动画轨道数据");
                     }
                     break;
+
+                case TrackType.CameraTrack:
+                    // 摄像机轨道是单轨道，不需要创建新的数据结构
+                    if (skillConfig.trackContainer.cameraTrack == null)
+                    {
+                        skillConfig.trackContainer.cameraTrack = new FFramework.Kit.CameraTrack();
+                        Debug.Log("创建摄像机轨道数据");
+                    }
+                    break;
             }
 
             // 标记配置文件为已修改
@@ -455,6 +493,15 @@ namespace SkillEditor
                         var removedTrack = skillConfig.trackContainer.transformTracks[trackIndex];
                         skillConfig.trackContainer.transformTracks.RemoveAt(trackIndex);
                         Debug.Log($"从配置中删除变换轨道: {removedTrack.trackName} (索引: {trackIndex})");
+                    }
+                    break;
+
+                case TrackType.CameraTrack:
+                    // 摄像机轨道是单轨道，清空数据即可
+                    if (skillConfig.trackContainer.cameraTrack != null)
+                    {
+                        skillConfig.trackContainer.cameraTrack = null;
+                        Debug.Log("从配置中删除摄像机轨道数据");
                     }
                     break;
 
@@ -596,6 +643,10 @@ namespace SkillEditor
                 {
                     info.Track.AddTrackItem("Transform");
                 }
+                else if (info.TrackType == TrackType.CameraTrack)
+                {
+                    info.Track.AddTrackItem("Camera");
+                }
             }
         }
 
@@ -611,6 +662,18 @@ namespace SkillEditor
             bool hasData = skillConfig.trackContainer.animationTrack != null &&
                    skillConfig.trackContainer.animationTrack.animationClips != null &&
                    skillConfig.trackContainer.animationTrack.animationClips.Count > 0;
+
+            return hasData;
+        }
+
+        /// <summary>
+        /// 检查摄像机轨道是否有数据
+        /// </summary>
+        private bool HasCameraTrackData(SkillConfig skillConfig)
+        {
+            bool hasData = skillConfig.trackContainer.cameraTrack != null &&
+                   skillConfig.trackContainer.cameraTrack.cameraClips != null &&
+                   skillConfig.trackContainer.cameraTrack.cameraClips.Count > 0;
 
             return hasData;
         }
@@ -821,6 +884,9 @@ namespace SkillEditor
                 case TrackType.TransformTrack:
                     CreateTransformTrackItemsFromConfigByIndex(track, skillConfig, trackIndex);
                     break;
+                case TrackType.CameraTrack:
+                    CreateCameraTrackItemsFromConfigByIndex(track, skillConfig, trackIndex);
+                    break;
             }
         }
 
@@ -1008,6 +1074,65 @@ namespace SkillEditor
                         // 标记数据已修改
                         UnityEditor.EditorUtility.SetDirty(transformData);
                     }
+
+                    // 更新轨道项的帧数和宽度显示
+                    trackItem?.UpdateFrameCount(clip.durationFrame);
+                }
+            }
+        }
+
+        /// <summary>
+        /// 根据索引从配置创建摄像机轨道项
+        /// </summary>
+        private void CreateCameraTrackItemsFromConfigByIndex(BaseSkillEditorTrack track, SkillConfig skillConfig, int trackIndex)
+        {
+            var cameraTrack = skillConfig.trackContainer.cameraTrack;
+            if (cameraTrack == null)
+            {
+                Debug.Log($"CreateCameraTrackItemsFromConfigByIndex: 没有找到摄像机轨道数据");
+                return;
+            }
+
+            // 摄像机轨道是单轨道，只有trackIndex为0时才处理
+            if (trackIndex != 0)
+            {
+                Debug.Log($"CreateCameraTrackItemsFromConfigByIndex: 摄像机轨道是单轨道，只处理索引0，当前索引为{trackIndex}");
+                return;
+            }
+
+            if (cameraTrack.cameraClips != null)
+            {
+                foreach (var clip in cameraTrack.cameraClips)
+                {
+                    // 从配置加载时，设置addToConfig为false，避免重复添加到配置文件
+                    var trackItem = track.AddTrackItem(clip.clipName, clip.startFrame, false);
+
+                    // 更新轨道项的持续帧数和相关数据
+                    // TODO: 需要创建CameraTrackItemData类
+                    /*
+                    if (trackItem?.ItemData is CameraTrackItemData cameraData)
+                    {
+                        cameraData.durationFrame = clip.durationFrame;
+                        // 从配置中恢复完整的摄像机属性
+                        cameraData.enablePosition = clip.enablePosition;
+                        cameraData.enableRotation = clip.enableRotation;
+                        cameraData.enableFieldOfView = clip.enableFieldOfView;
+                        cameraData.startPosition = clip.startPosition;
+                        cameraData.startRotation = clip.startRotation;
+                        cameraData.startFieldOfView = clip.startFieldOfView;
+                        cameraData.endPosition = clip.endPosition;
+                        cameraData.endRotation = clip.endRotation;
+                        cameraData.endFieldOfView = clip.endFieldOfView;
+                        cameraData.curveType = clip.curveType;
+                        cameraData.customCurve = clip.customCurve;
+                        cameraData.isRelative = clip.isRelative;
+                        cameraData.targetCamera = clip.targetCamera;
+                        cameraData.cameraPath = clip.cameraPath;
+
+                        // 标记数据已修改
+                        UnityEditor.EditorUtility.SetDirty(cameraData);
+                    }
+                    */
 
                     // 更新轨道项的帧数和宽度显示
                     trackItem?.UpdateFrameCount(clip.durationFrame);

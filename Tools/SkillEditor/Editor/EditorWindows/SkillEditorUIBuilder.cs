@@ -627,15 +627,6 @@ namespace SkillEditor
             };
         }
 
-        /// <summary>
-        /// 清理所有轨道数据和UI
-        /// 当配置文件设置为null时调用，清空所有轨道UI和数据
-        /// </summary>
-        private void ClearAllTracks()
-        {
-            trackManager.ClearAllTracks();
-        }
-
         #endregion
 
         #region 通用UI创建方法

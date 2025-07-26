@@ -9,12 +9,12 @@
     padding: 0px;
     border: 0px;
     border-radius: 4px 0px 0px 4px;
-    background-color:#585858;
+    background-color: #606060;
 }
 
 .TrackControlArea-Animation{
     border-left-width: 1px;
-    border-left-color: rgb(42, 184, 206);
+    border-left-color: rgba(42, 206, 173, 1);
 }
 
 .TrackControlArea-Audio{
@@ -34,12 +34,17 @@
 
 .TrackControlArea-Event{
     border-left-width: 1px;
-    border-left-color: rgb(42, 116, 206);
+    border-left-color: rgba(42, 91, 206, 1);
 }
 
 .TrackControlArea-Transform{
     border-left-width: 1px;
     border-left-color: rgba(30, 172, 77, 1);
+}
+
+.TrackControlArea-Camera{
+    border-left-width: 1px;
+    border-left-color: rgba(42, 154, 206, 1);
 }
 
 /* 轨道控制区域 */

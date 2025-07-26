@@ -139,6 +139,9 @@ namespace SkillEditor
                 case TrackType.TransformTrack:
                     trackArea.AddToClassList("TrackArea-Transform");
                     break;
+                case TrackType.CameraTrack:
+                    trackArea.AddToClassList("TrackArea-Camera");
+                    break;
             }
 
             // 应用特定样式

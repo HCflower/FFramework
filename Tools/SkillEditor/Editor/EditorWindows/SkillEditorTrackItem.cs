@@ -251,6 +251,7 @@ namespace SkillEditor
                 TrackType.EventTrack => "TrackItem-Event",
                 TrackType.AttackTrack => "TrackItem-Attack",
                 TrackType.TransformTrack => "TrackItem-Transform",
+                TrackType.CameraTrack => "TrackItem-Camera",
                 _ => ""
             };
         }
@@ -421,6 +422,9 @@ namespace SkillEditor
                     return CreateAttackTrackItemData(itemName);
                 case TrackType.TransformTrack:
                     return CreateTransformTrackItemData(itemName);
+                case TrackType.CameraTrack:
+                    // TODO: 需要创建CreateCameraTrackItemData方法
+                    return null; // return CreateCameraTrackItemData(itemName);
                 default:
                     return null;
             }

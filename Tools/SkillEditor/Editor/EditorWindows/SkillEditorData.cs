@@ -161,6 +161,8 @@ namespace SkillEditor
         EventTrack,
         /// <summary>Transform轨道 - 处理物体的位移、旋转和缩放</summary>
         TransformTrack,
+        /// <summary>摄像机轨道 - 处理摄像机的移动、旋转和视野变化</summary>
+        CameraTrack,
     }
 
     /// <summary>
