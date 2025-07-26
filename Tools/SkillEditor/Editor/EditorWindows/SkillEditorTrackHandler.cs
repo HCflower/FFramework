@@ -123,6 +123,7 @@ namespace SkillEditor
             menu.AddItem(new GUIContent("创建 Attack Track"), false, () => CreateTrack(TrackType.AttackTrack));
             menu.AddItem(new GUIContent("创建 Event Track"), false, () => CreateTrack(TrackType.EventTrack));
             menu.AddItem(new GUIContent("创建 Transform Track"), false, () => CreateTrack(TrackType.TransformTrack));
+            menu.AddItem(new GUIContent("创建 GameObject Track"), false, () => CreateTrack(TrackType.GameObjectTrack));
 
             // 在按钮下方显示菜单
             var rect = button.worldBound;
@@ -196,6 +197,9 @@ namespace SkillEditor
 
             // 为每个变换轨道数据创建对应的UI轨道
             CreateTransformTracksFromConfig(skillConfig);
+
+            // 为每个游戏物体轨道数据创建对应的UI轨道
+            CreateGameObjectTracksFromConfig(skillConfig);
 
 
         }
@@ -291,6 +295,23 @@ namespace SkillEditor
                 if (transformTrackData?.transformClips != null && transformTrackData.transformClips.Count > 0)
                 {
                     CreateTrackWithIndex(TrackType.TransformTrack, i);
+                }
+            }
+        }
+
+        /// <summary>
+        /// 为每个游戏物体轨道数据创建对应的UI轨道
+        /// </summary>
+        private void CreateGameObjectTracksFromConfig(SkillConfig skillConfig)
+        {
+            if (skillConfig?.trackContainer?.gameObjectTracks == null) return;
+
+            for (int i = 0; i < skillConfig.trackContainer.gameObjectTracks.Count; i++)
+            {
+                var gameObjectTrackData = skillConfig.trackContainer.gameObjectTracks[i];
+                if (gameObjectTrackData?.gameObjectClips != null && gameObjectTrackData.gameObjectClips.Count > 0)
+                {
+                    CreateTrackWithIndex(TrackType.GameObjectTrack, i);
                 }
             }
         }
@@ -428,6 +449,20 @@ namespace SkillEditor
                         Debug.Log("创建摄像机轨道数据");
                     }
                     break;
+
+                case TrackType.GameObjectTrack:
+                    // 确保游戏物体轨道列表有足够的元素
+                    while (skillConfig.trackContainer.gameObjectTracks.Count <= trackIndex)
+                    {
+                        var newGameObjectTrack = new FFramework.Kit.GameObjectTrack();
+                        // 使用当前列表长度作为新轨道的索引来生成名称
+                        int currentTrackIndex = skillConfig.trackContainer.gameObjectTracks.Count;
+                        string factoryTrackName = SkillEditorTrackFactory.GetDefaultTrackName(TrackType.GameObjectTrack, currentTrackIndex);
+                        newGameObjectTrack.trackName = factoryTrackName;
+                        skillConfig.trackContainer.gameObjectTracks.Add(newGameObjectTrack);
+                        Debug.Log($"创建游戏物体轨道数据: {newGameObjectTrack.trackName} (索引: {currentTrackIndex})");
+                    }
+                    break;
             }
 
             // 标记配置文件为已修改
@@ -511,6 +546,16 @@ namespace SkillEditor
                     {
                         skillConfig.trackContainer.animationTrack = null;
                         Debug.Log("从配置中删除动画轨道数据");
+                    }
+                    break;
+
+                case TrackType.GameObjectTrack:
+                    if (skillConfig.trackContainer.gameObjectTracks != null &&
+                        trackIndex < skillConfig.trackContainer.gameObjectTracks.Count)
+                    {
+                        var removedTrack = skillConfig.trackContainer.gameObjectTracks[trackIndex];
+                        skillConfig.trackContainer.gameObjectTracks.RemoveAt(trackIndex);
+                        Debug.Log($"从配置中删除游戏物体轨道: {removedTrack.trackName} (索引: {trackIndex})");
                     }
                     break;
             }
@@ -643,10 +688,6 @@ namespace SkillEditor
                 {
                     info.Track.AddTrackItem("Transform");
                 }
-                else if (info.TrackType == TrackType.CameraTrack)
-                {
-                    info.Track.AddTrackItem("Camera");
-                }
             }
         }
 
@@ -716,6 +757,16 @@ namespace SkillEditor
             return skillConfig.trackContainer.eventTracks != null &&
                    skillConfig.trackContainer.eventTracks.Count > 0 &&
                    skillConfig.trackContainer.eventTracks.Any(track => track.eventClips != null && track.eventClips.Count > 0);
+        }
+
+        /// <summary>
+        /// 检查游戏物体轨道是否有数据
+        /// </summary>
+        private bool HasGameObjectTrackData(SkillConfig skillConfig)
+        {
+            return skillConfig.trackContainer.gameObjectTracks != null &&
+                   skillConfig.trackContainer.gameObjectTracks.Count > 0 &&
+                   skillConfig.trackContainer.gameObjectTracks.Any(track => track.gameObjectClips != null && track.gameObjectClips.Count > 0);
         }
 
 
@@ -886,6 +937,9 @@ namespace SkillEditor
                     break;
                 case TrackType.CameraTrack:
                     CreateCameraTrackItemsFromConfigByIndex(track, skillConfig, trackIndex);
+                    break;
+                case TrackType.GameObjectTrack:
+                    CreateGameObjectTrackItemsFromConfigByIndex(track, skillConfig, trackIndex);
                     break;
             }
         }
@@ -1136,6 +1190,50 @@ namespace SkillEditor
 
                     // 更新轨道项的帧数和宽度显示
                     trackItem?.UpdateFrameCount(clip.durationFrame);
+                }
+            }
+        }
+
+        /// <summary>
+        /// 根据索引从配置创建游戏物体轨道项
+        /// </summary>
+        private void CreateGameObjectTrackItemsFromConfigByIndex(BaseSkillEditorTrack track, SkillConfig skillConfig, int trackIndex)
+        {
+            var gameObjectTracks = skillConfig.trackContainer.gameObjectTracks;
+            if (gameObjectTracks == null || trackIndex >= gameObjectTracks.Count)
+            {
+                Debug.Log($"CreateGameObjectTrackItemsFromConfigByIndex: 没有找到索引{trackIndex}的游戏物体轨道数据");
+                return;
+            }
+
+            var gameObjectTrack = gameObjectTracks[trackIndex];
+            // Debug.Log($"CreateGameObjectTrackItemsFromConfigByIndex: 为游戏物体轨道索引{trackIndex}加载{gameObjectTrack.gameObjectClips?.Count ?? 0}个游戏物体片段");
+
+            if (gameObjectTrack.gameObjectClips != null)
+            {
+                foreach (var clip in gameObjectTrack.gameObjectClips)
+                {
+                    if (clip.prefab != null)
+                    {
+                        // Debug.Log($"  - 加载游戏物体片段: {clip.clipName} (起始帧: {clip.startFrame})");
+                        // 从配置加载时，使用配置中的名称，并设置addToConfig为false，避免重复添加到配置文件
+                        var trackItem = track.AddTrackItem(clip.prefab, clip.clipName, clip.startFrame, false);
+
+                        // 从配置中恢复完整的游戏物体属性
+                        if (trackItem?.ItemData is GameObjectTrackItemData gameObjectData)
+                        {
+                            gameObjectData.autoDestroy = clip.autoDestroy;
+                            gameObjectData.positionOffset = clip.positionOffset;
+                            gameObjectData.rotationOffset = clip.rotationOffset;
+                            gameObjectData.scale = clip.scale;
+                            gameObjectData.useParent = clip.useParent;
+                            gameObjectData.parentName = clip.parentName;
+                            gameObjectData.destroyDelay = clip.destroyDelay;
+
+                            // 标记数据已修改
+                            UnityEditor.EditorUtility.SetDirty(gameObjectData);
+                        }
+                    }
                 }
             }
         }

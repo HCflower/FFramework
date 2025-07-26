@@ -116,6 +116,9 @@ namespace FFramework.Kit
         [Header("摄像机轨道(单轨道)")]
         public CameraTrack cameraTrack;
 
+        [Header("游戏物体轨道(多轨道并行)")]
+        public List<GameObjectTrack> gameObjectTracks = new List<GameObjectTrack>();
+
         /// <summary>
         /// 获取所有轨道
         /// </summary>
@@ -128,6 +131,7 @@ namespace FFramework.Kit
             foreach (var track in eventTracks) yield return track;
             foreach (var track in transformTracks) yield return track;
             yield return cameraTrack;
+            foreach (var track in gameObjectTracks) yield return track;
         }
 
         /// <summary>
@@ -644,6 +648,48 @@ namespace FFramework.Kit
                         return progress;
                 }
             }
+        }
+    }
+
+    /// <summary>
+    /// 游戏物体轨道 - 支持多轨道并行
+    /// </summary>
+    [Serializable]
+    public class GameObjectTrack : TrackBase
+    {
+        public List<GameObjectClip> gameObjectClips = new List<GameObjectClip>();
+
+        public GameObjectTrack()
+        {
+            trackName = "GameObject Track";
+        }
+
+        public override float GetTrackDuration(float frameRate)
+        {
+            int maxFrame = 0;
+            foreach (var clip in gameObjectClips)
+            {
+                maxFrame = Mathf.Max(maxFrame, clip.EndFrame);
+            }
+            return maxFrame / frameRate;
+        }
+
+        [Serializable]
+        public class GameObjectClip : ClipBase
+        {
+            [Header("游戏物体设置")]
+            public GameObject prefab;
+            [Tooltip("是否自动销毁")] public bool autoDestroy = true;
+            [Tooltip("生成位置偏移")] public Vector3 positionOffset = Vector3.zero;
+            [Tooltip("生成旋转偏移")] public Vector3 rotationOffset = Vector3.zero;
+            [Tooltip("生成缩放")] public Vector3 scale = Vector3.one;
+
+            [Header("父对象设置")]
+            [Tooltip("是否作为子对象")] public bool useParent = false;
+            [Tooltip("父对象名称")] public string parentName = "";
+
+            [Header("生命周期设置")]
+            [Tooltip("延迟销毁时间(秒), -1表示不销毁")] public float destroyDelay = -1f;
         }
     }
 

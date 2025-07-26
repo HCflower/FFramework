@@ -142,6 +142,9 @@ namespace SkillEditor
                 case TrackType.CameraTrack:
                     trackArea.AddToClassList("TrackArea-Camera");
                     break;
+                case TrackType.GameObjectTrack:
+                    trackArea.AddToClassList("TrackArea-GameObject");
+                    break;
             }
 
             // 应用特定样式

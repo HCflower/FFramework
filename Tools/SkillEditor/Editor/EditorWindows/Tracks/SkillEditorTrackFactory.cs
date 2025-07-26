@@ -43,6 +43,9 @@ namespace SkillEditor
                 case TrackType.CameraTrack:
                     return new CameraSkillEditorTrack(visual, width, skillConfig, trackIndex);
 
+                case TrackType.GameObjectTrack:
+                    return new GameObjectSkillEditorTrack(visual, width, skillConfig, trackIndex);
+
                 default:
                     UnityEngine.Debug.LogWarning($"未知的轨道类型: {trackType}");
                     return null;
@@ -79,6 +82,9 @@ namespace SkillEditor
                 case TrackType.CameraTrack:
                     return "摄像机轨道";
 
+                case TrackType.GameObjectTrack:
+                    return "游戏物体轨道";
+
                 default:
                     return "未知轨道";
             }
@@ -102,6 +108,7 @@ namespace SkillEditor
                 case TrackType.EventTrack:
                 case TrackType.AttackTrack:
                 case TrackType.TransformTrack:
+                case TrackType.GameObjectTrack:
                     return true; // 这些轨道支持多个
 
                 default:

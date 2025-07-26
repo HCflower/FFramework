@@ -163,6 +163,8 @@ namespace SkillEditor
         TransformTrack,
         /// <summary>摄像机轨道 - 处理摄像机的移动、旋转和视野变化</summary>
         CameraTrack,
+        /// <summary>游戏物体轨道 - 生成和管理预制体实例</summary>
+        GameObjectTrack,
     }
 
     /// <summary>

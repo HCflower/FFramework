@@ -216,3 +216,23 @@ MonoBehaviour:
           m_PostInfinity: 2
           m_RotationOrder: 4
         isRelative: 0
+    gameObjectTracks:
+    - trackName: "\u6E38\u620F\u7269\u4F53\u8F68\u9053"
+      isEnabled: 1
+      trackIndex: 0
+      gameObjectClips:
+      - clipName: Enemy
+        startFrame: 23
+        durationFrame: 24
+        prefab: {fileID: 8843524388128232295, guid: ab43ea5bb0b56a043b082acacf7b1e82, type: 3}
+        autoDestroy: 1
+        positionOffset: {x: 0, y: 0, z: 0}
+        rotationOffset: {x: 0, y: 0, z: 0}
+        scale: {x: 1, y: 1, z: 1}
+        useParent: 0
+        parentName: 
+        destroyDelay: -1
+    - trackName: "\u6E38\u620F\u7269\u4F53\u8F68\u9053 2"
+      isEnabled: 1
+      trackIndex: 0
+      gameObjectClips: []

@@ -47,6 +47,11 @@
     border-left-color: rgba(42, 154, 206, 1);
 }
 
+.TrackControlArea-GameObject{
+    border-left-width: 1px;
+    border-left-color: rgba(42, 154, 206, 1);
+}
+
 /* 轨道控制区域 */
 .TrackControlAreaContent{
     width: 100%;

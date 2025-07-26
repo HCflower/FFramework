@@ -252,6 +252,7 @@ namespace SkillEditor
                 TrackType.AttackTrack => "TrackItem-Attack",
                 TrackType.TransformTrack => "TrackItem-Transform",
                 TrackType.CameraTrack => "TrackItem-Camera",
+                TrackType.GameObjectTrack => "TrackItem-GameObject",
                 _ => ""
             };
         }
@@ -424,7 +425,10 @@ namespace SkillEditor
                     return CreateTransformTrackItemData(itemName);
                 case TrackType.CameraTrack:
                     // TODO: 需要创建CreateCameraTrackItemData方法
-                    return null; // return CreateCameraTrackItemData(itemName);
+                    // return CreateCameraTrackItemData(itemName);
+                    return null;
+                case TrackType.GameObjectTrack:
+                    return CreateGameObjectTrackItemData(itemName);
                 default:
                     return null;
             }
@@ -648,6 +652,21 @@ namespace SkillEditor
             transformData.startFrame = startFrame;
             transformData.durationFrame = frameCount;
             return transformData;
+        }
+
+        /// <summary>
+        /// 创建游戏物体轨道项的数据对象
+        /// </summary>
+        /// <param name="itemName">轨道项名称</param>
+        /// <returns>游戏物体轨道项数据对象</returns>
+        private BaseTrackItemData CreateGameObjectTrackItemData(string itemName)
+        {
+            var gameObjectData = ScriptableObject.CreateInstance<GameObjectTrackItemData>();
+            gameObjectData.trackItemName = itemName;
+            gameObjectData.frameCount = frameCount;
+            gameObjectData.startFrame = startFrame;
+            gameObjectData.durationFrame = frameCount;
+            return gameObjectData;
         }
         #endregion
         #endregion

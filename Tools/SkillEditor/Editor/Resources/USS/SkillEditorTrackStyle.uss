@@ -47,6 +47,11 @@
     border-right-color: rgb(42, 190, 206);
 }
 
+.TrackArea-GameObject{
+    border-right-width: 1px;
+    border-right-color: rgb(42, 190, 206);
+}
+
 /* 轨道项区域 */
 .TrackItemContent{
     width: auto;
@@ -92,7 +97,7 @@
 }
 /* 动画轨道项 - 鼠标悬停效果 */
 .TrackItem-Animation:hover{
-    background-color:  rgba(42, 206, 173, 0.75);
+    background-color:  rgba(42, 206, 173, 1);
 }
 
 /* 音频轨道项 */
@@ -104,7 +109,7 @@
 }
 /* 音频轨道项 - 鼠标悬停效果 */
 .TrackItem-Audio:hover{
-    background-color: rgba(250, 193, 23, 0.75);
+    background-color: rgba(250, 193, 23, 1);
 }
 
 /* 特效轨道项 */
@@ -113,10 +118,10 @@
 
     border-left-width: 2px;
     border-left-color: rgba(190, 42, 206, 1); 
-}
+}75
 /* 特效轨道项 - 鼠标悬停效果 */
 .TrackItem-Effect:hover{
-    background-color: rgba(190, 42, 206, 0.75);
+    background-color: rgba(190, 42, 206, 1);
 }
 
 /* 攻击检测轨道项 */
@@ -128,22 +133,19 @@
 }
 /* 攻击检测轨道项 - 鼠标悬停效果 */
 .TrackItem-Attack:hover{
-    background-color: rgba(206, 45, 42, 0.75);
+    background-color: rgba(206, 45, 42, 1);
 }
 
 /* 事件轨道项 */
 .TrackItem-Event{
-    background-color: rgba(42, 91, 206, 0.45);
+    /* background-color: rgba(255, 255, 255, 0.45);   */
 
     border-left-width: 2px;
-    border-left-color: rgba(42, 91, 206, 1);  
-
-    background-size: contain;
-    background-image: resource("Icon/sv_icon_dot9_pix16_gizmo");
+    border-left-color: rgba(255, 255, 255, 1);    
 }
 /* 事件轨道项 - 鼠标悬停效果 */
 .TrackItem-Event:hover{
-    background-color: rgba(42, 91, 206, 1); 
+    background-color: rgba(255, 255, 255, 0.25); 
 }
 
 /* 变换轨道项 */
@@ -154,7 +156,7 @@
 }
 /* 变换轨道项 - 鼠标悬停效果 */
 .TrackItem-Transform:hover{
-    background-color: rgba(30, 172, 77, 0.75);
+    background-color: rgba(30, 172, 77, 1);
 }
 
 /* 摄像机轨道项 */
@@ -165,7 +167,19 @@
 }
 /* 摄像机轨道项 - 鼠标悬停效果 */
 .TrackItem-Camera:hover{
-  background-color: rgba(42, 154, 206, 0.75);
+  background-color: rgba(42, 154, 206, 1);
 }
+
+/* 游戏物体轨道项 */
+.TrackItem-GameObject{
+    background-color: rgba(42, 154, 206, 0.45);
+    border-left-width: 2px;
+    border-left-color: rgba(42, 154, 206, 1);
+}
+/* 游戏物体轨道项 - 鼠标悬停效果 */
+.TrackItem-GameObject:hover{
+  background-color: rgba(42, 154, 206, 1);
+}
+
 
 
