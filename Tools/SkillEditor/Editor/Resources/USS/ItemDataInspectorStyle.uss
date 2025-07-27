@@ -67,6 +67,16 @@
     border-left-color: rgb(42, 206, 83);
 }
 
+.ItemDataViewContent-Camera{
+    border-left-width: 2px;
+    border-left-color: rgb(42, 154, 206);
+}
+
+.ItemDataViewContent-GameObject{
+    border-left-width: 2px;
+    border-left-color: rgb(42, 154, 206);
+}
+
 .DeleteButton{
     height: 23px;
     margin:0px;
@@ -99,10 +109,10 @@
 /* 分隔线 */
 .Separator{
     max-width: none;  
-    height: 1px;
+    height: 2px;
     margin-top: 1px;
     margin-right:7px;
-    background-color: #585858;
+    background-color: #ffffff;
     flex-grow: 0;   /* 不允许扩展 */
     flex-shrink: 0; /* 不允许收缩 */
 }

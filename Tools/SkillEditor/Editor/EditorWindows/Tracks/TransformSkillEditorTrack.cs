@@ -133,28 +133,37 @@ namespace SkillEditor
         {
             if (skillConfig?.trackContainer == null) return;
 
-            // 确保变换轨道列表存在
-            if (skillConfig.trackContainer.transformTracks == null)
+            // 确保变换轨道存在
+            if (skillConfig.trackContainer.transformTrack == null)
             {
-                skillConfig.trackContainer.transformTracks = new System.Collections.Generic.List<FFramework.Kit.TransformTrack>();
+                // 创建变换轨道ScriptableObject
+                var transformTrackSO = ScriptableObject.CreateInstance<FFramework.Kit.TransformTrackSO>();
+                transformTrackSO.trackName = SkillEditorTrackFactory.GetDefaultTrackName(TrackType.TransformTrack, 0);
+                transformTrackSO.transformClips = new System.Collections.Generic.List<FFramework.Kit.TransformTrack.TransformClip>();
+                skillConfig.trackContainer.transformTrack = transformTrackSO;
+
+#if UNITY_EDITOR
+                // 将ScriptableObject保存为资产文件
+                var skillConfigPath = UnityEditor.AssetDatabase.GetAssetPath(skillConfig);
+                var configDirectory = System.IO.Path.GetDirectoryName(skillConfigPath);
+                var configName = System.IO.Path.GetFileNameWithoutExtension(skillConfigPath);
+                var tracksFolder = System.IO.Path.Combine(configDirectory, $"{configName}_Tracks");
+
+                if (!System.IO.Directory.Exists(tracksFolder))
+                {
+                    System.IO.Directory.CreateDirectory(tracksFolder);
+                }
+
+                var assetPath = System.IO.Path.Combine(tracksFolder, $"{configName}_TransformTrack.asset");
+                assetPath = UnityEditor.AssetDatabase.GenerateUniqueAssetPath(assetPath);
+
+                UnityEditor.AssetDatabase.CreateAsset(transformTrackSO, assetPath);
+                UnityEditor.AssetDatabase.SaveAssets();
+#endif
             }
 
-            // 确保有足够的轨道数据，如果不足则创建
-            while (skillConfig.trackContainer.transformTracks.Count <= trackIndex)
-            {
-                var newTransformTrack = new FFramework.Kit.TransformTrack();
-                // 使用当前列表长度作为新轨道的索引来生成名称
-                int currentTrackIndex = skillConfig.trackContainer.transformTracks.Count;
-                string factoryTrackName = SkillEditorTrackFactory.GetDefaultTrackName(TrackType.TransformTrack, currentTrackIndex);
-                newTransformTrack.trackName = factoryTrackName;
-                newTransformTrack.transformClips = new System.Collections.Generic.List<FFramework.Kit.TransformTrack.TransformClip>();
-                skillConfig.trackContainer.transformTracks.Add(newTransformTrack);
-            }
-
-            // 获取对应索引的变换轨道
-            var transformTrack = skillConfig.trackContainer.transformTracks[trackIndex];
-
-            // 确保变换片段列表存在
+            // 获取变换轨道
+            var transformTrack = skillConfig.trackContainer.transformTrack;            // 确保变换片段列表存在
             if (transformTrack.transformClips == null)
             {
                 transformTrack.transformClips = new System.Collections.Generic.List<FFramework.Kit.TransformTrack.TransformClip>();
@@ -185,7 +194,11 @@ namespace SkillEditor
             Debug.Log($"AddTransformToConfig: 添加变换 '{transformName}' 到轨道索引 {trackIndex}");
 
 #if UNITY_EDITOR
-            // 标记技能配置为已修改
+            // 标记轨道数据和技能配置为已修改
+            if (transformTrack != null)
+            {
+                EditorUtility.SetDirty(transformTrack);
+            }
             if (skillConfig != null)
             {
                 EditorUtility.SetDirty(skillConfig);

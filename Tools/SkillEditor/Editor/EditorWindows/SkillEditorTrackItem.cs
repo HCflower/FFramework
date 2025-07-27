@@ -424,9 +424,7 @@ namespace SkillEditor
                 case TrackType.TransformTrack:
                     return CreateTransformTrackItemData(itemName);
                 case TrackType.CameraTrack:
-                    // TODO: 需要创建CreateCameraTrackItemData方法
-                    // return CreateCameraTrackItemData(itemName);
-                    return null;
+                    return CreateCameraTrackItemData(itemName);
                 case TrackType.GameObjectTrack:
                     return CreateGameObjectTrackItemData(itemName);
                 default:
@@ -652,6 +650,21 @@ namespace SkillEditor
             transformData.startFrame = startFrame;
             transformData.durationFrame = frameCount;
             return transformData;
+        }
+
+        /// <summary>
+        /// 创建摄像机轨道项的数据对象
+        /// </summary>
+        /// <param name="itemName">轨道项名称</param>
+        /// <returns>摄像机轨道项数据对象</returns>
+        private BaseTrackItemData CreateCameraTrackItemData(string itemName)
+        {
+            var cameraData = ScriptableObject.CreateInstance<CameraTrackItemData>();
+            cameraData.trackItemName = itemName;
+            cameraData.frameCount = frameCount;
+            cameraData.startFrame = startFrame;
+            cameraData.durationFrame = frameCount;
+            return cameraData;
         }
 
         /// <summary>

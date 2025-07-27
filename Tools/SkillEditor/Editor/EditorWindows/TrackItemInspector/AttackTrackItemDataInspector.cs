@@ -194,7 +194,7 @@ namespace SkillEditor
             SafeExecute(() =>
             {
                 var skillConfig = SkillEditorData.CurrentSkillConfig;
-                if (skillConfig?.trackContainer?.injuryDetectionTracks == null || attackTargetData == null)
+                if (skillConfig?.trackContainer?.injuryDetectionTrack == null || attackTargetData == null)
                 {
                     Debug.LogWarning("无法删除轨道项：技能配置或伤害检测轨道为空");
                     return;

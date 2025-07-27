@@ -147,9 +147,30 @@ namespace SkillEditor
             // 确保摄像机轨道存在
             if (skillConfig.trackContainer.cameraTrack == null)
             {
-                skillConfig.trackContainer.cameraTrack = new FFramework.Kit.CameraTrack();
-                skillConfig.trackContainer.cameraTrack.trackName = SkillEditorTrackFactory.GetDefaultTrackName(TrackType.CameraTrack, 0);
-                skillConfig.trackContainer.cameraTrack.cameraClips = new System.Collections.Generic.List<FFramework.Kit.CameraTrack.CameraClip>();
+                // 创建摄像机轨道ScriptableObject
+                var cameraTrackSO = ScriptableObject.CreateInstance<FFramework.Kit.CameraTrackSO>();
+                cameraTrackSO.trackName = SkillEditorTrackFactory.GetDefaultTrackName(TrackType.CameraTrack, 0);
+                cameraTrackSO.cameraClips = new System.Collections.Generic.List<FFramework.Kit.CameraTrack.CameraClip>();
+                skillConfig.trackContainer.cameraTrack = cameraTrackSO;
+
+#if UNITY_EDITOR
+                // 将ScriptableObject保存为资产文件
+                var skillConfigPath = UnityEditor.AssetDatabase.GetAssetPath(skillConfig);
+                var configDirectory = System.IO.Path.GetDirectoryName(skillConfigPath);
+                var configName = System.IO.Path.GetFileNameWithoutExtension(skillConfigPath);
+                var tracksFolder = System.IO.Path.Combine(configDirectory, $"{configName}_Tracks");
+
+                if (!System.IO.Directory.Exists(tracksFolder))
+                {
+                    System.IO.Directory.CreateDirectory(tracksFolder);
+                }
+
+                var assetPath = System.IO.Path.Combine(tracksFolder, $"{configName}_CameraTrack.asset");
+                assetPath = UnityEditor.AssetDatabase.GenerateUniqueAssetPath(assetPath);
+
+                UnityEditor.AssetDatabase.CreateAsset(cameraTrackSO, assetPath);
+                UnityEditor.AssetDatabase.SaveAssets();
+#endif
             }
 
             // 获取摄像机轨道
@@ -184,7 +205,11 @@ namespace SkillEditor
             Debug.Log($"AddCameraToConfig: 添加摄像机动作 '{cameraName}' 到摄像机轨道");
 
 #if UNITY_EDITOR
-            // 标记技能配置为已修改
+            // 标记轨道数据和技能配置为已修改
+            if (cameraTrack != null)
+            {
+                EditorUtility.SetDirty(cameraTrack);
+            }
             if (skillConfig != null)
             {
                 EditorUtility.SetDirty(skillConfig);

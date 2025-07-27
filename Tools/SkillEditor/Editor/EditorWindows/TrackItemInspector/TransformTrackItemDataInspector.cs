@@ -38,7 +38,6 @@ namespace SkillEditor
             // 动画设置
             CreateCurveTypeField();
             CreateCurveField("自定义曲线:", "customCurve", OnCustomCurveChanged);
-            CreateToggleField("相对变换:", "isRelative", OnIsRelativeChanged);
         }
         protected override void PerformDelete()
         {
@@ -147,15 +146,6 @@ namespace SkillEditor
             }, "目标缩放更新");
         }
 
-        private void OnIsRelativeChanged(bool newValue)
-        {
-            SafeExecute(() =>
-            {
-                // TODO: 同步到配置文件
-                MarkSkillConfigDirty();
-            }, "相对变换设置更新");
-        }
-
         private void OnCustomCurveChanged(AnimationCurve newValue)
         {
             SafeExecute(() =>
@@ -187,7 +177,7 @@ namespace SkillEditor
             SafeExecute(() =>
             {
                 var skillConfig = SkillEditorData.CurrentSkillConfig;
-                if (skillConfig?.trackContainer?.transformTracks == null || transformTargetData == null)
+                if (skillConfig?.trackContainer?.transformTrack == null || transformTargetData == null)
                 {
                     Debug.LogWarning("无法删除轨道项：技能配置或变换轨道为空");
                     return;

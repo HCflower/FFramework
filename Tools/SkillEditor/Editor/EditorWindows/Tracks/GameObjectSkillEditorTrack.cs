@@ -158,26 +158,37 @@ namespace SkillEditor
         {
             if (skillConfig?.trackContainer == null) return;
 
-            // 确保游戏物体轨道列表存在
-            if (skillConfig.trackContainer.gameObjectTracks == null)
+            // 确保游戏物体轨道存在
+            if (skillConfig.trackContainer.gameObjectTrack == null)
             {
-                skillConfig.trackContainer.gameObjectTracks = new System.Collections.Generic.List<FFramework.Kit.GameObjectTrack>();
+                // 创建游戏物体轨道ScriptableObject
+                var gameObjectTrackSO = ScriptableObject.CreateInstance<FFramework.Kit.GameObjectTrackSO>();
+                gameObjectTrackSO.trackName = SkillEditorTrackFactory.GetDefaultTrackName(TrackType.GameObjectTrack, 0);
+                gameObjectTrackSO.gameObjectClips = new System.Collections.Generic.List<FFramework.Kit.GameObjectTrack.GameObjectClip>();
+                skillConfig.trackContainer.gameObjectTrack = gameObjectTrackSO;
+
+#if UNITY_EDITOR
+                // 将ScriptableObject保存为资产文件
+                var skillConfigPath = UnityEditor.AssetDatabase.GetAssetPath(skillConfig);
+                var configDirectory = System.IO.Path.GetDirectoryName(skillConfigPath);
+                var configName = System.IO.Path.GetFileNameWithoutExtension(skillConfigPath);
+                var tracksFolder = System.IO.Path.Combine(configDirectory, $"{configName}_Tracks");
+
+                if (!System.IO.Directory.Exists(tracksFolder))
+                {
+                    System.IO.Directory.CreateDirectory(tracksFolder);
+                }
+
+                var assetPath = System.IO.Path.Combine(tracksFolder, $"{configName}_GameObjectTrack.asset");
+                assetPath = UnityEditor.AssetDatabase.GenerateUniqueAssetPath(assetPath);
+
+                UnityEditor.AssetDatabase.CreateAsset(gameObjectTrackSO, assetPath);
+                UnityEditor.AssetDatabase.SaveAssets();
+#endif
             }
 
-            // 确保有足够的轨道数据，如果不足则创建
-            while (skillConfig.trackContainer.gameObjectTracks.Count <= trackIndex)
-            {
-                var newGameObjectTrack = new FFramework.Kit.GameObjectTrack();
-                // 使用当前列表长度作为新轨道的索引来生成名称
-                int currentTrackIndex = skillConfig.trackContainer.gameObjectTracks.Count;
-                string factoryTrackName = SkillEditorTrackFactory.GetDefaultTrackName(TrackType.GameObjectTrack, currentTrackIndex);
-                newGameObjectTrack.trackName = factoryTrackName;
-                newGameObjectTrack.gameObjectClips = new System.Collections.Generic.List<FFramework.Kit.GameObjectTrack.GameObjectClip>();
-                skillConfig.trackContainer.gameObjectTracks.Add(newGameObjectTrack);
-            }
-
-            // 获取对应索引的游戏物体轨道
-            var gameObjectTrack = skillConfig.trackContainer.gameObjectTracks[trackIndex];
+            // 获取游戏物体轨道
+            var gameObjectTrack = skillConfig.trackContainer.gameObjectTrack;
 
             // 确保游戏物体片段列表存在
             if (gameObjectTrack.gameObjectClips == null)
@@ -207,7 +218,11 @@ namespace SkillEditor
             Debug.Log($"AddGameObjectToConfig: 添加游戏物体 '{itemName}' 到轨道索引 {trackIndex}");
 
 #if UNITY_EDITOR
-            // 标记技能配置为已修改
+            // 标记轨道数据和技能配置为已修改
+            if (gameObjectTrack != null)
+            {
+                EditorUtility.SetDirty(gameObjectTrack);
+            }
             if (skillConfig != null)
             {
                 EditorUtility.SetDirty(skillConfig);

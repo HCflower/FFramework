@@ -9,7 +9,6 @@ namespace SkillEditor
     /// 变换轨道项数据类
     /// 用于存储变换轨道项的相关数据，与SkillConfig中的TransformClip结构对应
     /// </summary>
-    [CreateAssetMenu(fileName = "TransformTrackItemData", menuName = "SkillEditor/TransformTrackItemData")]
     public class TransformTrackItemData : BaseTrackItemData
     {
         [Header("变换类型")]

@@ -113,28 +113,37 @@ namespace SkillEditor
         {
             if (skillConfig?.trackContainer == null) return;
 
-            // 确保特效轨道列表存在
-            if (skillConfig.trackContainer.effectTracks == null)
+            // 确保特效轨道存在
+            if (skillConfig.trackContainer.effectTrack == null)
             {
-                skillConfig.trackContainer.effectTracks = new System.Collections.Generic.List<FFramework.Kit.EffectTrack>();
+                // 创建特效轨道ScriptableObject
+                var effectTrackSO = ScriptableObject.CreateInstance<FFramework.Kit.EffectTrackSO>();
+                effectTrackSO.trackName = SkillEditorTrackFactory.GetDefaultTrackName(TrackType.EffectTrack, 0);
+                effectTrackSO.effectClips = new System.Collections.Generic.List<FFramework.Kit.EffectTrack.EffectClip>();
+                skillConfig.trackContainer.effectTrack = effectTrackSO;
+
+#if UNITY_EDITOR
+                // 将ScriptableObject保存为资产文件
+                var skillConfigPath = UnityEditor.AssetDatabase.GetAssetPath(skillConfig);
+                var configDirectory = System.IO.Path.GetDirectoryName(skillConfigPath);
+                var configName = System.IO.Path.GetFileNameWithoutExtension(skillConfigPath);
+                var tracksFolder = System.IO.Path.Combine(configDirectory, $"{configName}_Tracks");
+
+                if (!System.IO.Directory.Exists(tracksFolder))
+                {
+                    System.IO.Directory.CreateDirectory(tracksFolder);
+                }
+
+                var assetPath = System.IO.Path.Combine(tracksFolder, $"{configName}_EffectTrack.asset");
+                assetPath = UnityEditor.AssetDatabase.GenerateUniqueAssetPath(assetPath);
+
+                UnityEditor.AssetDatabase.CreateAsset(effectTrackSO, assetPath);
+                UnityEditor.AssetDatabase.SaveAssets();
+#endif
             }
 
-            // 确保有足够的轨道数据，如果不足则创建
-            while (skillConfig.trackContainer.effectTracks.Count <= trackIndex)
-            {
-                var newEffectTrack = new FFramework.Kit.EffectTrack();
-                // 使用当前列表长度作为新轨道的索引来生成名称
-                int currentTrackIndex = skillConfig.trackContainer.effectTracks.Count;
-                string factoryTrackName = SkillEditorTrackFactory.GetDefaultTrackName(TrackType.EffectTrack, currentTrackIndex);
-                newEffectTrack.trackName = factoryTrackName;
-                newEffectTrack.effectClips = new System.Collections.Generic.List<FFramework.Kit.EffectTrack.EffectClip>();
-                skillConfig.trackContainer.effectTracks.Add(newEffectTrack);
-            }
-
-            // 获取对应索引的特效轨道
-            var effectTrack = skillConfig.trackContainer.effectTracks[trackIndex];
-
-            // 确保特效片段列表存在
+            // 获取特效轨道
+            var effectTrack = skillConfig.trackContainer.effectTrack;            // 确保特效片段列表存在
             if (effectTrack.effectClips == null)
             {
                 effectTrack.effectClips = new System.Collections.Generic.List<FFramework.Kit.EffectTrack.EffectClip>();
@@ -158,7 +167,11 @@ namespace SkillEditor
             Debug.Log($"AddEffectToConfig: 添加特效 '{itemName}' 到轨道索引 {trackIndex}");
 
 #if UNITY_EDITOR
-            // 标记技能配置为已修改
+            // 标记轨道数据和技能配置为已修改
+            if (effectTrack != null)
+            {
+                EditorUtility.SetDirty(effectTrack);
+            }
             if (skillConfig != null)
             {
                 EditorUtility.SetDirty(skillConfig);

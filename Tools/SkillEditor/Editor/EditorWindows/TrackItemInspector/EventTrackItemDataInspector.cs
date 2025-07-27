@@ -69,7 +69,7 @@ namespace SkillEditor
             SafeExecute(() =>
             {
                 var skillConfig = SkillEditorData.CurrentSkillConfig;
-                if (skillConfig?.trackContainer?.eventTracks == null || eventTargetData == null)
+                if (skillConfig?.trackContainer?.eventTrack == null || eventTargetData == null)
                 {
                     Debug.LogWarning("无法删除轨道项：技能配置或事件轨道为空");
                     return;

@@ -1,5 +1,4 @@
 using UnityEngine.UIElements;
-using UnityEditor.UIElements;
 using System.Linq;
 using UnityEditor;
 using UnityEngine;
@@ -92,7 +91,7 @@ namespace SkillEditor
         private void UpdateAudioTrackConfig(System.Action<FFramework.Kit.AudioTrack.AudioClip> updateAction, string operationName = "更新配置")
         {
             var skillConfig = SkillEditorData.CurrentSkillConfig;
-            if (skillConfig?.trackContainer?.audioTracks == null || audioTargetData == null)
+            if (skillConfig?.trackContainer?.audioTrack == null || audioTargetData == null)
             {
                 Debug.LogWarning($"无法执行 {operationName}：技能配置或音频轨道为空");
                 return;
@@ -101,26 +100,23 @@ namespace SkillEditor
             // 查找对应的音频片段配置
             FFramework.Kit.AudioTrack.AudioClip targetConfigClip = null;
 
-            foreach (var audioTrack in skillConfig.trackContainer.audioTracks)
+            var audioTrack = skillConfig.trackContainer.audioTrack;
+            if (audioTrack.audioClips != null)
             {
-                if (audioTrack.audioClips != null)
-                {
-                    var candidateClips = audioTrack.audioClips
-                        .Where(clip => clip.clipName == audioTargetData.trackItemName).ToList();
+                var candidateClips = audioTrack.audioClips
+                    .Where(clip => clip.clipName == audioTargetData.trackItemName).ToList();
 
-                    if (candidateClips.Count > 0)
+                if (candidateClips.Count > 0)
+                {
+                    if (candidateClips.Count == 1)
                     {
-                        if (candidateClips.Count == 1)
-                        {
-                            targetConfigClip = candidateClips[0];
-                        }
-                        else
-                        {
-                            // 如果有多个同名片段，尝试通过起始帧匹配
-                            var exactMatch = candidateClips.FirstOrDefault(clip => clip.startFrame == audioTargetData.startFrame);
-                            targetConfigClip = exactMatch ?? candidateClips[0];
-                        }
-                        break;
+                        targetConfigClip = candidateClips[0];
+                    }
+                    else
+                    {
+                        // 如果有多个同名片段，尝试通过起始帧匹配
+                        var exactMatch = candidateClips.FirstOrDefault(clip => clip.startFrame == audioTargetData.startFrame);
+                        targetConfigClip = exactMatch ?? candidateClips[0];
                     }
                 }
             }
@@ -143,7 +139,7 @@ namespace SkillEditor
         private void DeleteAudioTrackItem()
         {
             var skillConfig = SkillEditorData.CurrentSkillConfig;
-            if (skillConfig?.trackContainer?.audioTracks == null || audioTargetData == null)
+            if (skillConfig?.trackContainer?.audioTrack == null || audioTargetData == null)
             {
                 Debug.LogWarning("无法删除轨道项：技能配置或音频轨道为空");
                 return;
@@ -151,39 +147,36 @@ namespace SkillEditor
 
             // 标记要删除的音频片段配置
             FFramework.Kit.AudioTrack.AudioClip targetConfigClip = null;
-            FFramework.Kit.AudioTrack parentAudioTrack = null;
+            FFramework.Kit.AudioTrackSO parentAudioTrack = null;
 
             // 查找对应的音频片段配置
-            foreach (var audioTrack in skillConfig.trackContainer.audioTracks)
+            var audioTrack = skillConfig.trackContainer.audioTrack;
+            if (audioTrack?.audioClips != null)
             {
-                if (audioTrack.audioClips != null)
-                {
-                    var candidateClips = audioTrack.audioClips
-                        .Where(clip => clip.clipName == audioTargetData.trackItemName).ToList();
+                var candidateClips = audioTrack.audioClips
+                    .Where(clip => clip.clipName == audioTargetData.trackItemName).ToList();
 
-                    if (candidateClips.Count > 0)
+                if (candidateClips.Count > 0)
+                {
+                    if (candidateClips.Count == 1)
                     {
-                        if (candidateClips.Count == 1)
+                        targetConfigClip = candidateClips[0];
+                        parentAudioTrack = audioTrack;
+                    }
+                    else
+                    {
+                        // 如果有多个同名片段，尝试通过起始帧匹配
+                        var exactMatch = candidateClips.FirstOrDefault(clip => clip.startFrame == audioTargetData.startFrame);
+                        if (exactMatch != null)
                         {
-                            targetConfigClip = candidateClips[0];
+                            targetConfigClip = exactMatch;
                             parentAudioTrack = audioTrack;
                         }
                         else
                         {
-                            // 如果有多个同名片段，尝试通过起始帧匹配
-                            var exactMatch = candidateClips.FirstOrDefault(clip => clip.startFrame == audioTargetData.startFrame);
-                            if (exactMatch != null)
-                            {
-                                targetConfigClip = exactMatch;
-                                parentAudioTrack = audioTrack;
-                            }
-                            else
-                            {
-                                targetConfigClip = candidateClips[0];
-                                parentAudioTrack = audioTrack;
-                            }
+                            targetConfigClip = candidateClips[0];
+                            parentAudioTrack = audioTrack;
                         }
-                        break;
                     }
                 }
             }

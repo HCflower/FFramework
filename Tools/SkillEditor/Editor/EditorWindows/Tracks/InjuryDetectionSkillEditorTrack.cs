@@ -101,28 +101,37 @@ namespace SkillEditor
         {
             if (skillConfig?.trackContainer == null) return;
 
-            // 确保伤害检测轨道列表存在
-            if (skillConfig.trackContainer.injuryDetectionTracks == null)
+            // 确保伤害检测轨道存在
+            if (skillConfig.trackContainer.injuryDetectionTrack == null)
             {
-                skillConfig.trackContainer.injuryDetectionTracks = new System.Collections.Generic.List<FFramework.Kit.InjuryDetectionTrack>();
+                // 创建伤害检测轨道ScriptableObject
+                var injuryDetectionTrackSO = ScriptableObject.CreateInstance<FFramework.Kit.InjuryDetectionTrackSO>();
+                injuryDetectionTrackSO.trackName = SkillEditorTrackFactory.GetDefaultTrackName(TrackType.AttackTrack, 0);
+                injuryDetectionTrackSO.injuryDetectionClips = new System.Collections.Generic.List<FFramework.Kit.InjuryDetectionTrack.InjuryDetectionClip>();
+                skillConfig.trackContainer.injuryDetectionTrack = injuryDetectionTrackSO;
+
+#if UNITY_EDITOR
+                // 将ScriptableObject保存为资产文件
+                var skillConfigPath = UnityEditor.AssetDatabase.GetAssetPath(skillConfig);
+                var configDirectory = System.IO.Path.GetDirectoryName(skillConfigPath);
+                var configName = System.IO.Path.GetFileNameWithoutExtension(skillConfigPath);
+                var tracksFolder = System.IO.Path.Combine(configDirectory, $"{configName}_Tracks");
+
+                if (!System.IO.Directory.Exists(tracksFolder))
+                {
+                    System.IO.Directory.CreateDirectory(tracksFolder);
+                }
+
+                var assetPath = System.IO.Path.Combine(tracksFolder, $"{configName}_InjuryDetectionTrack.asset");
+                assetPath = UnityEditor.AssetDatabase.GenerateUniqueAssetPath(assetPath);
+
+                UnityEditor.AssetDatabase.CreateAsset(injuryDetectionTrackSO, assetPath);
+                UnityEditor.AssetDatabase.SaveAssets();
+#endif
             }
 
-            // 确保有足够的轨道数据，如果不足则创建
-            while (skillConfig.trackContainer.injuryDetectionTracks.Count <= trackIndex)
-            {
-                var newInjuryDetectionTrack = new FFramework.Kit.InjuryDetectionTrack();
-                // 使用当前列表长度作为新轨道的索引来生成名称
-                int currentTrackIndex = skillConfig.trackContainer.injuryDetectionTracks.Count;
-                string factoryTrackName = SkillEditorTrackFactory.GetDefaultTrackName(TrackType.AttackTrack, currentTrackIndex);
-                newInjuryDetectionTrack.trackName = factoryTrackName;
-                newInjuryDetectionTrack.injuryDetectionClips = new System.Collections.Generic.List<FFramework.Kit.InjuryDetectionTrack.InjuryDetectionClip>();
-                skillConfig.trackContainer.injuryDetectionTracks.Add(newInjuryDetectionTrack);
-            }
-
-            // 获取对应索引的伤害检测轨道
-            var injuryDetectionTrack = skillConfig.trackContainer.injuryDetectionTracks[trackIndex];
-
-            // 确保伤害检测片段列表存在
+            // 获取伤害检测轨道
+            var injuryDetectionTrack = skillConfig.trackContainer.injuryDetectionTrack;            // 确保伤害检测片段列表存在
             if (injuryDetectionTrack.injuryDetectionClips == null)
             {
                 injuryDetectionTrack.injuryDetectionClips = new System.Collections.Generic.List<FFramework.Kit.InjuryDetectionTrack.InjuryDetectionClip>();
@@ -153,7 +162,11 @@ namespace SkillEditor
             Debug.Log($"AddInjuryDetectionToConfig: 添加伤害检测 '{injuryDetectionName}' 到轨道索引 {trackIndex}");
 
 #if UNITY_EDITOR
-            // 标记技能配置为已修改
+            // 标记轨道数据和技能配置为已修改
+            if (injuryDetectionTrack != null)
+            {
+                EditorUtility.SetDirty(injuryDetectionTrack);
+            }
             if (skillConfig != null)
             {
                 EditorUtility.SetDirty(skillConfig);
