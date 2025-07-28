@@ -165,10 +165,7 @@ namespace SkillEditor
         public void CreateTracksFromConfig()
         {
             var skillConfig = SkillEditorData.CurrentSkillConfig;
-            if (skillConfig?.trackContainer == null)
-            {
-                return;
-            }
+            if (skillConfig?.trackContainer == null) return;
 
             // 检查动画轨道 - 只要轨道SO存在就创建UI
             if (skillConfig.trackContainer.animationTrack != null && !HasTrackType(TrackType.AnimationTrack))
@@ -221,8 +218,20 @@ namespace SkillEditor
         {
             if (skillConfig?.trackContainer?.audioTrack == null) return;
 
-            // 只要轨道SO存在就创建UI，不需要检查clips数据
-            CreateTrackWithIndex(TrackType.AudioTrack, 0);
+            // 为每个存在的音频轨道创建UI，不管轨道是否有clips数据
+            var audioTracks = skillConfig.trackContainer.audioTrack.audioTracks;
+            if (audioTracks != null && audioTracks.Count > 0)
+            {
+                for (int i = 0; i < audioTracks.Count; i++)
+                {
+                    CreateTrackWithIndex(TrackType.AudioTrack, i);
+                }
+            }
+            else
+            {
+                // 如果没有轨道数据但SO存在，至少创建一个默认轨道
+                CreateTrackWithIndex(TrackType.AudioTrack, 0);
+            }
         }
 
         /// <summary>
@@ -232,8 +241,20 @@ namespace SkillEditor
         {
             if (skillConfig?.trackContainer?.effectTrack == null) return;
 
-            // 只要轨道SO存在就创建UI，不需要检查clips数据
-            CreateTrackWithIndex(TrackType.EffectTrack, 0);
+            // 为每个存在的特效轨道创建UI，不管轨道是否有clips数据
+            var effectTracks = skillConfig.trackContainer.effectTrack.effectTracks;
+            if (effectTracks != null && effectTracks.Count > 0)
+            {
+                for (int i = 0; i < effectTracks.Count; i++)
+                {
+                    CreateTrackWithIndex(TrackType.EffectTrack, i);
+                }
+            }
+            else
+            {
+                // 如果没有轨道数据但SO存在，至少创建一个默认轨道
+                CreateTrackWithIndex(TrackType.EffectTrack, 0);
+            }
         }
 
         /// <summary>
@@ -243,8 +264,20 @@ namespace SkillEditor
         {
             if (skillConfig?.trackContainer?.injuryDetectionTrack == null) return;
 
-            // 只要轨道SO存在就创建UI，不需要检查clips数据
-            CreateTrackWithIndex(TrackType.AttackTrack, 0);
+            // 为每个存在的伤害检测轨道创建UI，不管轨道是否有clips数据
+            var injuryTracks = skillConfig.trackContainer.injuryDetectionTrack.injuryDetectionTracks;
+            if (injuryTracks != null && injuryTracks.Count > 0)
+            {
+                for (int i = 0; i < injuryTracks.Count; i++)
+                {
+                    CreateTrackWithIndex(TrackType.AttackTrack, injuryTracks[i].trackIndex);
+                }
+            }
+            else
+            {
+                // 如果没有轨道数据但SO存在，至少创建一个默认轨道
+                CreateTrackWithIndex(TrackType.AttackTrack, 0);
+            }
         }
 
         /// <summary>
@@ -254,19 +287,20 @@ namespace SkillEditor
         {
             if (skillConfig?.trackContainer?.eventTrack == null) return;
 
-            // 只要轨道SO存在就创建UI，不需要检查clips数据
-            CreateTrackWithIndex(TrackType.EventTrack, 0);
-        }
-
-        /// <summary>
-        /// 为每个变换轨道数据创建对应的UI轨道
-        /// </summary>
-        private void CreateTransformTracksFromConfig(SkillConfig skillConfig)
-        {
-            if (skillConfig?.trackContainer?.transformTrack == null) return;
-
-            // 只要轨道SO存在就创建UI，不需要检查clips数据
-            CreateTrackWithIndex(TrackType.TransformTrack, 0);
+            // 为每个存在的事件轨道创建UI，不管轨道是否有clips数据
+            var eventTracks = skillConfig.trackContainer.eventTrack.eventTracks;
+            if (eventTracks != null && eventTracks.Count > 0)
+            {
+                for (int i = 0; i < eventTracks.Count; i++)
+                {
+                    CreateTrackWithIndex(TrackType.EventTrack, eventTracks[i].trackIndex);
+                }
+            }
+            else
+            {
+                // 如果没有轨道数据但SO存在，至少创建一个默认轨道
+                CreateTrackWithIndex(TrackType.EventTrack, 0);
+            }
         }
 
         /// <summary>
@@ -276,17 +310,20 @@ namespace SkillEditor
         {
             if (skillConfig?.trackContainer?.gameObjectTrack == null) return;
 
-            // 只要轨道SO存在就创建UI，不需要检查clips数据
-            CreateTrackWithIndex(TrackType.GameObjectTrack, 0);
-        }
-
-        /// <summary>
-        /// 为每个摄像机轨道数据创建对应的UI轨道
-        /// </summary>
-        private void CreateCameraTracksFromConfig(SkillConfig skillConfig)
-        {
-            // 摄像机轨道改为单轨道模式，此方法不再需要
-            // 摄像机轨道的创建逻辑已移至CreateTracksFromConfig方法中的单轨道检查
+            // 为每个存在的游戏物体轨道创建UI，不管轨道是否有clips数据
+            var gameObjectTracks = skillConfig.trackContainer.gameObjectTrack.gameObjectTracks;
+            if (gameObjectTracks != null && gameObjectTracks.Count > 0)
+            {
+                for (int i = 0; i < gameObjectTracks.Count; i++)
+                {
+                    CreateTrackWithIndex(TrackType.GameObjectTrack, gameObjectTracks[i].trackIndex);
+                }
+            }
+            else
+            {
+                // 如果没有轨道数据但SO存在，至少创建一个默认轨道
+                CreateTrackWithIndex(TrackType.GameObjectTrack, 0);
+            }
         }
 
         /// <summary>
@@ -575,38 +612,107 @@ namespace SkillEditor
             switch (trackType)
             {
                 case TrackType.AudioTrack:
-                    // 音频轨道是单轨道，清空数据即可
-                    if (skillConfig.trackContainer.audioTrack != null)
+                    // 从音频轨道列表中删除指定索引的轨道
+                    if (skillConfig.trackContainer.audioTrack?.audioTracks != null)
                     {
-                        skillConfig.trackContainer.audioTrack = null;
-                        Debug.Log("从配置中删除音频轨道数据");
+                        var trackToRemove = skillConfig.trackContainer.audioTrack.audioTracks
+                            .FirstOrDefault(t => t.trackIndex == trackIndex);
+                        if (trackToRemove != null)
+                        {
+                            skillConfig.trackContainer.audioTrack.audioTracks.Remove(trackToRemove);
+                            Debug.Log($"从配置中删除音频轨道数据，索引: {trackIndex}");
+
+                            // 如果没有更多轨道了，删除整个SO
+                            if (skillConfig.trackContainer.audioTrack.audioTracks.Count == 0)
+                            {
+                                skillConfig.trackContainer.audioTrack = null;
+                                Debug.Log("删除音频轨道SO（已无轨道数据）");
+                            }
+                        }
                     }
                     break;
 
                 case TrackType.EffectTrack:
-                    // 特效轨道是单轨道，清空数据即可
-                    if (skillConfig.trackContainer.effectTrack != null)
+                    // 从特效轨道列表中删除指定索引的轨道
+                    if (skillConfig.trackContainer.effectTrack?.effectTracks != null)
                     {
-                        skillConfig.trackContainer.effectTrack = null;
-                        Debug.Log("从配置中删除特效轨道数据");
+                        var trackToRemove = skillConfig.trackContainer.effectTrack.effectTracks
+                            .FirstOrDefault(t => t.trackIndex == trackIndex);
+                        if (trackToRemove != null)
+                        {
+                            skillConfig.trackContainer.effectTrack.effectTracks.Remove(trackToRemove);
+                            Debug.Log($"从配置中删除特效轨道数据，索引: {trackIndex}");
+
+                            // 如果没有更多轨道了，删除整个SO
+                            if (skillConfig.trackContainer.effectTrack.effectTracks.Count == 0)
+                            {
+                                skillConfig.trackContainer.effectTrack = null;
+                                Debug.Log("删除特效轨道SO（已无轨道数据）");
+                            }
+                        }
                     }
                     break;
 
                 case TrackType.AttackTrack:
-                    // 伤害检测轨道是单轨道，清空数据即可
-                    if (skillConfig.trackContainer.injuryDetectionTrack != null)
+                    // 从伤害检测轨道列表中删除指定索引的轨道
+                    if (skillConfig.trackContainer.injuryDetectionTrack?.injuryDetectionTracks != null)
                     {
-                        skillConfig.trackContainer.injuryDetectionTrack = null;
-                        Debug.Log("从配置中删除攻击轨道数据");
+                        var trackToRemove = skillConfig.trackContainer.injuryDetectionTrack.injuryDetectionTracks
+                            .FirstOrDefault(t => t.trackIndex == trackIndex);
+                        if (trackToRemove != null)
+                        {
+                            skillConfig.trackContainer.injuryDetectionTrack.injuryDetectionTracks.Remove(trackToRemove);
+                            Debug.Log($"从配置中删除攻击轨道数据，索引: {trackIndex}");
+
+                            // 如果没有更多轨道了，删除整个SO
+                            if (skillConfig.trackContainer.injuryDetectionTrack.injuryDetectionTracks.Count == 0)
+                            {
+                                skillConfig.trackContainer.injuryDetectionTrack = null;
+                                Debug.Log("删除攻击轨道SO（已无轨道数据）");
+                            }
+                        }
                     }
                     break;
 
                 case TrackType.EventTrack:
-                    // 事件轨道是单轨道，清空数据即可
-                    if (skillConfig.trackContainer.eventTrack != null)
+                    // 从事件轨道列表中删除指定索引的轨道
+                    if (skillConfig.trackContainer.eventTrack?.eventTracks != null)
                     {
-                        skillConfig.trackContainer.eventTrack = null;
-                        Debug.Log("从配置中删除事件轨道数据");
+                        var trackToRemove = skillConfig.trackContainer.eventTrack.eventTracks
+                            .FirstOrDefault(t => t.trackIndex == trackIndex);
+                        if (trackToRemove != null)
+                        {
+                            skillConfig.trackContainer.eventTrack.eventTracks.Remove(trackToRemove);
+                            Debug.Log($"从配置中删除事件轨道数据，索引: {trackIndex}");
+
+                            // 如果没有更多轨道了，删除整个SO
+                            if (skillConfig.trackContainer.eventTrack.eventTracks.Count == 0)
+                            {
+                                skillConfig.trackContainer.eventTrack = null;
+                                Debug.Log("删除事件轨道SO（已无轨道数据）");
+                            }
+                        }
+                    }
+                    break;
+
+                case TrackType.GameObjectTrack:
+                    // 从游戏物体轨道列表中删除指定索引的轨道
+                    if (skillConfig.trackContainer.gameObjectTrack?.gameObjectTracks != null)
+                    {
+                        var trackToRemove = skillConfig.trackContainer.gameObjectTrack.gameObjectTracks
+                            .FirstOrDefault(t => t.trackIndex == trackIndex);
+                        if (trackToRemove != null)
+                        {
+                            skillConfig.trackContainer.gameObjectTrack.gameObjectTracks.Remove(trackToRemove);
+                            Debug.Log($"从配置中删除游戏物体轨道数据，索引: {trackIndex}");
+
+                            // 如果没有更多轨道了，删除整个SO
+                            if (skillConfig.trackContainer.gameObjectTrack.gameObjectTracks.Count == 0)
+                            {
+                                skillConfig.trackContainer.gameObjectTrack = null;
+                                Debug.Log("删除游戏物体轨道SO（已无轨道数据）");
+                            }
+                        }
                     }
                     break;
 
@@ -634,15 +740,6 @@ namespace SkillEditor
                     {
                         skillConfig.trackContainer.animationTrack = null;
                         Debug.Log("从配置中删除动画轨道数据");
-                    }
-                    break;
-
-                case TrackType.GameObjectTrack:
-                    // 游戏物体轨道是单轨道，清空数据即可
-                    if (skillConfig.trackContainer.gameObjectTrack != null)
-                    {
-                        skillConfig.trackContainer.gameObjectTrack = null;
-                        Debug.Log("从配置中删除游戏物体轨道数据");
                     }
                     break;
             }
@@ -780,105 +877,6 @@ namespace SkillEditor
 
         #endregion
 
-        #region 轨道数据检查方法
-
-        /// <summary>
-        /// 检查动画轨道是否有数据
-        /// </summary>
-        private bool HasAnimationTrackData(SkillConfig skillConfig)
-        {
-            bool hasData = skillConfig.trackContainer.animationTrack != null &&
-                   skillConfig.trackContainer.animationTrack.animationClips != null &&
-                   skillConfig.trackContainer.animationTrack.animationClips.Count > 0;
-
-            return hasData;
-        }
-
-        /// <summary>
-        /// 检查摄像机轨道是否有数据
-        /// </summary>
-        private bool HasCameraTrackData(SkillConfig skillConfig)
-        {
-            bool hasData = skillConfig.trackContainer.cameraTrack != null &&
-                   skillConfig.trackContainer.cameraTrack.cameraClips != null &&
-                   skillConfig.trackContainer.cameraTrack.cameraClips.Count > 0;
-
-            return hasData;
-        }
-
-        /// <summary>
-        /// 检查音频轨道是否有数据
-        /// </summary>
-        private bool HasAudioTrackData(SkillConfig skillConfig)
-        {
-            return skillConfig.trackContainer.audioTrack != null &&
-                   skillConfig.trackContainer.audioTrack.audioTracks != null &&
-                   skillConfig.trackContainer.audioTrack.audioTracks.Count > 0 &&
-                   skillConfig.trackContainer.audioTrack.audioTracks.Any(track =>
-                       track.audioClips != null && track.audioClips.Count > 0);
-        }
-
-        /// <summary>
-        /// 检查特效轨道是否有数据
-        /// </summary>
-        private bool HasEffectTrackData(SkillConfig skillConfig)
-        {
-            return skillConfig.trackContainer.effectTrack != null &&
-                   skillConfig.trackContainer.effectTrack.effectTracks != null &&
-                   skillConfig.trackContainer.effectTrack.effectTracks.Count > 0 &&
-                   skillConfig.trackContainer.effectTrack.effectTracks.Any(track =>
-                       track.effectClips != null && track.effectClips.Count > 0);
-        }
-
-        /// <summary>
-        /// 检查伤害检测轨道是否有数据
-        /// </summary>
-        private bool HasInjuryDetectionTrackData(SkillConfig skillConfig)
-        {
-            return skillConfig.trackContainer.injuryDetectionTrack != null &&
-                   skillConfig.trackContainer.injuryDetectionTrack.injuryDetectionTracks != null &&
-                   skillConfig.trackContainer.injuryDetectionTrack.injuryDetectionTracks.Count > 0 &&
-                   skillConfig.trackContainer.injuryDetectionTrack.injuryDetectionTracks.Any(track =>
-                       track.injuryDetectionClips != null && track.injuryDetectionClips.Count > 0);
-        }
-
-        /// <summary>
-        /// 检查事件轨道是否有数据
-        /// </summary>
-        private bool HasEventTrackData(SkillConfig skillConfig)
-        {
-            return skillConfig.trackContainer.eventTrack != null &&
-                   skillConfig.trackContainer.eventTrack.eventTracks != null &&
-                   skillConfig.trackContainer.eventTrack.eventTracks.Count > 0 &&
-                   skillConfig.trackContainer.eventTrack.eventTracks.Any(track =>
-                       track.eventClips != null && track.eventClips.Count > 0);
-        }
-
-        /// <summary>
-        /// 检查游戏物体轨道是否有数据
-        /// </summary>
-        private bool HasGameObjectTrackData(SkillConfig skillConfig)
-        {
-            return skillConfig.trackContainer.gameObjectTrack != null &&
-                   skillConfig.trackContainer.gameObjectTrack.gameObjectTracks != null &&
-                   skillConfig.trackContainer.gameObjectTrack.gameObjectTracks.Count > 0 &&
-                   skillConfig.trackContainer.gameObjectTrack.gameObjectTracks.Any(track =>
-                       track.gameObjectClips != null && track.gameObjectClips.Count > 0);
-        }
-
-        /// <summary>
-        /// 检查技能配置是否包含变换轨道数据
-        /// </summary>
-        private bool HasTransformTrackData(SkillConfig skillConfig)
-        {
-            return skillConfig.trackContainer.transformTrack != null &&
-                   skillConfig.trackContainer.transformTrack.transformClips != null &&
-                   skillConfig.trackContainer.transformTrack.transformClips.Count > 0;
-        }
-
-
-        #endregion
-
         #region 轨道项创建方法
 
         /// <summary>
@@ -899,111 +897,6 @@ namespace SkillEditor
                 {
                     // 从配置加载时，设置addToConfig为false，避免重复添加到配置文件
                     track.AddTrackItem(clip.clip, clip.startFrame, false);
-                }
-            }
-        }
-
-        /// <summary>
-        /// 从配置创建音频轨道项
-        /// TODO: 需要适配新的多轨道结构
-        /// </summary>
-        private void CreateAudioTrackItemsFromConfig(BaseSkillEditorTrack track, SkillConfig skillConfig)
-        {
-            var audioTrackSO = skillConfig.trackContainer.audioTrack;
-            if (audioTrackSO?.audioTracks == null || audioTrackSO.audioTracks.Count == 0)
-            {
-                Debug.Log("CreateAudioTrackItemsFromConfig: 没有音频轨道数据");
-                return;
-            }
-
-            // TODO: 这里需要根据轨道索引选择正确的音频轨道
-            // 临时使用第一个轨道作为示例
-            var audioTrack = audioTrackSO.audioTracks[0];
-            if (audioTrack.audioClips == null) return;
-
-            foreach (var clip in audioTrack.audioClips.ToList())
-            {
-                if (clip.clip != null)
-                {
-                    // 从配置加载时，使用配置中的名称，并设置addToConfig为false，避免重复添加到配置文件
-                    var trackItem = track.AddTrackItem(clip.clip, clip.clipName, clip.startFrame, false);
-
-                    // 从配置中恢复完整的音频属性
-                    if (trackItem?.ItemData is AudioTrackItemData audioData)
-                    {
-                        audioData.volume = clip.volume;
-                        audioData.pitch = clip.pitch;
-                        audioData.isLoop = clip.isLoop;
-
-                        // 标记数据已修改
-                        UnityEditor.EditorUtility.SetDirty(audioData);
-                    }
-                }
-            }
-        }
-
-        /// <summary>
-        /// 从配置创建特效轨道项
-        /// TODO: 需要适配新的多轨道结构
-        /// </summary>
-        private void CreateEffectTrackItemsFromConfig(BaseSkillEditorTrack track, SkillConfig skillConfig)
-        {
-            var effectTrackSO = skillConfig.trackContainer.effectTrack;
-            if (effectTrackSO?.effectTracks == null || effectTrackSO.effectTracks.Count == 0) return;
-
-            // TODO: 这里需要根据轨道索引选择正确的特效轨道
-            // 临时使用第一个轨道作为示例
-            var effectTrack = effectTrackSO.effectTracks[0];
-            if (effectTrack.effectClips == null) return;
-
-            foreach (var clip in effectTrack.effectClips)
-            {
-                if (clip.effectPrefab != null)
-                {
-                    // 从配置加载时，设置addToConfig为false，避免重复添加到配置文件
-                    track.AddTrackItem(clip.effectPrefab, clip.startFrame, false);
-                }
-            }
-        }
-
-        /// <summary>
-        /// 从配置创建伤害检测轨道项
-        /// </summary>
-        private void CreateInjuryDetectionTrackItemsFromConfig(BaseSkillEditorTrack track, SkillConfig skillConfig)
-        {
-            var injuryTrack = skillConfig.trackContainer.injuryDetectionTrack;
-            if (injuryTrack?.injuryDetectionTracks == null) return;
-
-            // 由于无法直接访问track.trackIndex，我们需要遍历所有轨道的所有数据
-            foreach (var trackData in injuryTrack.injuryDetectionTracks)
-            {
-                if (trackData?.injuryDetectionClips == null) continue;
-
-                foreach (var clip in trackData.injuryDetectionClips)
-                {
-                    // 从配置加载时，设置addToConfig为false，避免重复添加到配置文件
-                    track.AddTrackItem(clip.clipName, clip.startFrame, false);
-                }
-            }
-        }
-
-        /// <summary>
-        /// 从配置创建事件轨道项
-        /// </summary>
-        private void CreateEventTrackItemsFromConfig(BaseSkillEditorTrack track, SkillConfig skillConfig)
-        {
-            var eventTrack = skillConfig.trackContainer.eventTrack;
-            if (eventTrack?.eventTracks == null) return;
-
-            // 遍历所有事件轨道的所有数据
-            foreach (var trackData in eventTrack.eventTracks)
-            {
-                if (trackData?.eventClips == null) continue;
-
-                foreach (var clip in trackData.eventClips)
-                {
-                    // 从配置加载时，设置addToConfig为false，避免重复添加到配置文件
-                    track.AddTrackItem(clip.clipName, clip.startFrame, false);
                 }
             }
         }

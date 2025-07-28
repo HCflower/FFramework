@@ -1,5 +1,8 @@
 using UnityEngine.UIElements;
 using UnityEngine;
+using UnityEditor.UIElements;
+using System;
+using FFramework.Kit;
 
 namespace SkillEditor
 {
@@ -216,14 +219,45 @@ namespace SkillEditor
         }
 
         /// <summary>
-        /// 创建提示内容元素
+        ///TODO 创建提示内容元素
         /// 添加用于显示时间轴相关提示信息的标签元素
         /// </summary>
         private void CreateTipsContent()
         {
             var tipsContent = new Label();
             tipsContent.AddToClassList("TipsContent");
+            // 当前配置
+            tipsContent.Add(TipsContent("当前选择的配置:", "技能配置请在设置面板中选择", typeof(SkillConfig), null, true));
+            // 当前技能使用者
+            tipsContent.Add(TipsContent("技能所属对象:", "技能所属对象可点击层级/选择按钮选择", typeof(GameObject), null));
             timelineContainer.Add(tipsContent);
+        }
+
+        private VisualElement TipsContent(string titleName, string description, Type type, Action action, bool isShowOnly = false)
+        {
+            // Tip区域
+            VisualElement tipContent = new VisualElement();
+            tipContent.AddToClassList("TipContent");
+            // Tip标题
+            Label title = new Label(titleName);
+            title.AddToClassList("TipTitle");
+            tipContent.Add(title);
+            // 技能使用对象
+            ObjectField ownerObjectField = new ObjectField();
+            ownerObjectField.objectType = type;
+            ownerObjectField.AddToClassList("TipObject");
+            ownerObjectField.tooltip = description;
+            if (isShowOnly)
+            {
+                ownerObjectField.style.display = DisplayStyle.Flex;
+                ownerObjectField.SetEnabled(false);
+            }
+            ownerObjectField.RegisterValueChangedCallback((evt) =>
+            {
+                if (action != null) action();
+            });
+            tipContent.Add(ownerObjectField);
+            return tipContent;
         }
 
         /// <summary>

@@ -53,7 +53,7 @@ namespace SkillEditor
         public static void SkillEditorCreateWindow()
         {
             SkillEditor window = GetWindow<SkillEditor>();
-            window.minSize = new Vector2(900, 450);
+            window.minSize = new Vector2(1000, 450);
             window.titleContent = new GUIContent("SkillEditor");
             window.Show();
         }

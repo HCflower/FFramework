@@ -119,25 +119,15 @@ namespace SkillEditor
                 // 创建特效轨道ScriptableObject
                 var newEffectTrackSO = ScriptableObject.CreateInstance<FFramework.Kit.EffectTrackSO>();
                 newEffectTrackSO.effectTracks = new System.Collections.Generic.List<FFramework.Kit.EffectTrack>();
+                newEffectTrackSO.name = "EffectTracks";
                 skillConfig.trackContainer.effectTrack = newEffectTrackSO;
 
 #if UNITY_EDITOR
-                // 将ScriptableObject保存为资产文件
-                var skillConfigPath = UnityEditor.AssetDatabase.GetAssetPath(skillConfig);
-                var configDirectory = System.IO.Path.GetDirectoryName(skillConfigPath);
-                var configName = System.IO.Path.GetFileNameWithoutExtension(skillConfigPath);
-                var tracksFolder = System.IO.Path.Combine(configDirectory, $"{configName}_Tracks");
-
-                if (!System.IO.Directory.Exists(tracksFolder))
-                {
-                    System.IO.Directory.CreateDirectory(tracksFolder);
-                }
-
-                var assetPath = System.IO.Path.Combine(tracksFolder, $"{configName}_EffectTracks.asset");
-                assetPath = UnityEditor.AssetDatabase.GenerateUniqueAssetPath(assetPath);
-
-                UnityEditor.AssetDatabase.CreateAsset(newEffectTrackSO, assetPath);
+                // 将轨道SO作为子资产添加到技能配置文件中
+                UnityEditor.AssetDatabase.AddObjectToAsset(newEffectTrackSO, skillConfig);
+                UnityEditor.EditorUtility.SetDirty(skillConfig);
                 UnityEditor.AssetDatabase.SaveAssets();
+                Debug.Log($"创建特效轨道数据作为子资产嵌套到 {skillConfig.name}");
 #endif
             }
 

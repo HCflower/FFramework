@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using System;
+using System.Linq;
 
 namespace FFramework.Kit
 {
@@ -147,11 +148,97 @@ namespace FFramework.Kit
             return info.ToString();
         }
 
+#if UNITY_EDITOR
+        /// <summary>
+        /// 清理没有被引用的嵌套子SO文件
+        /// </summary>
         [Button("检查轨道配置", "yellow")]
-        private void CheckRedundantTrackConfigSO()
+        private void CleanupUnreferencedSubAssets()
         {
+            var assetPath = UnityEditor.AssetDatabase.GetAssetPath(this);
+            if (string.IsNullOrEmpty(assetPath))
+            {
+                Debug.LogWarning("无法获取技能配置文件路径");
+                return;
+            }
 
+            // 获取所有子资产
+            var subAssets = UnityEditor.AssetDatabase.LoadAllAssetsAtPath(assetPath);
+            var referencedAssets = new HashSet<UnityEngine.Object>();
+            var unreferencedAssets = new List<UnityEngine.Object>();
+
+            // 添加主资产（SkillConfig本身）
+            referencedAssets.Add(this);
+
+            // 收集所有被引用的轨道SO
+            CollectReferencedTrackAssets(referencedAssets);
+
+            // 找出未被引用的子资产
+            foreach (var asset in subAssets)
+            {
+                if (asset != this && !referencedAssets.Contains(asset))
+                {
+                    unreferencedAssets.Add(asset);
+                }
+            }
+
+            // 清理未被引用的资产
+            int cleanedCount = 0;
+            foreach (var unreferencedAsset in unreferencedAssets)
+            {
+                if (unreferencedAsset != null)
+                {
+                    Debug.Log($"清理未引用的子资产: {unreferencedAsset.name} ({unreferencedAsset.GetType().Name})");
+                    UnityEditor.AssetDatabase.RemoveObjectFromAsset(unreferencedAsset);
+                    cleanedCount++;
+                }
+            }
+
+            if (cleanedCount > 0)
+            {
+                UnityEditor.AssetDatabase.SaveAssets();
+                UnityEditor.AssetDatabase.Refresh();
+                Debug.Log($"清理完成，共移除 {cleanedCount} 个未引用的子资产");
+            }
+            else
+            {
+                Debug.Log("没有发现未引用的子资产");
+            }
         }
+
+        /// <summary>
+        /// 收集所有被引用的轨道资产
+        /// </summary>
+        private void CollectReferencedTrackAssets(HashSet<UnityEngine.Object> referencedAssets)
+        {
+            if (trackContainer == null) return;
+
+            // 收集所有轨道SO引用
+            if (trackContainer.animationTrack != null)
+                referencedAssets.Add(trackContainer.animationTrack);
+
+            if (trackContainer.audioTrack != null)
+                referencedAssets.Add(trackContainer.audioTrack);
+
+            if (trackContainer.effectTrack != null)
+                referencedAssets.Add(trackContainer.effectTrack);
+
+            if (trackContainer.eventTrack != null)
+                referencedAssets.Add(trackContainer.eventTrack);
+
+            if (trackContainer.cameraTrack != null)
+                referencedAssets.Add(trackContainer.cameraTrack);
+
+            if (trackContainer.transformTrack != null)
+                referencedAssets.Add(trackContainer.transformTrack);
+
+            if (trackContainer.gameObjectTrack != null)
+                referencedAssets.Add(trackContainer.gameObjectTrack);
+
+            if (trackContainer.injuryDetectionTrack != null)
+                referencedAssets.Add(trackContainer.injuryDetectionTrack);
+        }
+#endif
 
         #endregion
     }

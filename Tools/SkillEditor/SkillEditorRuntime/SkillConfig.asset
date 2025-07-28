@@ -1,5 +1,33 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
+--- !u!114 &-5904805385221533661
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c076a4411d50e1641a3ee1fa8d87623f, type: 3}
+  m_Name: GameObjectTracks
+  m_EditorClassIdentifier: 
+  gameObjectTracks:
+  - trackName: "\u6E38\u620F\u7269\u4F53\u8F68\u9053"
+    isEnabled: 1
+    trackIndex: 0
+    gameObjectClips:
+    - clipName: Enemy
+      startFrame: 24
+      durationFrame: 24
+      prefab: {fileID: 8843524388128232295, guid: ab43ea5bb0b56a043b082acacf7b1e82, type: 3}
+      autoDestroy: 1
+      positionOffset: {x: 0, y: 0, z: 0}
+      rotationOffset: {x: 0, y: 0, z: 0}
+      scale: {x: 1, y: 1, z: 1}
+      useParent: 0
+      parentName: 
+      destroyDelay: -1
 --- !u!114 &-3760394780118789078
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -54,38 +82,6 @@ MonoBehaviour:
       m_PostInfinity: 2
       m_RotationOrder: 4
     isRelative: 0
---- !u!114 &-3446855990307208157
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c076a4411d50e1641a3ee1fa8d87623f, type: 3}
-  m_Name: GameObjectTrack
-  m_EditorClassIdentifier: 
-  gameObjectTracks:
-  - trackName: GameObject Track 0
-    isEnabled: 1
-    trackIndex: 0
-    gameObjectClips:
-    - clipName: Enemy
-      startFrame: 19
-      durationFrame: 24
-      prefab: {fileID: 8843524388128232295, guid: ab43ea5bb0b56a043b082acacf7b1e82, type: 3}
-      autoDestroy: 1
-      positionOffset: {x: 0, y: 0, z: 0}
-      rotationOffset: {x: 0, y: 0, z: 0}
-      scale: {x: 1, y: 1, z: 1}
-      useParent: 0
-      parentName: 
-      destroyDelay: -1
-  - trackName: GameObject Track 0
-    isEnabled: 1
-    trackIndex: 0
-    gameObjectClips: []
 --- !u!114 &-1830328007917446677
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -110,34 +106,6 @@ MonoBehaviour:
       volume: 1
       pitch: 1
       isLoop: 0
---- !u!114 &-326164048335196070
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 12e2378b16b07c24aa42c16a4b7f023b, type: 3}
-  m_Name: EffectTrack
-  m_EditorClassIdentifier: 
-  effectTracks:
-  - trackName: Effect Track 1
-    isEnabled: 0
-    trackIndex: 0
-    effectClips:
-    - clipName: basicslash
-      startFrame: 15
-      durationFrame: 48
-      effectPrefab: {fileID: 6389406066330802589, guid: 5ef8d476ac4025a4e85cc5e7c5004889, type: 3}
-      position: {x: 0, y: 0, z: 0}
-      rotation: {x: 0, y: 0, z: 0}
-      scale: {x: 1, y: 1, z: 1}
-  - trackName: Effect Track 1
-    isEnabled: 0
-    trackIndex: 0
-    effectClips: []
 --- !u!114 &11400000
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -163,10 +131,10 @@ MonoBehaviour:
     transformTrack: {fileID: -3760394780118789078}
     cameraTrack: {fileID: 8861625469911081015}
     audioTrack: {fileID: -1830328007917446677}
-    effectTrack: {fileID: -326164048335196070}
+    effectTrack: {fileID: 3609034411522145999}
     injuryDetectionTrack: {fileID: 1017856191203958945}
     eventTrack: {fileID: 7584140893661813132}
-    gameObjectTrack: {fileID: -3446855990307208157}
+    gameObjectTrack: {fileID: -5904805385221533661}
 --- !u!114 &297339559337665363
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -227,6 +195,30 @@ MonoBehaviour:
     isEnabled: 1
     trackIndex: 0
     injuryDetectionClips: []
+--- !u!114 &3609034411522145999
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 12e2378b16b07c24aa42c16a4b7f023b, type: 3}
+  m_Name: EffectTracks
+  m_EditorClassIdentifier: 
+  effectTracks:
+  - trackName: "\u7279\u6548\u8F68\u9053"
+    isEnabled: 1
+    trackIndex: 0
+    effectClips:
+    - clipName: basicslash
+      startFrame: 14
+      durationFrame: 48
+      effectPrefab: {fileID: 6389406066330802589, guid: 5ef8d476ac4025a4e85cc5e7c5004889, type: 3}
+      position: {x: 0, y: 0, z: 0}
+      rotation: {x: 0, y: 0, z: 0}
+      scale: {x: 1, y: 1, z: 1}
 --- !u!114 &7584140893661813132
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -249,10 +241,6 @@ MonoBehaviour:
       durationFrame: 1
       eventType: Event
       eventParameters: 
-  - trackName: Event Track 0
-    isEnabled: 1
-    trackIndex: 0
-    eventClips: []
 --- !u!114 &8861625469911081015
 MonoBehaviour:
   m_ObjectHideFlags: 0

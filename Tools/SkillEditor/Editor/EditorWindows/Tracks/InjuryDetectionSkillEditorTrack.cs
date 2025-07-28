@@ -109,21 +109,8 @@ namespace SkillEditor
                 skillConfig.trackContainer.injuryDetectionTrack = newInjuryDetectionTrackSO;
 
 #if UNITY_EDITOR
-                // 将ScriptableObject保存为资产文件
-                var skillConfigPath = UnityEditor.AssetDatabase.GetAssetPath(skillConfig);
-                var configDirectory = System.IO.Path.GetDirectoryName(skillConfigPath);
-                var configName = System.IO.Path.GetFileNameWithoutExtension(skillConfigPath);
-                var tracksFolder = System.IO.Path.Combine(configDirectory, $"{configName}_Tracks");
-
-                if (!System.IO.Directory.Exists(tracksFolder))
-                {
-                    System.IO.Directory.CreateDirectory(tracksFolder);
-                }
-
-                var assetPath = System.IO.Path.Combine(tracksFolder, $"{configName}_InjuryDetectionTracks.asset");
-                assetPath = UnityEditor.AssetDatabase.GenerateUniqueAssetPath(assetPath);
-
-                UnityEditor.AssetDatabase.CreateAsset(newInjuryDetectionTrackSO, assetPath);
+                // 将ScriptableObject作为子资产添加到技能配置文件中
+                UnityEditor.AssetDatabase.AddObjectToAsset(newInjuryDetectionTrackSO, skillConfig);
                 UnityEditor.AssetDatabase.SaveAssets();
 #endif
             }

@@ -114,7 +114,7 @@ namespace SkillEditor
             tracks.Clear();
             FrameUnitWidth = 10f;
             CurrentFrame = 1;
-            MaxFrame = 50;
+            MaxFrame = 100;
             TrackViewContentOffsetX = 0f;
             MajorTickInterval = 5;
             IsPlaying = false;
