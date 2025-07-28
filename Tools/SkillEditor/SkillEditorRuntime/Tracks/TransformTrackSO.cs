@@ -8,7 +8,7 @@ namespace FFramework.Kit
     /// 变换轨道ScriptableObject
     /// 独立的变换轨道数据文件
     /// </summary>
-    [CreateAssetMenu(fileName = "TransformTrack", menuName = "FFramework/Tracks/Transform Track", order = 4)]
+    // [CreateAssetMenu(fileName = "TransformTrack", menuName = "FFramework/Tracks/Transform Track", order = 4)]
     public class TransformTrackSO : ScriptableObject
     {
         [Header("轨道基础信息")]

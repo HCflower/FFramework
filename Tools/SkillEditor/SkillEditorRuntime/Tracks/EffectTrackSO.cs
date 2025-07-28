@@ -5,82 +5,103 @@ using System;
 namespace FFramework.Kit
 {
     /// <summary>
-    /// 特效轨道ScriptableObject
-    /// 独立的特效轨道数据文件
+    /// 特效轨道集合ScriptableObject
+    /// 存储所有特效轨道数据的文件
     /// </summary>
-    [CreateAssetMenu(fileName = "EffectTrack", menuName = "FFramework/Tracks/Effect Track", order = 5)]
+    // [CreateAssetMenu(fileName = "EffectTracks", menuName = "FFramework/Tracks/Effect Tracks", order = 5)]
     public class EffectTrackSO : ScriptableObject
     {
-        [Header("轨道基础信息")]
-        [Tooltip("轨道名称")] public string trackName = "Effect Track";
-        [Tooltip("是否启用轨道")] public bool isEnabled = true;
-        [Tooltip("轨道优先级，数值越大优先级越高")] public int trackIndex;
-
-        [Header("特效片段列表")]
-        public List<EffectTrack.EffectClip> effectClips = new List<EffectTrack.EffectClip>();
+        [Header("特效轨道列表 (多轨道并行)")]
+        [Tooltip("所有特效轨道数据列表")]
+        public List<EffectTrack> effectTracks = new List<EffectTrack>();
 
         /// <summary>
-        /// 获取轨道持续时间
+        /// 获取所有轨道的最大持续时间
         /// </summary>
-        public float GetTrackDuration(float frameRate)
+        public float GetMaxTrackDuration(float frameRate)
         {
-            int maxFrame = 0;
-            foreach (var clip in effectClips)
+            float maxDuration = 0;
+            foreach (var track in effectTracks)
             {
-                maxFrame = Mathf.Max(maxFrame, clip.EndFrame);
+                if (track.isEnabled)
+                    maxDuration = Mathf.Max(maxDuration, track.GetTrackDuration(frameRate));
             }
-            return maxFrame / frameRate;
+            return maxDuration;
         }
 
         /// <summary>
-        /// 验证轨道数据有效性
+        /// 验证所有轨道数据有效性
         /// </summary>
-        public bool ValidateTrack()
+        public bool ValidateAllTracks()
         {
-            if (string.IsNullOrEmpty(trackName)) return false;
-
-            foreach (var clip in effectClips)
+            foreach (var track in effectTracks)
             {
-                if (!clip.ValidateClip()) return false;
+                if (!track.ValidateTrack()) return false;
             }
             return true;
         }
 
         /// <summary>
-        /// 转换为运行时轨道数据
+        /// 获取所有启用的轨道（转换为运行时数据）
         /// </summary>
-        public EffectTrack ToRuntimeTrack()
+        public IEnumerable<EffectTrack> GetEnabledTracks()
         {
-            var track = new EffectTrack
+            foreach (var track in effectTracks)
             {
-                trackName = this.trackName,
-                isEnabled = this.isEnabled,
-                trackIndex = this.trackIndex,
-                effectClips = new List<EffectTrack.EffectClip>(this.effectClips)
-            };
-            return track;
+                if (track.isEnabled)
+                    yield return track;
+            }
         }
 
         /// <summary>
-        /// 从运行时轨道数据同步
+        /// 添加新的特效轨道
         /// </summary>
-        public void FromRuntimeTrack(EffectTrack track)
+        public EffectTrack AddNewTrack(string trackName = "New Effect Track")
         {
-            this.trackName = track.trackName;
-            this.isEnabled = track.isEnabled;
-            this.trackIndex = track.trackIndex;
-            this.effectClips = new List<EffectTrack.EffectClip>(track.effectClips);
+            var newTrack = new EffectTrack
+            {
+                trackName = trackName,
+                isEnabled = true,
+                trackIndex = effectTracks.Count
+            };
+            effectTracks.Add(newTrack);
+            return newTrack;
+        }
+
+        /// <summary>
+        /// 移除指定轨道
+        /// </summary>
+        public bool RemoveTrack(EffectTrack track)
+        {
+            return effectTracks.Remove(track);
+        }
+
+        /// <summary>
+        /// 移除指定索引的轨道
+        /// </summary>
+        public bool RemoveTrackAt(int index)
+        {
+            if (index >= 0 && index < effectTracks.Count)
+            {
+                effectTracks.RemoveAt(index);
+                return true;
+            }
+            return false;
         }
 
         private void OnValidate()
         {
-            if (string.IsNullOrEmpty(trackName))
-                trackName = "Effect Track";
+            // 确保每个轨道都有有效的名称
+            for (int i = 0; i < effectTracks.Count; i++)
+            {
+                if (string.IsNullOrEmpty(effectTracks[i].trackName))
+                    effectTracks[i].trackName = $"Effect Track {i + 1}";
+            }
         }
     }
 
     /// <summary>
-    /// 特效轨道 - 支持多轨道并行
+    /// 特效轨道 - 单个特效轨道的数据
     /// </summary>
     [Serializable]
     public class EffectTrack : TrackBase
@@ -100,6 +121,20 @@ namespace FFramework.Kit
                 maxFrame = Mathf.Max(maxFrame, clip.EndFrame);
             }
             return maxFrame / frameRate;
+        }
+
+        /// <summary>
+        /// 验证轨道数据有效性
+        /// </summary>
+        public override bool ValidateTrack()
+        {
+            if (string.IsNullOrEmpty(trackName)) return false;
+
+            foreach (var clip in effectClips)
+            {
+                if (!clip.ValidateClip()) return false;
+            }
+            return true;
         }
 
         [Serializable]

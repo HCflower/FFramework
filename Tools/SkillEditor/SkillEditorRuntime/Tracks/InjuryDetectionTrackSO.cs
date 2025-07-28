@@ -5,77 +5,90 @@ using System;
 namespace FFramework.Kit
 {
     /// <summary>
-    /// 伤害检测轨道ScriptableObject
-    /// 独立的伤害检测轨道数据文件
+    /// 伤害检测轨道集合ScriptableObject
+    /// 存储所有伤害检测轨道数据的文件
     /// </summary>
-    [CreateAssetMenu(fileName = "InjuryDetectionTrack", menuName = "FFramework/Tracks/Injury Detection Track", order = 7)]
+    // [CreateAssetMenu(fileName = "InjuryDetectionTracks", menuName = "FFramework/Tracks/Injury Detection Tracks", order = 7)]
     public class InjuryDetectionTrackSO : ScriptableObject
     {
-        [Header("轨道基础信息")]
-        [Tooltip("轨道名称")] public string trackName = "Damage Detection";
-        [Tooltip("是否启用轨道")] public bool isEnabled = true;
-        [Tooltip("轨道优先级，数值越大优先级越高")] public int trackIndex;
-
-        [Header("伤害检测片段列表")]
-        public List<InjuryDetectionTrack.InjuryDetectionClip> injuryDetectionClips = new List<InjuryDetectionTrack.InjuryDetectionClip>();
+        [Header("伤害检测轨道列表 (多轨道并行)")]
+        [Tooltip("所有伤害检测轨道数据列表")]
+        public List<InjuryDetectionTrack> injuryDetectionTracks = new List<InjuryDetectionTrack>();
 
         /// <summary>
-        /// 获取轨道持续时间
+        /// 获取所有轨道的最大持续时间
         /// </summary>
-        public float GetTrackDuration(float frameRate)
+        public float GetMaxTrackDuration(float frameRate)
         {
-            int maxFrame = 0;
-            foreach (var clip in injuryDetectionClips)
+            float maxDuration = 0;
+            foreach (var track in injuryDetectionTracks)
             {
-                maxFrame = Mathf.Max(maxFrame, clip.EndFrame);
+                if (track.isEnabled)
+                    maxDuration = Mathf.Max(maxDuration, track.GetTrackDuration(frameRate));
             }
-            return maxFrame / frameRate;
+            return maxDuration;
         }
 
         /// <summary>
-        /// 验证轨道数据有效性
+        /// 验证所有轨道数据有效性
         /// </summary>
-        public bool ValidateTrack()
+        public bool ValidateAllTracks()
         {
-            if (string.IsNullOrEmpty(trackName)) return false;
-
-            foreach (var clip in injuryDetectionClips)
+            foreach (var track in injuryDetectionTracks)
             {
-                if (!clip.ValidateClip()) return false;
+                if (!track.ValidateTrack()) return false;
             }
             return true;
         }
 
         /// <summary>
-        /// 转换为运行时轨道数据
+        /// 添加新的伤害检测轨道
         /// </summary>
-        public InjuryDetectionTrack ToRuntimeTrack()
+        public InjuryDetectionTrack AddTrack(string trackName = "")
         {
-            var track = new InjuryDetectionTrack
-            {
-                trackName = this.trackName,
-                isEnabled = this.isEnabled,
-                trackIndex = this.trackIndex,
-                injuryDetectionClips = new List<InjuryDetectionTrack.InjuryDetectionClip>(this.injuryDetectionClips)
-            };
-            return track;
+            var newTrack = new InjuryDetectionTrack();
+            if (!string.IsNullOrEmpty(trackName))
+                newTrack.trackName = trackName;
+            else
+                newTrack.trackName = $"Damage Detection Track {injuryDetectionTracks.Count}";
+
+            newTrack.trackIndex = injuryDetectionTracks.Count;
+            injuryDetectionTracks.Add(newTrack);
+            return newTrack;
         }
 
         /// <summary>
-        /// 从运行时轨道数据同步
+        /// 移除指定索引的轨道
         /// </summary>
-        public void FromRuntimeTrack(InjuryDetectionTrack track)
+        public bool RemoveTrack(int index)
         {
-            this.trackName = track.trackName;
-            this.isEnabled = track.isEnabled;
-            this.trackIndex = track.trackIndex;
-            this.injuryDetectionClips = new List<InjuryDetectionTrack.InjuryDetectionClip>(track.injuryDetectionClips);
+            if (index >= 0 && index < injuryDetectionTracks.Count)
+            {
+                injuryDetectionTracks.RemoveAt(index);
+                // 重新分配索引
+                for (int i = 0; i < injuryDetectionTracks.Count; i++)
+                {
+                    injuryDetectionTracks[i].trackIndex = i;
+                }
+                return true;
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// 确保至少有一个轨道
+        /// </summary>
+        public void EnsureTrackExists()
+        {
+            if (injuryDetectionTracks.Count == 0)
+            {
+                AddTrack();
+            }
         }
 
         private void OnValidate()
         {
-            if (string.IsNullOrEmpty(trackName))
-                trackName = "Damage Detection";
+            EnsureTrackExists();
         }
     }
 
@@ -102,6 +115,20 @@ namespace FFramework.Kit
             return maxFrame / frameRate;
         }
 
+        /// <summary>
+        /// 验证轨道数据有效性
+        /// </summary>
+        public override bool ValidateTrack()
+        {
+            if (string.IsNullOrEmpty(trackName)) return false;
+
+            foreach (var clip in injuryDetectionClips)
+            {
+                if (!clip.ValidateClip()) return false;
+            }
+            return true;
+        }
+
         [Serializable]
         public class InjuryDetectionClip : ClipBase
         {
@@ -122,6 +149,24 @@ namespace FFramework.Kit
             [Tooltip("碰撞体缩放")] public Vector3 scale = Vector3.one;
 
             public override int EndFrame => startFrame + Mathf.Max(1, durationFrame);
+
+            /// <summary>
+            /// 验证伤害检测片段数据有效性
+            /// </summary>
+            public override bool ValidateClip()
+            {
+                return !string.IsNullOrEmpty(clipName) && durationFrame > 0;
+            }
         }
     }
+
+    // 碰撞体类型
+    public enum ColliderType
+    {
+        Box = 0,        // 立方体
+        Sphere = 1,     // 球体
+        Capsule = 2,    // 胶囊体   
+        sector = 3,     // 扇形
+    }
+
 }

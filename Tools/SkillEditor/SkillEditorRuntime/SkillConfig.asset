@@ -66,21 +66,26 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c076a4411d50e1641a3ee1fa8d87623f, type: 3}
   m_Name: GameObjectTrack
   m_EditorClassIdentifier: 
-  trackName: "\u6E38\u620F\u7269\u4F53\u8F68\u9053"
-  isEnabled: 1
-  trackIndex: 0
-  gameObjectClips:
-  - clipName: Enemy
-    startFrame: 15
-    durationFrame: 24
-    prefab: {fileID: 8843524388128232295, guid: ab43ea5bb0b56a043b082acacf7b1e82, type: 3}
-    autoDestroy: 1
-    positionOffset: {x: 0, y: 0, z: 0}
-    rotationOffset: {x: 0, y: 0, z: 0}
-    scale: {x: 1, y: 1, z: 1}
-    useParent: 0
-    parentName: 
-    destroyDelay: -1
+  gameObjectTracks:
+  - trackName: GameObject Track 0
+    isEnabled: 1
+    trackIndex: 0
+    gameObjectClips:
+    - clipName: Enemy
+      startFrame: 19
+      durationFrame: 24
+      prefab: {fileID: 8843524388128232295, guid: ab43ea5bb0b56a043b082acacf7b1e82, type: 3}
+      autoDestroy: 1
+      positionOffset: {x: 0, y: 0, z: 0}
+      rotationOffset: {x: 0, y: 0, z: 0}
+      scale: {x: 1, y: 1, z: 1}
+      useParent: 0
+      parentName: 
+      destroyDelay: -1
+  - trackName: GameObject Track 0
+    isEnabled: 1
+    trackIndex: 0
+    gameObjectClips: []
 --- !u!114 &-1830328007917446677
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -93,17 +98,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b335efa6b69de2e448a71ce617cb525a, type: 3}
   m_Name: AudioTrack
   m_EditorClassIdentifier: 
-  trackName: "\u97F3\u9891\u8F68\u9053"
-  isEnabled: 1
-  trackIndex: 0
-  audioClips:
-  - clipName: 032-033_hit
-    startFrame: 13
-    durationFrame: 24
-    clip: {fileID: 8300000, guid: a2fb213c8a76ee641b91674426aea94a, type: 3}
-    volume: 1
-    pitch: 1
-    isLoop: 0
+  audioTracks:
+  - trackName: Audio Track 1
+    isEnabled: 0
+    trackIndex: 0
+    audioClips:
+    - clipName: 032-033_hit
+      startFrame: 11
+      durationFrame: 24
+      clip: {fileID: 8300000, guid: a2fb213c8a76ee641b91674426aea94a, type: 3}
+      volume: 1
+      pitch: 1
+      isLoop: 0
 --- !u!114 &-326164048335196070
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -116,17 +122,22 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 12e2378b16b07c24aa42c16a4b7f023b, type: 3}
   m_Name: EffectTrack
   m_EditorClassIdentifier: 
-  trackName: "\u7279\u6548\u8F68\u9053"
-  isEnabled: 1
-  trackIndex: 0
-  effectClips:
-  - clipName: fireslash
-    startFrame: 15
-    durationFrame: 48
-    effectPrefab: {fileID: 5942177893964023165, guid: 438c0b7b02dcafa4996592b62d22671f, type: 3}
-    position: {x: 0, y: 0, z: 0}
-    rotation: {x: 0, y: 0, z: 0}
-    scale: {x: 1, y: 1, z: 1}
+  effectTracks:
+  - trackName: Effect Track 1
+    isEnabled: 0
+    trackIndex: 0
+    effectClips:
+    - clipName: basicslash
+      startFrame: 15
+      durationFrame: 48
+      effectPrefab: {fileID: 6389406066330802589, guid: 5ef8d476ac4025a4e85cc5e7c5004889, type: 3}
+      position: {x: 0, y: 0, z: 0}
+      rotation: {x: 0, y: 0, z: 0}
+      scale: {x: 1, y: 1, z: 1}
+  - trackName: Effect Track 1
+    isEnabled: 0
+    trackIndex: 0
+    effectClips: []
 --- !u!114 &11400000
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -149,12 +160,12 @@ MonoBehaviour:
   cooldown: 1
   trackContainer:
     animationTrack: {fileID: 297339559337665363}
+    transformTrack: {fileID: -3760394780118789078}
+    cameraTrack: {fileID: 8861625469911081015}
     audioTrack: {fileID: -1830328007917446677}
     effectTrack: {fileID: -326164048335196070}
     injuryDetectionTrack: {fileID: 1017856191203958945}
     eventTrack: {fileID: 7584140893661813132}
-    transformTrack: {fileID: -3760394780118789078}
-    cameraTrack: {fileID: 8861625469911081015}
     gameObjectTrack: {fileID: -3446855990307208157}
 --- !u!114 &297339559337665363
 MonoBehaviour:
@@ -191,26 +202,31 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: dbe937aaa5afaee41935099ca50fffcb, type: 3}
   m_Name: InjuryDetectionTrack
   m_EditorClassIdentifier: 
-  trackName: "\u4F24\u5BB3\u68C0\u6D4B\u8F68\u9053"
-  isEnabled: 1
-  trackIndex: 0
-  injuryDetectionClips:
-  - clipName: Attack
-    startFrame: 0
-    durationFrame: 5
-    targetLayers:
-      serializedVersion: 2
-      m_Bits: 4294967295
-    isMultiInjuryDetection: 0
-    multiInjuryDetectionInterval: 0.1
-    colliderType: 0
-    innerCircleRadius: 0
-    outerCircleRadius: 1
-    sectorAngle: 0
-    sectorThickness: 0.1
-    position: {x: 0, y: 0, z: 0}
-    rotation: {x: 0, y: 0, z: 0}
-    scale: {x: 1, y: 1, z: 1}
+  injuryDetectionTracks:
+  - trackName: Damage Detection Track 0
+    isEnabled: 1
+    trackIndex: 0
+    injuryDetectionClips:
+    - clipName: Attack
+      startFrame: 0
+      durationFrame: 5
+      targetLayers:
+        serializedVersion: 2
+        m_Bits: 4294967295
+      isMultiInjuryDetection: 0
+      multiInjuryDetectionInterval: 0.1
+      colliderType: 0
+      innerCircleRadius: 0
+      outerCircleRadius: 1
+      sectorAngle: 0
+      sectorThickness: 0.1
+      position: {x: 0, y: 0, z: 0}
+      rotation: {x: 0, y: 0, z: 0}
+      scale: {x: 1, y: 1, z: 1}
+  - trackName: Damage Detection Track 0
+    isEnabled: 1
+    trackIndex: 0
+    injuryDetectionClips: []
 --- !u!114 &7584140893661813132
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -223,15 +239,20 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 57ab8c10e9e3ec24db957e5132af9214, type: 3}
   m_Name: EventTrack
   m_EditorClassIdentifier: 
-  trackName: "\u4E8B\u4EF6\u8F68\u9053"
-  isEnabled: 1
-  trackIndex: 0
-  eventClips:
-  - clipName: Event
-    startFrame: 0
-    durationFrame: 1
-    eventType: Event
-    eventParameters: 
+  eventTracks:
+  - trackName: Event Track 0
+    isEnabled: 1
+    trackIndex: 0
+    eventClips:
+    - clipName: Event
+      startFrame: 0
+      durationFrame: 1
+      eventType: Event
+      eventParameters: 
+  - trackName: Event Track 0
+    isEnabled: 1
+    trackIndex: 0
+    eventClips: []
 --- !u!114 &8861625469911081015
 MonoBehaviour:
   m_ObjectHideFlags: 0

@@ -153,10 +153,9 @@ namespace SkillEditor
             if (skillConfig.trackContainer.audioTrack == null)
             {
                 // 创建音频轨道ScriptableObject
-                var audioTrackSO = ScriptableObject.CreateInstance<FFramework.Kit.AudioTrackSO>();
-                audioTrackSO.trackName = SkillEditorTrackFactory.GetDefaultTrackName(TrackType.AudioTrack, 0);
-                audioTrackSO.audioClips = new System.Collections.Generic.List<FFramework.Kit.AudioTrack.AudioClip>();
-                skillConfig.trackContainer.audioTrack = audioTrackSO;
+                var newAudioTrackSO = ScriptableObject.CreateInstance<FFramework.Kit.AudioTrackSO>();
+                newAudioTrackSO.audioTracks = new System.Collections.Generic.List<FFramework.Kit.AudioTrack>();
+                skillConfig.trackContainer.audioTrack = newAudioTrackSO;
 
 #if UNITY_EDITOR
                 // 将ScriptableObject保存为资产文件
@@ -170,16 +169,32 @@ namespace SkillEditor
                     System.IO.Directory.CreateDirectory(tracksFolder);
                 }
 
-                var assetPath = System.IO.Path.Combine(tracksFolder, $"{configName}_AudioTrack.asset");
+                var assetPath = System.IO.Path.Combine(tracksFolder, $"{configName}_AudioTracks.asset");
                 assetPath = UnityEditor.AssetDatabase.GenerateUniqueAssetPath(assetPath);
 
-                UnityEditor.AssetDatabase.CreateAsset(audioTrackSO, assetPath);
+                UnityEditor.AssetDatabase.CreateAsset(newAudioTrackSO, assetPath);
                 UnityEditor.AssetDatabase.SaveAssets();
 #endif
             }
 
-            // 获取音频轨道
-            var audioTrack = skillConfig.trackContainer.audioTrack;
+            // 获取音频轨道SO
+            var audioTrackSO = skillConfig.trackContainer.audioTrack;
+
+            // 确保对应索引的轨道存在
+            while (audioTrackSO.audioTracks.Count <= trackIndex)
+            {
+                var newTrack = new FFramework.Kit.AudioTrack
+                {
+                    trackName = SkillEditorTrackFactory.GetDefaultTrackName(TrackType.AudioTrack, audioTrackSO.audioTracks.Count),
+                    isEnabled = true,
+                    trackIndex = audioTrackSO.audioTracks.Count,
+                    audioClips = new System.Collections.Generic.List<FFramework.Kit.AudioTrack.AudioClip>()
+                };
+                audioTrackSO.audioTracks.Add(newTrack);
+            }
+
+            // 获取指定索引的音频轨道
+            var audioTrack = audioTrackSO.audioTracks[trackIndex];
 
             // 确保音频片段列表存在
             if (audioTrack.audioClips == null)
@@ -204,9 +219,9 @@ namespace SkillEditor
 
 #if UNITY_EDITOR
             // 标记轨道数据和技能配置为已修改
-            if (audioTrack != null)
+            if (audioTrackSO != null)
             {
-                EditorUtility.SetDirty(audioTrack);
+                EditorUtility.SetDirty(audioTrackSO);
             }
             if (skillConfig != null)
             {

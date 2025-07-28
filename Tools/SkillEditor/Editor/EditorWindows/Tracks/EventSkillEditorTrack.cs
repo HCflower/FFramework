@@ -105,10 +105,8 @@ namespace SkillEditor
             if (skillConfig.trackContainer.eventTrack == null)
             {
                 // 创建事件轨道ScriptableObject
-                var eventTrackSO = ScriptableObject.CreateInstance<FFramework.Kit.EventTrackSO>();
-                eventTrackSO.trackName = SkillEditorTrackFactory.GetDefaultTrackName(TrackType.EventTrack, 0);
-                eventTrackSO.eventClips = new System.Collections.Generic.List<FFramework.Kit.EventTrack.EventClip>();
-                skillConfig.trackContainer.eventTrack = eventTrackSO;
+                var newEventTrackSO = ScriptableObject.CreateInstance<FFramework.Kit.EventTrackSO>();
+                skillConfig.trackContainer.eventTrack = newEventTrackSO;
 
 #if UNITY_EDITOR
                 // 将ScriptableObject保存为资产文件
@@ -122,16 +120,30 @@ namespace SkillEditor
                     System.IO.Directory.CreateDirectory(tracksFolder);
                 }
 
-                var assetPath = System.IO.Path.Combine(tracksFolder, $"{configName}_EventTrack.asset");
+                var assetPath = System.IO.Path.Combine(tracksFolder, $"{configName}_EventTracks.asset");
                 assetPath = UnityEditor.AssetDatabase.GenerateUniqueAssetPath(assetPath);
 
-                UnityEditor.AssetDatabase.CreateAsset(eventTrackSO, assetPath);
+                UnityEditor.AssetDatabase.CreateAsset(newEventTrackSO, assetPath);
                 UnityEditor.AssetDatabase.SaveAssets();
 #endif
             }
 
-            // 获取事件轨道
-            var eventTrack = skillConfig.trackContainer.eventTrack;            // 确保事件片段列表存在
+            // 获取事件轨道SO
+            var eventTrackSO = skillConfig.trackContainer.eventTrack;
+
+            // 确保至少有一个轨道存在
+            eventTrackSO.EnsureTrackExists();
+
+            // 确保指定索引的轨道存在
+            while (eventTrackSO.eventTracks.Count <= trackIndex)
+            {
+                eventTrackSO.AddTrack($"Event Track {eventTrackSO.eventTracks.Count}");
+            }
+
+            // 获取指定索引的事件轨道
+            var eventTrack = eventTrackSO.eventTracks[trackIndex];
+
+            // 确保事件片段列表存在
             if (eventTrack.eventClips == null)
             {
                 eventTrack.eventClips = new System.Collections.Generic.List<FFramework.Kit.EventTrack.EventClip>();
@@ -154,9 +166,9 @@ namespace SkillEditor
 
 #if UNITY_EDITOR
             // 标记轨道数据和技能配置为已修改
-            if (eventTrack != null)
+            if (eventTrackSO != null)
             {
-                EditorUtility.SetDirty(eventTrack);
+                EditorUtility.SetDirty(eventTrackSO);
             }
             if (skillConfig != null)
             {

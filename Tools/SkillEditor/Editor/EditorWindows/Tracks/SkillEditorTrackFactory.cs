@@ -100,14 +100,14 @@ namespace SkillEditor
             switch (trackType)
             {
                 case TrackType.AnimationTrack:
+                case TrackType.TransformTrack:
                 case TrackType.CameraTrack:
-                    return false; // 动画轨道和摄像机轨道只有一个
+                    return false; // 动画轨道,摄像机轨道,变换轨道只有一个
 
                 case TrackType.AudioTrack:
                 case TrackType.EffectTrack:
                 case TrackType.EventTrack:
                 case TrackType.AttackTrack:
-                case TrackType.TransformTrack:
                 case TrackType.GameObjectTrack:
                     return true; // 这些轨道支持多个
 

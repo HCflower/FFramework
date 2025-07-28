@@ -8,7 +8,7 @@ namespace FFramework.Kit
     /// 动画轨道ScriptableObject
     /// 独立的动画轨道数据文件
     /// </summary>
-    [CreateAssetMenu(fileName = "AnimationTrack", menuName = "FFramework/Tracks/Animation Track", order = 1)]
+    // [CreateAssetMenu(fileName = "AnimationTrack", menuName = "FFramework/Tracks/Animation Track", order = 1)]
     public class AnimationTrackSO : ScriptableObject
     {
         [Header("轨道基础信息")]

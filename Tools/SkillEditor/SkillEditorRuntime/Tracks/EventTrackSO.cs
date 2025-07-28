@@ -5,77 +5,90 @@ using System;
 namespace FFramework.Kit
 {
     /// <summary>
-    /// 事件轨道ScriptableObject
-    /// 独立的事件轨道数据文件
+    /// 事件轨道集合ScriptableObject
+    /// 存储所有事件轨道数据的文件
     /// </summary>
-    [CreateAssetMenu(fileName = "EventTrack", menuName = "FFramework/Tracks/Event Track", order = 6)]
+    // [CreateAssetMenu(fileName = "EventTracks", menuName = "FFramework/Tracks/Event Tracks", order = 6)]
     public class EventTrackSO : ScriptableObject
     {
-        [Header("轨道基础信息")]
-        [Tooltip("轨道名称")] public string trackName = "Event";
-        [Tooltip("是否启用轨道")] public bool isEnabled = true;
-        [Tooltip("轨道优先级，数值越大优先级越高")] public int trackIndex;
-
-        [Header("事件片段列表")]
-        public List<EventTrack.EventClip> eventClips = new List<EventTrack.EventClip>();
+        [Header("事件轨道列表 (多轨道并行)")]
+        [Tooltip("所有事件轨道数据列表")]
+        public List<EventTrack> eventTracks = new List<EventTrack>();
 
         /// <summary>
-        /// 获取轨道持续时间
+        /// 获取所有轨道的最大持续时间
         /// </summary>
-        public float GetTrackDuration(float frameRate)
+        public float GetMaxTrackDuration(float frameRate)
         {
-            int maxFrame = 0;
-            foreach (var clip in eventClips)
+            float maxDuration = 0;
+            foreach (var track in eventTracks)
             {
-                maxFrame = Mathf.Max(maxFrame, clip.EndFrame);
+                if (track.isEnabled)
+                    maxDuration = Mathf.Max(maxDuration, track.GetTrackDuration(frameRate));
             }
-            return maxFrame / frameRate;
+            return maxDuration;
         }
 
         /// <summary>
-        /// 验证轨道数据有效性
+        /// 验证所有轨道数据有效性
         /// </summary>
-        public bool ValidateTrack()
+        public bool ValidateAllTracks()
         {
-            if (string.IsNullOrEmpty(trackName)) return false;
-
-            foreach (var clip in eventClips)
+            foreach (var track in eventTracks)
             {
-                if (!clip.ValidateClip()) return false;
+                if (!track.ValidateTrack()) return false;
             }
             return true;
         }
 
         /// <summary>
-        /// 转换为运行时轨道数据
+        /// 添加新的事件轨道
         /// </summary>
-        public EventTrack ToRuntimeTrack()
+        public EventTrack AddTrack(string trackName = "")
         {
-            var track = new EventTrack
-            {
-                trackName = this.trackName,
-                isEnabled = this.isEnabled,
-                trackIndex = this.trackIndex,
-                eventClips = new List<EventTrack.EventClip>(this.eventClips)
-            };
-            return track;
+            var newTrack = new EventTrack();
+            if (!string.IsNullOrEmpty(trackName))
+                newTrack.trackName = trackName;
+            else
+                newTrack.trackName = $"Event Track {eventTracks.Count}";
+
+            newTrack.trackIndex = eventTracks.Count;
+            eventTracks.Add(newTrack);
+            return newTrack;
         }
 
         /// <summary>
-        /// 从运行时轨道数据同步
+        /// 移除指定索引的轨道
         /// </summary>
-        public void FromRuntimeTrack(EventTrack track)
+        public bool RemoveTrack(int index)
         {
-            this.trackName = track.trackName;
-            this.isEnabled = track.isEnabled;
-            this.trackIndex = track.trackIndex;
-            this.eventClips = new List<EventTrack.EventClip>(track.eventClips);
+            if (index >= 0 && index < eventTracks.Count)
+            {
+                eventTracks.RemoveAt(index);
+                // 重新分配索引
+                for (int i = 0; i < eventTracks.Count; i++)
+                {
+                    eventTracks[i].trackIndex = i;
+                }
+                return true;
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// 确保至少有一个轨道
+        /// </summary>
+        public void EnsureTrackExists()
+        {
+            if (eventTracks.Count == 0)
+            {
+                AddTrack();
+            }
         }
 
         private void OnValidate()
         {
-            if (string.IsNullOrEmpty(trackName))
-                trackName = "Event";
+            EnsureTrackExists();
         }
     }
 
@@ -102,6 +115,20 @@ namespace FFramework.Kit
             return maxFrame / frameRate;
         }
 
+        /// <summary>
+        /// 验证轨道数据有效性
+        /// </summary>
+        public override bool ValidateTrack()
+        {
+            if (string.IsNullOrEmpty(trackName)) return false;
+
+            foreach (var clip in eventClips)
+            {
+                if (!clip.ValidateClip()) return false;
+            }
+            return true;
+        }
+
         [Serializable]
         public class EventClip : ClipBase
         {
@@ -111,6 +138,14 @@ namespace FFramework.Kit
             [Tooltip("事件参数")] public string eventParameters;
 
             public override int EndFrame => startFrame; // 事件是瞬时的
+
+            /// <summary>
+            /// 验证事件片段数据有效性
+            /// </summary>
+            public override bool ValidateClip()
+            {
+                return !string.IsNullOrEmpty(clipName) && !string.IsNullOrEmpty(eventType);
+            }
         }
     }
 }

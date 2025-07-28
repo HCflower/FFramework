@@ -5,82 +5,103 @@ using System;
 namespace FFramework.Kit
 {
     /// <summary>
-    /// 音频轨道ScriptableObject
-    /// 独立的音频轨道数据文件
+    /// 音频轨道集合ScriptableObject
+    /// 存储所有音频轨道数据的文件
     /// </summary>
-    [CreateAssetMenu(fileName = "AudioTrack", menuName = "FFramework/Tracks/Audio Track", order = 2)]
+    // [CreateAssetMenu(fileName = "AudioTracks", menuName = "FFramework/Tracks/Audio Tracks", order = 2)]
     public class AudioTrackSO : ScriptableObject
     {
-        [Header("轨道基础信息")]
-        [Tooltip("轨道名称")] public string trackName = "Audio Track";
-        [Tooltip("是否启用轨道")] public bool isEnabled = true;
-        [Tooltip("轨道优先级，数值越大优先级越高")] public int trackIndex;
-
-        [Header("音频片段列表")]
-        public List<AudioTrack.AudioClip> audioClips = new List<AudioTrack.AudioClip>();
+        [Header("音频轨道列表 (多轨道并行)")]
+        [Tooltip("所有音频轨道数据列表")]
+        public List<AudioTrack> audioTracks = new List<AudioTrack>();
 
         /// <summary>
-        /// 获取轨道持续时间
+        /// 获取所有轨道的最大持续时间
         /// </summary>
-        public float GetTrackDuration(float frameRate)
+        public float GetMaxTrackDuration(float frameRate)
         {
-            int maxFrame = 0;
-            foreach (var clip in audioClips)
+            float maxDuration = 0;
+            foreach (var track in audioTracks)
             {
-                maxFrame = Mathf.Max(maxFrame, clip.EndFrame);
+                if (track.isEnabled)
+                    maxDuration = Mathf.Max(maxDuration, track.GetTrackDuration(frameRate));
             }
-            return maxFrame / frameRate;
+            return maxDuration;
         }
 
         /// <summary>
-        /// 验证轨道数据有效性
+        /// 验证所有轨道数据有效性
         /// </summary>
-        public bool ValidateTrack()
+        public bool ValidateAllTracks()
         {
-            if (string.IsNullOrEmpty(trackName)) return false;
-
-            foreach (var clip in audioClips)
+            foreach (var track in audioTracks)
             {
-                if (!clip.ValidateClip()) return false;
+                if (!track.ValidateTrack()) return false;
             }
             return true;
         }
 
         /// <summary>
-        /// 转换为运行时轨道数据
+        /// 获取所有启用的轨道（转换为运行时数据）
         /// </summary>
-        public AudioTrack ToRuntimeTrack()
+        public IEnumerable<AudioTrack> GetEnabledTracks()
         {
-            var track = new AudioTrack
+            foreach (var track in audioTracks)
             {
-                trackName = this.trackName,
-                isEnabled = this.isEnabled,
-                trackIndex = this.trackIndex,
-                audioClips = new List<AudioTrack.AudioClip>(this.audioClips)
-            };
-            return track;
+                if (track.isEnabled)
+                    yield return track;
+            }
         }
 
         /// <summary>
-        /// 从运行时轨道数据同步
+        /// 添加新的音频轨道
         /// </summary>
-        public void FromRuntimeTrack(AudioTrack track)
+        public AudioTrack AddNewTrack(string trackName = "New Audio Track")
         {
-            this.trackName = track.trackName;
-            this.isEnabled = track.isEnabled;
-            this.trackIndex = track.trackIndex;
-            this.audioClips = new List<AudioTrack.AudioClip>(track.audioClips);
+            var newTrack = new AudioTrack
+            {
+                trackName = trackName,
+                isEnabled = true,
+                trackIndex = audioTracks.Count
+            };
+            audioTracks.Add(newTrack);
+            return newTrack;
+        }
+
+        /// <summary>
+        /// 移除指定轨道
+        /// </summary>
+        public bool RemoveTrack(AudioTrack track)
+        {
+            return audioTracks.Remove(track);
+        }
+
+        /// <summary>
+        /// 移除指定索引的轨道
+        /// </summary>
+        public bool RemoveTrackAt(int index)
+        {
+            if (index >= 0 && index < audioTracks.Count)
+            {
+                audioTracks.RemoveAt(index);
+                return true;
+            }
+            return false;
         }
 
         private void OnValidate()
         {
-            if (string.IsNullOrEmpty(trackName))
-                trackName = "Audio Track";
+            // 确保每个轨道都有有效的名称
+            for (int i = 0; i < audioTracks.Count; i++)
+            {
+                if (string.IsNullOrEmpty(audioTracks[i].trackName))
+                    audioTracks[i].trackName = $"Audio Track {i + 1}";
+            }
         }
     }
 
     /// <summary>
-    /// 音效轨道 - 支持多轨道并行
+    /// 音效轨道 - 单个音频轨道的数据
     /// </summary>
     [Serializable]
     public class AudioTrack : TrackBase
@@ -100,6 +121,20 @@ namespace FFramework.Kit
                 maxFrame = Mathf.Max(maxFrame, clip.EndFrame);
             }
             return maxFrame / frameRate;
+        }
+
+        /// <summary>
+        /// 验证轨道数据有效性
+        /// </summary>
+        public override bool ValidateTrack()
+        {
+            if (string.IsNullOrEmpty(trackName)) return false;
+
+            foreach (var clip in audioClips)
+            {
+                if (!clip.ValidateClip()) return false;
+            }
+            return true;
         }
 
         [Serializable]

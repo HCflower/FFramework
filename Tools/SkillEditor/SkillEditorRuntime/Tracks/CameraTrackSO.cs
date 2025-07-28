@@ -8,7 +8,7 @@ namespace FFramework.Kit
     /// 摄像机轨道ScriptableObject
     /// 独立的摄像机轨道数据文件
     /// </summary>
-    [CreateAssetMenu(fileName = "CameraTrack", menuName = "FFramework/Tracks/Camera Track", order = 3)]
+    // [CreateAssetMenu(fileName = "CameraTrack", menuName = "FFramework/Tracks/Camera Track", order = 3)]
     public class CameraTrackSO : ScriptableObject
     {
         [Header("轨道基础信息")]

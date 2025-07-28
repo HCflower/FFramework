@@ -57,11 +57,89 @@ namespace FFramework.Kit
             // 检查音频轨道的活动片段
             if (trackContainer.audioTrack != null)
             {
-                foreach (var clip in trackContainer.audioTrack.audioClips)
+                foreach (var audioTrack in trackContainer.audioTrack.audioTracks)
                 {
-                    if (frame >= clip.startFrame && frame < clip.startFrame + clip.durationFrame)
+                    if (audioTrack.isEnabled && audioTrack.audioClips != null)
                     {
-                        info.AppendLine($"  Audio: {clip.clipName}");
+                        foreach (var clip in audioTrack.audioClips)
+                        {
+                            if (frame >= clip.startFrame && frame < clip.startFrame + clip.durationFrame)
+                            {
+                                info.AppendLine($"  Audio Track '{audioTrack.trackName}': {clip.clipName}");
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 检查特效轨道的活动片段
+            if (trackContainer.effectTrack != null)
+            {
+                foreach (var effectTrack in trackContainer.effectTrack.effectTracks)
+                {
+                    if (effectTrack.isEnabled && effectTrack.effectClips != null)
+                    {
+                        foreach (var clip in effectTrack.effectClips)
+                        {
+                            if (frame >= clip.startFrame && frame < clip.startFrame + clip.durationFrame)
+                            {
+                                info.AppendLine($"  Effect Track '{effectTrack.trackName}': {clip.clipName}");
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 检查事件轨道的活动片段
+            if (trackContainer.eventTrack != null)
+            {
+                foreach (var eventTrack in trackContainer.eventTrack.eventTracks)
+                {
+                    if (eventTrack.isEnabled && eventTrack.eventClips != null)
+                    {
+                        foreach (var clip in eventTrack.eventClips)
+                        {
+                            if (frame >= clip.startFrame && frame < clip.startFrame + clip.durationFrame)
+                            {
+                                info.AppendLine($"  Event Track '{eventTrack.trackName}': {clip.clipName}");
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 检查伤害检测轨道的活动片段
+            if (trackContainer.injuryDetectionTrack != null)
+            {
+                foreach (var injuryTrack in trackContainer.injuryDetectionTrack.injuryDetectionTracks)
+                {
+                    if (injuryTrack.isEnabled && injuryTrack.injuryDetectionClips != null)
+                    {
+                        foreach (var clip in injuryTrack.injuryDetectionClips)
+                        {
+                            if (frame >= clip.startFrame && frame < clip.startFrame + clip.durationFrame)
+                            {
+                                info.AppendLine($"  Injury Detection Track '{injuryTrack.trackName}': {clip.clipName}");
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 检查游戏物体轨道的活动片段
+            if (trackContainer.gameObjectTrack != null)
+            {
+                foreach (var goTrack in trackContainer.gameObjectTrack.gameObjectTracks)
+                {
+                    if (goTrack.isEnabled && goTrack.gameObjectClips != null)
+                    {
+                        foreach (var clip in goTrack.gameObjectClips)
+                        {
+                            if (frame >= clip.startFrame && frame < clip.startFrame + clip.durationFrame)
+                            {
+                                info.AppendLine($"  GameObject Track '{goTrack.trackName}': {clip.clipName}");
+                            }
+                        }
                     }
                 }
             }
@@ -69,71 +147,93 @@ namespace FFramework.Kit
             return info.ToString();
         }
 
+        [Button("检查轨道配置", "yellow")]
+        private void CheckRedundantTrackConfigSO()
+        {
+
+        }
+
         #endregion
     }
-
-
-    #region 枚举参数
-
-    // 碰撞体类型
-    public enum ColliderType
-    {
-        Box = 0,        // 立方体
-        Sphere = 1,     // 球体
-        Capsule = 2,    // 胶囊体   
-        sector = 3,     // 扇形
-    }
-
-
-    #endregion
 
     #region  轨道
 
     /// <summary>
     /// 轨道容器 - 统一管理所有轨道引用
     /// 使用ScriptableObject引用的方式，提高数据可读性和模块化
-    /// 每个轨道类型最多只有一个SO文件，List数据存储在SO文件内部
+    /// 
+    /// 架构说明：
+    /// - 单轨道序列：AnimationTrack, CameraTrack - 每个SO文件包含一个轨道的多个片段
+    /// - 多轨道并行：AudioTrack, EffectTrack等 - 每个SO文件包含多个独立轨道，每个轨道包含多个片段
     /// </summary>
     [Serializable]
     public class TrackContainer
     {
-        [Header("动画轨道 (单轨道序列)")]
-        [Tooltip("动画轨道数据文件引用")] public AnimationTrackSO animationTrack;
-
-        [Header("音效轨道 (多轨道并行)")]
-        [Tooltip("音效轨道数据文件引用")] public AudioTrackSO audioTrack;
-
-        [Header("特效轨道 (多轨道并行)")]
-        [Tooltip("特效轨道数据文件引用")] public EffectTrackSO effectTrack;
-
-        [Header("伤害检测轨道(多轨道并行)")]
-        [Tooltip("伤害检测轨道数据文件引用")] public InjuryDetectionTrackSO injuryDetectionTrack;
-
-        [Header("事件轨道(多轨道并行)")]
-        [Tooltip("事件轨道数据文件引用")] public EventTrackSO eventTrack;
-
-        [Header("变换轨道(多轨道并行)")]
-        [Tooltip("变换轨道数据文件引用")] public TransformTrackSO transformTrack;
-
-        [Header("摄像机轨道(单轨道)")]
-        [Tooltip("摄像机轨道数据文件引用")] public CameraTrackSO cameraTrack;
-
-        [Header("游戏物体轨道(多轨道并行)")]
-        [Tooltip("游戏物体轨道数据文件引用")] public GameObjectTrackSO gameObjectTrack;
+        [TextLable("动画轨道 (单轨道序列)")][Tooltip("动画轨道数据文件引用")] public AnimationTrackSO animationTrack;
+        [TextLable("变换轨道(单轨道序列)")][Tooltip("变换轨道数据文件引用")] public TransformTrackSO transformTrack;
+        [TextLable("摄像机轨道(单轨道序列)")][Tooltip("摄像机轨道数据文件引用")] public CameraTrackSO cameraTrack;
+        [TextLable("音效轨道 (多轨道并行)")][Tooltip("音效轨道数据文件引用")] public AudioTrackSO audioTrack;
+        [TextLable("特效轨道 (多轨道并行)")][Tooltip("特效轨道数据文件引用")] public EffectTrackSO effectTrack;
+        [TextLable("伤害检测轨道(多轨道并行)")][Tooltip("伤害检测轨道数据文件引用")] public InjuryDetectionTrackSO injuryDetectionTrack;
+        [TextLable("事件轨道(多轨道并行)")][Tooltip("事件轨道数据文件引用")] public EventTrackSO eventTrack;
+        [TextLable("游戏物体轨道(多轨道并行)")][Tooltip("游戏物体轨道数据文件引用")] public GameObjectTrackSO gameObjectTrack;
 
         /// <summary>
         /// 获取所有轨道（转换为运行时数据）
         /// </summary>
         public IEnumerable<TrackBase> GetAllTracks()
         {
+            // 单轨道序列
             if (animationTrack != null) yield return animationTrack.ToRuntimeTrack();
-            if (audioTrack != null) yield return audioTrack.ToRuntimeTrack();
-            if (effectTrack != null) yield return effectTrack.ToRuntimeTrack();
-            if (injuryDetectionTrack != null) yield return injuryDetectionTrack.ToRuntimeTrack();
-            if (eventTrack != null) yield return eventTrack.ToRuntimeTrack();
-            if (transformTrack != null) yield return transformTrack.ToRuntimeTrack();
             if (cameraTrack != null) yield return cameraTrack.ToRuntimeTrack();
-            if (gameObjectTrack != null) yield return gameObjectTrack.ToRuntimeTrack();
+
+            // 多轨道并行 - 需要遍历所有启用的轨道
+            if (audioTrack != null)
+            {
+                foreach (var track in audioTrack.GetEnabledTracks())
+                {
+                    yield return track;
+                }
+            }
+
+            if (effectTrack != null)
+            {
+                foreach (var track in effectTrack.GetEnabledTracks())
+                {
+                    yield return track;
+                }
+            }
+
+            // 多轨道并行 - 遍历所有启用的轨道
+            if (injuryDetectionTrack != null)
+            {
+                foreach (var track in injuryDetectionTrack.injuryDetectionTracks)
+                {
+                    if (track.isEnabled)
+                        yield return track;
+                }
+            }
+
+            if (eventTrack != null)
+            {
+                foreach (var track in eventTrack.eventTracks)
+                {
+                    if (track.isEnabled)
+                        yield return track;
+                }
+            }
+
+            if (gameObjectTrack != null)
+            {
+                foreach (var track in gameObjectTrack.gameObjectTracks)
+                {
+                    if (track.isEnabled)
+                        yield return track;
+                }
+            }
+
+            // 注意：以下轨道类型还需要按照相同模式修改其SO文件
+            if (transformTrack != null) yield return transformTrack.ToRuntimeTrack();
         }
 
         /// <summary>
@@ -191,23 +291,14 @@ namespace FFramework.Kit
                 return false;
 
             // 验证其他轨道
-            if (audioTrack != null && !audioTrack.ValidateTrack()) return false;
-            if (effectTrack != null && !effectTrack.ValidateTrack()) return false;
-            if (injuryDetectionTrack != null && !injuryDetectionTrack.ValidateTrack()) return false;
-            if (eventTrack != null && !eventTrack.ValidateTrack()) return false;
+            if (audioTrack != null && !audioTrack.ValidateAllTracks()) return false;
+            if (effectTrack != null && !effectTrack.ValidateAllTracks()) return false;
+            if (injuryDetectionTrack != null && !injuryDetectionTrack.ValidateAllTracks()) return false;
+            if (eventTrack != null && !eventTrack.ValidateAllTracks()) return false;
             if (transformTrack != null && !transformTrack.ValidateTrack()) return false;
-            if (gameObjectTrack != null && !gameObjectTrack.ValidateTrack()) return false;
+            if (gameObjectTrack != null && !gameObjectTrack.ValidateAllTracks()) return false;
 
             return true;
-        }
-
-        /// <summary>
-        /// 同步所有轨道数据（从运行时数据同步到ScriptableObject）
-        /// </summary>
-        public void SyncFromRuntimeData(TrackContainer runtimeContainer)
-        {
-            // 这个方法可以用于从旧格式迁移数据
-            // 具体实现可以根据需要添加
         }
     }
     #endregion

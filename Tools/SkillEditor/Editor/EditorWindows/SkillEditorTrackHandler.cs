@@ -1,10 +1,8 @@
-using System.Collections.Generic;
 using UnityEngine.UIElements;
 using FFramework.Kit;
 using UnityEngine;
 using UnityEditor;
 using System.Linq;
-using System;
 
 namespace SkillEditor
 {
@@ -22,16 +20,6 @@ namespace SkillEditor
 
         /// <summary>轨道控制区域内容容器</summary>
         private VisualElement trackControlContent;
-
-        /// <summary>
-        /// 检查技能配置是否包含变换轨道数据
-        /// </summary>
-        private bool HasTransformTrackData(SkillConfig skillConfig)
-        {
-            return skillConfig.trackContainer.transformTrack != null &&
-                   skillConfig.trackContainer.transformTrack.transformClips != null &&
-                   skillConfig.trackContainer.transformTrack.transformClips.Count > 0;
-        }
 
         /// <summary>
         /// 所有轨道的容器
@@ -99,6 +87,9 @@ namespace SkillEditor
             // 检查是否已存在摄像机轨道（限制只能有一个）
             bool hasCameraTrack = SkillEditorData.tracks.Exists(t => t.TrackType == TrackType.CameraTrack);
 
+            // 检查是否已存在变换轨道（限制只能有一个）
+            bool hasTransformTrack = SkillEditorData.tracks.Exists(t => t.TrackType == TrackType.TransformTrack);
+
             // 创建动画轨道菜单项
             menu.AddItem(new GUIContent("创建 Animation Track"), hasAnimationTrack, () =>
             {
@@ -117,12 +108,20 @@ namespace SkillEditor
                     Debug.LogWarning("(摄像机轨道只可存在一条)已存在摄像机轨道，无法创建新的摄像机轨道。");
             });
 
+            // 创建变换轨道菜单项
+            menu.AddItem(new GUIContent("创建 Transform Track"), hasTransformTrack, () =>
+            {
+                if (!hasTransformTrack)
+                    CreateTrack(TrackType.TransformTrack);
+                else
+                    Debug.LogWarning("(变换轨道只可存在一条)已存在变换轨道，无法创建新的变换轨道。");
+            });
+
             // 创建其他类型轨道菜单项
             menu.AddItem(new GUIContent("创建 Audio Track"), false, () => CreateTrack(TrackType.AudioTrack));
             menu.AddItem(new GUIContent("创建 Effect Track"), false, () => CreateTrack(TrackType.EffectTrack));
             menu.AddItem(new GUIContent("创建 Attack Track"), false, () => CreateTrack(TrackType.AttackTrack));
             menu.AddItem(new GUIContent("创建 Event Track"), false, () => CreateTrack(TrackType.EventTrack));
-            menu.AddItem(new GUIContent("创建 Transform Track"), false, () => CreateTrack(TrackType.TransformTrack));
             menu.AddItem(new GUIContent("创建 GameObject Track"), false, () => CreateTrack(TrackType.GameObjectTrack));
 
             // 在按钮下方显示菜单
@@ -183,6 +182,12 @@ namespace SkillEditor
                 CreateTrack(TrackType.CameraTrack);
             }
 
+            // 检查变换轨道 - 只要轨道SO存在就创建UI
+            if (skillConfig.trackContainer.transformTrack != null && !HasTrackType(TrackType.TransformTrack))
+            {
+                CreateTrack(TrackType.TransformTrack);
+            }
+
             // 为每个音频轨道数据创建对应的UI轨道
             CreateAudioTracksFromConfig(skillConfig);
 
@@ -195,13 +200,8 @@ namespace SkillEditor
             // 为每个事件轨道数据创建对应的UI轨道
             CreateEventTracksFromConfig(skillConfig);
 
-            // 为每个变换轨道数据创建对应的UI轨道
-            CreateTransformTracksFromConfig(skillConfig);
-
             // 为每个游戏物体轨道数据创建对应的UI轨道
             CreateGameObjectTracksFromConfig(skillConfig);
-
-
         }
 
         /// <summary>
@@ -334,83 +334,23 @@ namespace SkillEditor
 
             switch (trackType)
             {
-                case TrackType.AudioTrack:
-                    // 确保音频轨道存在
-                    if (skillConfig.trackContainer.audioTrack == null)
+                case TrackType.AnimationTrack:
+                    // 动画轨道是单轨道
+                    if (skillConfig.trackContainer.animationTrack == null)
                     {
-                        var newAudioTrack = ScriptableObject.CreateInstance<FFramework.Kit.AudioTrackSO>();
-                        string factoryTrackName = SkillEditorTrackFactory.GetDefaultTrackName(TrackType.AudioTrack, 0);
-                        newAudioTrack.trackName = factoryTrackName;
-                        newAudioTrack.audioClips = new System.Collections.Generic.List<FFramework.Kit.AudioTrack.AudioClip>();
-                        newAudioTrack.name = "AudioTrack";
+                        var newAnimationTrack = ScriptableObject.CreateInstance<FFramework.Kit.AnimationTrackSO>();
+                        string factoryTrackName = SkillEditorTrackFactory.GetDefaultTrackName(TrackType.AnimationTrack, 0);
+                        newAnimationTrack.trackName = factoryTrackName;
+                        newAnimationTrack.animationClips = new System.Collections.Generic.List<FFramework.Kit.AnimationTrack.AnimationClip>();
+                        newAnimationTrack.name = "AnimationTrack";
 
                         // 将轨道SO作为子资产添加到技能配置文件中
-                        UnityEditor.AssetDatabase.AddObjectToAsset(newAudioTrack, skillConfig);
+                        UnityEditor.AssetDatabase.AddObjectToAsset(newAnimationTrack, skillConfig);
 
-                        skillConfig.trackContainer.audioTrack = newAudioTrack;
+                        skillConfig.trackContainer.animationTrack = newAnimationTrack;
                         UnityEditor.EditorUtility.SetDirty(skillConfig);
                         UnityEditor.AssetDatabase.SaveAssets();
-                        Debug.Log($"创建音频轨道数据: {newAudioTrack.trackName} 作为子资产嵌套到 {skillConfig.name}");
-                    }
-                    break;
-
-                case TrackType.EffectTrack:
-                    // 确保特效轨道存在
-                    if (skillConfig.trackContainer.effectTrack == null)
-                    {
-                        var newEffectTrack = ScriptableObject.CreateInstance<FFramework.Kit.EffectTrackSO>();
-                        string factoryTrackName = SkillEditorTrackFactory.GetDefaultTrackName(TrackType.EffectTrack, 0);
-                        newEffectTrack.trackName = factoryTrackName;
-                        newEffectTrack.effectClips = new System.Collections.Generic.List<FFramework.Kit.EffectTrack.EffectClip>();
-                        newEffectTrack.name = "EffectTrack";
-
-                        // 将轨道SO作为子资产添加到技能配置文件中
-                        UnityEditor.AssetDatabase.AddObjectToAsset(newEffectTrack, skillConfig);
-
-                        skillConfig.trackContainer.effectTrack = newEffectTrack;
-                        UnityEditor.EditorUtility.SetDirty(skillConfig);
-                        UnityEditor.AssetDatabase.SaveAssets();
-                        Debug.Log($"创建特效轨道数据: {newEffectTrack.trackName} 作为子资产嵌套到 {skillConfig.name}");
-                    }
-                    break;
-
-                case TrackType.AttackTrack:
-                    // 确保伤害检测轨道存在
-                    if (skillConfig.trackContainer.injuryDetectionTrack == null)
-                    {
-                        var newAttackTrack = ScriptableObject.CreateInstance<FFramework.Kit.InjuryDetectionTrackSO>();
-                        string factoryTrackName = SkillEditorTrackFactory.GetDefaultTrackName(TrackType.AttackTrack, 0);
-                        newAttackTrack.trackName = factoryTrackName;
-                        newAttackTrack.injuryDetectionClips = new System.Collections.Generic.List<FFramework.Kit.InjuryDetectionTrack.InjuryDetectionClip>();
-                        newAttackTrack.name = "InjuryDetectionTrack";
-
-                        // 将轨道SO作为子资产添加到技能配置文件中
-                        UnityEditor.AssetDatabase.AddObjectToAsset(newAttackTrack, skillConfig);
-
-                        skillConfig.trackContainer.injuryDetectionTrack = newAttackTrack;
-                        UnityEditor.EditorUtility.SetDirty(skillConfig);
-                        UnityEditor.AssetDatabase.SaveAssets();
-                        Debug.Log($"创建攻击轨道数据: {newAttackTrack.trackName} 作为子资产嵌套到 {skillConfig.name}");
-                    }
-                    break;
-
-                case TrackType.EventTrack:
-                    // 确保事件轨道存在
-                    if (skillConfig.trackContainer.eventTrack == null)
-                    {
-                        var newEventTrack = ScriptableObject.CreateInstance<FFramework.Kit.EventTrackSO>();
-                        string factoryTrackName = SkillEditorTrackFactory.GetDefaultTrackName(TrackType.EventTrack, 0);
-                        newEventTrack.trackName = factoryTrackName;
-                        newEventTrack.eventClips = new System.Collections.Generic.List<FFramework.Kit.EventTrack.EventClip>();
-                        newEventTrack.name = "EventTrack";
-
-                        // 将轨道SO作为子资产添加到技能配置文件中
-                        UnityEditor.AssetDatabase.AddObjectToAsset(newEventTrack, skillConfig);
-
-                        skillConfig.trackContainer.eventTrack = newEventTrack;
-                        UnityEditor.EditorUtility.SetDirty(skillConfig);
-                        UnityEditor.AssetDatabase.SaveAssets();
-                        Debug.Log($"创建事件轨道数据: {newEventTrack.trackName} 作为子资产嵌套到 {skillConfig.name}");
+                        Debug.Log($"创建动画轨道数据: {newAnimationTrack.trackName} 作为子资产嵌套到 {skillConfig.name}");
                     }
                     break;
 
@@ -434,25 +374,6 @@ namespace SkillEditor
                     }
                     break;
 
-                case TrackType.AnimationTrack:
-                    // 动画轨道是单轨道
-                    if (skillConfig.trackContainer.animationTrack == null)
-                    {
-                        var newAnimationTrack = ScriptableObject.CreateInstance<FFramework.Kit.AnimationTrackSO>();
-                        string factoryTrackName = SkillEditorTrackFactory.GetDefaultTrackName(TrackType.AnimationTrack, 0);
-                        newAnimationTrack.trackName = factoryTrackName;
-                        newAnimationTrack.animationClips = new System.Collections.Generic.List<FFramework.Kit.AnimationTrack.AnimationClip>();
-                        newAnimationTrack.name = "AnimationTrack";
-
-                        // 将轨道SO作为子资产添加到技能配置文件中
-                        UnityEditor.AssetDatabase.AddObjectToAsset(newAnimationTrack, skillConfig);
-
-                        skillConfig.trackContainer.animationTrack = newAnimationTrack;
-                        UnityEditor.EditorUtility.SetDirty(skillConfig);
-                        UnityEditor.AssetDatabase.SaveAssets();
-                        Debug.Log($"创建动画轨道数据: {newAnimationTrack.trackName} 作为子资产嵌套到 {skillConfig.name}");
-                    }
-                    break;
 
                 case TrackType.CameraTrack:
                     // 摄像机轨道是单轨道
@@ -474,15 +395,145 @@ namespace SkillEditor
                     }
                     break;
 
+                case TrackType.AudioTrack:
+                    // 确保音频轨道存在
+                    if (skillConfig.trackContainer.audioTrack == null)
+                    {
+                        var newAudioTrack = ScriptableObject.CreateInstance<FFramework.Kit.AudioTrackSO>();
+                        newAudioTrack.audioTracks = new System.Collections.Generic.List<FFramework.Kit.AudioTrack>();
+                        newAudioTrack.name = "AudioTracks";
+
+                        // 将轨道SO作为子资产添加到技能配置文件中
+                        UnityEditor.AssetDatabase.AddObjectToAsset(newAudioTrack, skillConfig);
+
+                        skillConfig.trackContainer.audioTrack = newAudioTrack;
+                        UnityEditor.EditorUtility.SetDirty(skillConfig);
+                        UnityEditor.AssetDatabase.SaveAssets();
+                        Debug.Log($"创建音频轨道集合数据作为子资产嵌套到 {skillConfig.name}");
+                    }
+
+                    // 为该轨道索引添加新的音频轨道数据
+                    if (skillConfig.trackContainer.audioTrack.audioTracks != null)
+                    {
+                        string factoryTrackName = SkillEditorTrackFactory.GetDefaultTrackName(TrackType.AudioTrack, trackIndex);
+                        var newTrack = new FFramework.Kit.AudioTrack
+                        {
+                            trackName = factoryTrackName,
+                            isEnabled = true,
+                            trackIndex = trackIndex,
+                            audioClips = new System.Collections.Generic.List<FFramework.Kit.AudioTrack.AudioClip>()
+                        };
+                        skillConfig.trackContainer.audioTrack.audioTracks.Add(newTrack);
+                        UnityEditor.EditorUtility.SetDirty(skillConfig);
+                    }
+                    break;
+
+                case TrackType.EffectTrack:
+                    // 确保特效轨道存在
+                    if (skillConfig.trackContainer.effectTrack == null)
+                    {
+                        var newEffectTrack = ScriptableObject.CreateInstance<FFramework.Kit.EffectTrackSO>();
+                        newEffectTrack.effectTracks = new System.Collections.Generic.List<FFramework.Kit.EffectTrack>();
+                        newEffectTrack.name = "EffectTracks";
+
+                        // 将轨道SO作为子资产添加到技能配置文件中
+                        UnityEditor.AssetDatabase.AddObjectToAsset(newEffectTrack, skillConfig);
+
+                        skillConfig.trackContainer.effectTrack = newEffectTrack;
+                        UnityEditor.EditorUtility.SetDirty(skillConfig);
+                        UnityEditor.AssetDatabase.SaveAssets();
+                        Debug.Log($"创建特效轨道集合数据作为子资产嵌套到 {skillConfig.name}");
+                    }
+
+                    // 为该轨道索引添加新的特效轨道数据
+                    if (skillConfig.trackContainer.effectTrack.effectTracks != null)
+                    {
+                        string factoryTrackName = SkillEditorTrackFactory.GetDefaultTrackName(TrackType.EffectTrack, trackIndex);
+                        var newTrack = new FFramework.Kit.EffectTrack
+                        {
+                            trackName = factoryTrackName,
+                            isEnabled = true,
+                            trackIndex = trackIndex,
+                            effectClips = new System.Collections.Generic.List<FFramework.Kit.EffectTrack.EffectClip>()
+                        };
+                        skillConfig.trackContainer.effectTrack.effectTracks.Add(newTrack);
+                        UnityEditor.EditorUtility.SetDirty(skillConfig);
+                    }
+                    break;
+
+                case TrackType.AttackTrack:
+                    // 确保伤害检测轨道存在
+                    if (skillConfig.trackContainer.injuryDetectionTrack == null)
+                    {
+                        var newAttackTrack = ScriptableObject.CreateInstance<FFramework.Kit.InjuryDetectionTrackSO>();
+                        newAttackTrack.injuryDetectionTracks = new System.Collections.Generic.List<FFramework.Kit.InjuryDetectionTrack>();
+                        newAttackTrack.name = "InjuryDetectionTracks";
+
+                        // 将轨道SO作为子资产添加到技能配置文件中
+                        UnityEditor.AssetDatabase.AddObjectToAsset(newAttackTrack, skillConfig);
+
+                        skillConfig.trackContainer.injuryDetectionTrack = newAttackTrack;
+                        UnityEditor.EditorUtility.SetDirty(skillConfig);
+                        UnityEditor.AssetDatabase.SaveAssets();
+                        Debug.Log($"创建伤害检测轨道集合数据作为子资产嵌套到 {skillConfig.name}");
+                    }
+
+                    // 为该轨道索引添加新的伤害检测轨道数据
+                    if (skillConfig.trackContainer.injuryDetectionTrack.injuryDetectionTracks != null)
+                    {
+                        string factoryTrackName = SkillEditorTrackFactory.GetDefaultTrackName(TrackType.AttackTrack, trackIndex);
+                        var newTrack = new FFramework.Kit.InjuryDetectionTrack
+                        {
+                            trackName = factoryTrackName,
+                            isEnabled = true,
+                            trackIndex = trackIndex,
+                            injuryDetectionClips = new System.Collections.Generic.List<FFramework.Kit.InjuryDetectionTrack.InjuryDetectionClip>()
+                        };
+                        skillConfig.trackContainer.injuryDetectionTrack.injuryDetectionTracks.Add(newTrack);
+                        UnityEditor.EditorUtility.SetDirty(skillConfig);
+                    }
+                    break;
+
+                case TrackType.EventTrack:
+                    // 确保事件轨道存在
+                    if (skillConfig.trackContainer.eventTrack == null)
+                    {
+                        var newEventTrack = ScriptableObject.CreateInstance<FFramework.Kit.EventTrackSO>();
+                        newEventTrack.eventTracks = new System.Collections.Generic.List<FFramework.Kit.EventTrack>();
+                        newEventTrack.name = "EventTracks";
+
+                        // 将轨道SO作为子资产添加到技能配置文件中
+                        UnityEditor.AssetDatabase.AddObjectToAsset(newEventTrack, skillConfig);
+
+                        skillConfig.trackContainer.eventTrack = newEventTrack;
+                        UnityEditor.EditorUtility.SetDirty(skillConfig);
+                        UnityEditor.AssetDatabase.SaveAssets();
+                        Debug.Log($"创建事件轨道集合数据作为子资产嵌套到 {skillConfig.name}");
+                    }
+
+                    // 为该轨道索引添加新的事件轨道数据
+                    if (skillConfig.trackContainer.eventTrack.eventTracks != null)
+                    {
+                        string factoryTrackName = SkillEditorTrackFactory.GetDefaultTrackName(TrackType.EventTrack, trackIndex);
+                        var newTrack = new FFramework.Kit.EventTrack
+                        {
+                            trackName = factoryTrackName,
+                            isEnabled = true,
+                            trackIndex = trackIndex,
+                            eventClips = new System.Collections.Generic.List<FFramework.Kit.EventTrack.EventClip>()
+                        };
+                        skillConfig.trackContainer.eventTrack.eventTracks.Add(newTrack);
+                        UnityEditor.EditorUtility.SetDirty(skillConfig);
+                    }
+                    break;
+
                 case TrackType.GameObjectTrack:
                     // 确保游戏物体轨道存在
                     if (skillConfig.trackContainer.gameObjectTrack == null)
                     {
                         var newGameObjectTrack = ScriptableObject.CreateInstance<FFramework.Kit.GameObjectTrackSO>();
-                        string factoryTrackName = SkillEditorTrackFactory.GetDefaultTrackName(TrackType.GameObjectTrack, 0);
-                        newGameObjectTrack.trackName = factoryTrackName;
-                        newGameObjectTrack.gameObjectClips = new System.Collections.Generic.List<FFramework.Kit.GameObjectTrack.GameObjectClip>();
-                        newGameObjectTrack.name = "GameObjectTrack";
+                        newGameObjectTrack.gameObjectTracks = new System.Collections.Generic.List<FFramework.Kit.GameObjectTrack>();
+                        newGameObjectTrack.name = "GameObjectTracks";
 
                         // 将轨道SO作为子资产添加到技能配置文件中
                         UnityEditor.AssetDatabase.AddObjectToAsset(newGameObjectTrack, skillConfig);
@@ -490,7 +541,22 @@ namespace SkillEditor
                         skillConfig.trackContainer.gameObjectTrack = newGameObjectTrack;
                         UnityEditor.EditorUtility.SetDirty(skillConfig);
                         UnityEditor.AssetDatabase.SaveAssets();
-                        Debug.Log($"创建游戏物体轨道数据: {newGameObjectTrack.trackName} 作为子资产嵌套到 {skillConfig.name}");
+                        Debug.Log($"创建游戏物体轨道集合数据作为子资产嵌套到 {skillConfig.name}");
+                    }
+
+                    // 为该轨道索引添加新的游戏物体轨道数据
+                    if (skillConfig.trackContainer.gameObjectTrack.gameObjectTracks != null)
+                    {
+                        string factoryTrackName = SkillEditorTrackFactory.GetDefaultTrackName(TrackType.GameObjectTrack, trackIndex);
+                        var newTrack = new FFramework.Kit.GameObjectTrack
+                        {
+                            trackName = factoryTrackName,
+                            isEnabled = true,
+                            trackIndex = trackIndex,
+                            gameObjectClips = new System.Collections.Generic.List<FFramework.Kit.GameObjectTrack.GameObjectClip>()
+                        };
+                        skillConfig.trackContainer.gameObjectTrack.gameObjectTracks.Add(newTrack);
+                        UnityEditor.EditorUtility.SetDirty(skillConfig);
                     }
                     break;
             }
@@ -746,8 +812,10 @@ namespace SkillEditor
         private bool HasAudioTrackData(SkillConfig skillConfig)
         {
             return skillConfig.trackContainer.audioTrack != null &&
-                   skillConfig.trackContainer.audioTrack.audioClips != null &&
-                   skillConfig.trackContainer.audioTrack.audioClips.Count > 0;
+                   skillConfig.trackContainer.audioTrack.audioTracks != null &&
+                   skillConfig.trackContainer.audioTrack.audioTracks.Count > 0 &&
+                   skillConfig.trackContainer.audioTrack.audioTracks.Any(track =>
+                       track.audioClips != null && track.audioClips.Count > 0);
         }
 
         /// <summary>
@@ -756,8 +824,10 @@ namespace SkillEditor
         private bool HasEffectTrackData(SkillConfig skillConfig)
         {
             return skillConfig.trackContainer.effectTrack != null &&
-                   skillConfig.trackContainer.effectTrack.effectClips != null &&
-                   skillConfig.trackContainer.effectTrack.effectClips.Count > 0;
+                   skillConfig.trackContainer.effectTrack.effectTracks != null &&
+                   skillConfig.trackContainer.effectTrack.effectTracks.Count > 0 &&
+                   skillConfig.trackContainer.effectTrack.effectTracks.Any(track =>
+                       track.effectClips != null && track.effectClips.Count > 0);
         }
 
         /// <summary>
@@ -766,8 +836,10 @@ namespace SkillEditor
         private bool HasInjuryDetectionTrackData(SkillConfig skillConfig)
         {
             return skillConfig.trackContainer.injuryDetectionTrack != null &&
-                   skillConfig.trackContainer.injuryDetectionTrack.injuryDetectionClips != null &&
-                   skillConfig.trackContainer.injuryDetectionTrack.injuryDetectionClips.Count > 0;
+                   skillConfig.trackContainer.injuryDetectionTrack.injuryDetectionTracks != null &&
+                   skillConfig.trackContainer.injuryDetectionTrack.injuryDetectionTracks.Count > 0 &&
+                   skillConfig.trackContainer.injuryDetectionTrack.injuryDetectionTracks.Any(track =>
+                       track.injuryDetectionClips != null && track.injuryDetectionClips.Count > 0);
         }
 
         /// <summary>
@@ -776,8 +848,10 @@ namespace SkillEditor
         private bool HasEventTrackData(SkillConfig skillConfig)
         {
             return skillConfig.trackContainer.eventTrack != null &&
-                   skillConfig.trackContainer.eventTrack.eventClips != null &&
-                   skillConfig.trackContainer.eventTrack.eventClips.Count > 0;
+                   skillConfig.trackContainer.eventTrack.eventTracks != null &&
+                   skillConfig.trackContainer.eventTrack.eventTracks.Count > 0 &&
+                   skillConfig.trackContainer.eventTrack.eventTracks.Any(track =>
+                       track.eventClips != null && track.eventClips.Count > 0);
         }
 
         /// <summary>
@@ -786,8 +860,20 @@ namespace SkillEditor
         private bool HasGameObjectTrackData(SkillConfig skillConfig)
         {
             return skillConfig.trackContainer.gameObjectTrack != null &&
-                   skillConfig.trackContainer.gameObjectTrack.gameObjectClips != null &&
-                   skillConfig.trackContainer.gameObjectTrack.gameObjectClips.Count > 0;
+                   skillConfig.trackContainer.gameObjectTrack.gameObjectTracks != null &&
+                   skillConfig.trackContainer.gameObjectTrack.gameObjectTracks.Count > 0 &&
+                   skillConfig.trackContainer.gameObjectTrack.gameObjectTracks.Any(track =>
+                       track.gameObjectClips != null && track.gameObjectClips.Count > 0);
+        }
+
+        /// <summary>
+        /// 检查技能配置是否包含变换轨道数据
+        /// </summary>
+        private bool HasTransformTrackData(SkillConfig skillConfig)
+        {
+            return skillConfig.trackContainer.transformTrack != null &&
+                   skillConfig.trackContainer.transformTrack.transformClips != null &&
+                   skillConfig.trackContainer.transformTrack.transformClips.Count > 0;
         }
 
 
@@ -819,15 +905,21 @@ namespace SkillEditor
 
         /// <summary>
         /// 从配置创建音频轨道项
+        /// TODO: 需要适配新的多轨道结构
         /// </summary>
         private void CreateAudioTrackItemsFromConfig(BaseSkillEditorTrack track, SkillConfig skillConfig)
         {
-            var audioTrack = skillConfig.trackContainer.audioTrack;
-            if (audioTrack?.audioClips == null)
+            var audioTrackSO = skillConfig.trackContainer.audioTrack;
+            if (audioTrackSO?.audioTracks == null || audioTrackSO.audioTracks.Count == 0)
             {
-                Debug.Log("CreateAudioTrackItemsFromConfig: 没有音频片段数据");
+                Debug.Log("CreateAudioTrackItemsFromConfig: 没有音频轨道数据");
                 return;
             }
+
+            // TODO: 这里需要根据轨道索引选择正确的音频轨道
+            // 临时使用第一个轨道作为示例
+            var audioTrack = audioTrackSO.audioTracks[0];
+            if (audioTrack.audioClips == null) return;
 
             foreach (var clip in audioTrack.audioClips.ToList())
             {
@@ -852,11 +944,17 @@ namespace SkillEditor
 
         /// <summary>
         /// 从配置创建特效轨道项
+        /// TODO: 需要适配新的多轨道结构
         /// </summary>
         private void CreateEffectTrackItemsFromConfig(BaseSkillEditorTrack track, SkillConfig skillConfig)
         {
-            var effectTrack = skillConfig.trackContainer.effectTrack;
-            if (effectTrack?.effectClips == null) return;
+            var effectTrackSO = skillConfig.trackContainer.effectTrack;
+            if (effectTrackSO?.effectTracks == null || effectTrackSO.effectTracks.Count == 0) return;
+
+            // TODO: 这里需要根据轨道索引选择正确的特效轨道
+            // 临时使用第一个轨道作为示例
+            var effectTrack = effectTrackSO.effectTracks[0];
+            if (effectTrack.effectClips == null) return;
 
             foreach (var clip in effectTrack.effectClips)
             {
@@ -874,12 +972,18 @@ namespace SkillEditor
         private void CreateInjuryDetectionTrackItemsFromConfig(BaseSkillEditorTrack track, SkillConfig skillConfig)
         {
             var injuryTrack = skillConfig.trackContainer.injuryDetectionTrack;
-            if (injuryTrack?.injuryDetectionClips == null) return;
+            if (injuryTrack?.injuryDetectionTracks == null) return;
 
-            foreach (var clip in injuryTrack.injuryDetectionClips)
+            // 由于无法直接访问track.trackIndex，我们需要遍历所有轨道的所有数据
+            foreach (var trackData in injuryTrack.injuryDetectionTracks)
             {
-                // 从配置加载时，设置addToConfig为false，避免重复添加到配置文件
-                track.AddTrackItem(clip.clipName, clip.startFrame, false);
+                if (trackData?.injuryDetectionClips == null) continue;
+
+                foreach (var clip in trackData.injuryDetectionClips)
+                {
+                    // 从配置加载时，设置addToConfig为false，避免重复添加到配置文件
+                    track.AddTrackItem(clip.clipName, clip.startFrame, false);
+                }
             }
         }
 
@@ -889,12 +993,18 @@ namespace SkillEditor
         private void CreateEventTrackItemsFromConfig(BaseSkillEditorTrack track, SkillConfig skillConfig)
         {
             var eventTrack = skillConfig.trackContainer.eventTrack;
-            if (eventTrack?.eventClips == null) return;
+            if (eventTrack?.eventTracks == null) return;
 
-            foreach (var clip in eventTrack.eventClips)
+            // 遍历所有事件轨道的所有数据
+            foreach (var trackData in eventTrack.eventTracks)
             {
-                // 从配置加载时，设置addToConfig为false，避免重复添加到配置文件
-                track.AddTrackItem(clip.clipName, clip.startFrame, false);
+                if (trackData?.eventClips == null) continue;
+
+                foreach (var clip in trackData.eventClips)
+                {
+                    // 从配置加载时，设置addToConfig为false，避免重复添加到配置文件
+                    track.AddTrackItem(clip.clipName, clip.startFrame, false);
+                }
             }
         }
 
@@ -914,31 +1024,45 @@ namespace SkillEditor
 
             switch (trackType)
             {
+                // 单轨道类型（每种类型只能有一个实例，使用索引0）
                 case TrackType.AnimationTrack:
-                    // 动画轨道只有一条，使用索引0
                     if (trackIndex == 0)
                     {
                         CreateAnimationTrackItemsFromConfig(track, skillConfig);
                     }
                     break;
+
+                case TrackType.TransformTrack:
+                    if (trackIndex == 0)
+                    {
+                        CreateTransformTrackItemsFromConfigByIndex(track, skillConfig, trackIndex);
+                    }
+                    break;
+
+                case TrackType.CameraTrack:
+                    if (trackIndex == 0)
+                    {
+                        CreateCameraTrackItemsFromConfigByIndex(track, skillConfig, trackIndex);
+                    }
+                    break;
+
+                // 多轨道类型（每种类型可以有多个实例）
                 case TrackType.AudioTrack:
                     CreateAudioTrackItemsFromConfigByIndex(track, skillConfig, trackIndex);
                     break;
+
                 case TrackType.EffectTrack:
                     CreateEffectTrackItemsFromConfigByIndex(track, skillConfig, trackIndex);
                     break;
+
                 case TrackType.AttackTrack:
                     CreateInjuryDetectionTrackItemsFromConfigByIndex(track, skillConfig, trackIndex);
                     break;
+
                 case TrackType.EventTrack:
                     CreateEventTrackItemsFromConfigByIndex(track, skillConfig, trackIndex);
                     break;
-                case TrackType.TransformTrack:
-                    CreateTransformTrackItemsFromConfigByIndex(track, skillConfig, trackIndex);
-                    break;
-                case TrackType.CameraTrack:
-                    CreateCameraTrackItemsFromConfigByIndex(track, skillConfig, trackIndex);
-                    break;
+
                 case TrackType.GameObjectTrack:
                     CreateGameObjectTrackItemsFromConfigByIndex(track, skillConfig, trackIndex);
                     break;
@@ -950,14 +1074,17 @@ namespace SkillEditor
         /// </summary>
         private void CreateAudioTrackItemsFromConfigByIndex(BaseSkillEditorTrack track, SkillConfig skillConfig, int trackIndex)
         {
-            var audioTrack = skillConfig.trackContainer.audioTrack;
-            if (audioTrack?.audioClips == null)
+            var audioTrackSO = skillConfig.trackContainer.audioTrack;
+            if (audioTrackSO?.audioTracks == null || trackIndex >= audioTrackSO.audioTracks.Count)
             {
-                Debug.Log($"CreateAudioTrackItemsFromConfigByIndex: 没有找到音频轨道数据");
+                Debug.Log($"CreateAudioTrackItemsFromConfigByIndex: 没有找到索引 {trackIndex} 的音频轨道数据");
                 return;
             }
 
-            // Debug.Log($"CreateAudioTrackItemsFromConfigByIndex: 为音频轨道加载{audioTrack.audioClips?.Count ?? 0}个音频片段");
+            var audioTrack = audioTrackSO.audioTracks[trackIndex];
+            if (audioTrack.audioClips == null) return;
+
+            // Debug.Log($"CreateAudioTrackItemsFromConfigByIndex: 为音频轨道[{trackIndex}]加载{audioTrack.audioClips?.Count ?? 0}个音频片段");
 
             foreach (var clip in audioTrack.audioClips)
             {
@@ -986,8 +1113,11 @@ namespace SkillEditor
         /// </summary>
         private void CreateEffectTrackItemsFromConfigByIndex(BaseSkillEditorTrack track, SkillConfig skillConfig, int trackIndex)
         {
-            var effectTrack = skillConfig.trackContainer.effectTrack;
-            if (effectTrack?.effectClips == null) return;
+            var effectTrackSO = skillConfig.trackContainer.effectTrack;
+            if (effectTrackSO?.effectTracks == null || trackIndex >= effectTrackSO.effectTracks.Count) return;
+
+            var effectTrack = effectTrackSO.effectTracks[trackIndex];
+            if (effectTrack.effectClips == null) return;
 
             foreach (var clip in effectTrack.effectClips)
             {
@@ -1005,9 +1135,13 @@ namespace SkillEditor
         private void CreateInjuryDetectionTrackItemsFromConfigByIndex(BaseSkillEditorTrack track, SkillConfig skillConfig, int trackIndex)
         {
             var injuryTrack = skillConfig.trackContainer.injuryDetectionTrack;
-            if (injuryTrack?.injuryDetectionClips == null) return;
+            if (injuryTrack?.injuryDetectionTracks == null) return;
 
-            foreach (var clip in injuryTrack.injuryDetectionClips)
+            // 根据索引获取对应的轨道数据
+            var targetTrack = injuryTrack.injuryDetectionTracks.FirstOrDefault(t => t.trackIndex == trackIndex);
+            if (targetTrack?.injuryDetectionClips == null) return;
+
+            foreach (var clip in targetTrack.injuryDetectionClips)
             {
                 // 从配置加载时，设置addToConfig为false，避免重复添加到配置文件
                 // 同时传递持续帧数以正确设置轨道项宽度
@@ -1045,9 +1179,13 @@ namespace SkillEditor
         private void CreateEventTrackItemsFromConfigByIndex(BaseSkillEditorTrack track, SkillConfig skillConfig, int trackIndex)
         {
             var eventTrack = skillConfig.trackContainer.eventTrack;
-            if (eventTrack?.eventClips == null) return;
+            if (eventTrack?.eventTracks == null) return;
 
-            foreach (var clip in eventTrack.eventClips)
+            // 根据索引获取对应的轨道数据
+            var targetTrack = eventTrack.eventTracks.FirstOrDefault(t => t.trackIndex == trackIndex);
+            if (targetTrack?.eventClips == null) return;
+
+            foreach (var clip in targetTrack.eventClips)
             {
                 // 从配置加载时，设置addToConfig为false，避免重复添加到配置文件
                 var trackItem = track.AddTrackItem(clip.clipName, clip.startFrame, false);
@@ -1185,32 +1323,35 @@ namespace SkillEditor
                 return;
             }
 
-            // Debug.Log($"CreateGameObjectTrackItemsFromConfigByIndex: 为游戏物体轨道加载{gameObjectTrack.gameObjectClips?.Count ?? 0}个游戏物体片段");
-
-            if (gameObjectTrack.gameObjectClips != null)
+            // 根据索引获取对应的轨道数据
+            var targetTrack = gameObjectTrack.gameObjectTracks?.FirstOrDefault(t => t.trackIndex == trackIndex);
+            if (targetTrack?.gameObjectClips == null)
             {
-                foreach (var clip in gameObjectTrack.gameObjectClips)
+                Debug.Log($"CreateGameObjectTrackItemsFromConfigByIndex: 没有找到索引为{trackIndex}的游戏物体轨道数据");
+                return;
+            }
+
+            foreach (var clip in targetTrack.gameObjectClips)
+            {
+                if (clip.prefab != null)
                 {
-                    if (clip.prefab != null)
+                    // Debug.Log($"  - 加载游戏物体片段: {clip.clipName} (起始帧: {clip.startFrame})");
+                    // 从配置加载时，使用配置中的名称，并设置addToConfig为false，避免重复添加到配置文件
+                    var trackItem = track.AddTrackItem(clip.prefab, clip.clipName, clip.startFrame, false);
+
+                    // 从配置中恢复完整的游戏物体属性
+                    if (trackItem?.ItemData is GameObjectTrackItemData gameObjectData)
                     {
-                        // Debug.Log($"  - 加载游戏物体片段: {clip.clipName} (起始帧: {clip.startFrame})");
-                        // 从配置加载时，使用配置中的名称，并设置addToConfig为false，避免重复添加到配置文件
-                        var trackItem = track.AddTrackItem(clip.prefab, clip.clipName, clip.startFrame, false);
+                        gameObjectData.autoDestroy = clip.autoDestroy;
+                        gameObjectData.positionOffset = clip.positionOffset;
+                        gameObjectData.rotationOffset = clip.rotationOffset;
+                        gameObjectData.scale = clip.scale;
+                        gameObjectData.useParent = clip.useParent;
+                        gameObjectData.parentName = clip.parentName;
+                        gameObjectData.destroyDelay = clip.destroyDelay;
 
-                        // 从配置中恢复完整的游戏物体属性
-                        if (trackItem?.ItemData is GameObjectTrackItemData gameObjectData)
-                        {
-                            gameObjectData.autoDestroy = clip.autoDestroy;
-                            gameObjectData.positionOffset = clip.positionOffset;
-                            gameObjectData.rotationOffset = clip.rotationOffset;
-                            gameObjectData.scale = clip.scale;
-                            gameObjectData.useParent = clip.useParent;
-                            gameObjectData.parentName = clip.parentName;
-                            gameObjectData.destroyDelay = clip.destroyDelay;
-
-                            // 标记数据已修改
-                            UnityEditor.EditorUtility.SetDirty(gameObjectData);
-                        }
+                        // 标记数据已修改
+                        UnityEditor.EditorUtility.SetDirty(gameObjectData);
                     }
                 }
             }
