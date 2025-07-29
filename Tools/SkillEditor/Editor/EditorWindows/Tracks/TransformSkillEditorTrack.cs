@@ -1,5 +1,5 @@
-using UnityEngine.UIElements;
 using UnityEngine;
+using UnityEngine.UIElements;
 
 #if UNITY_EDITOR
 using UnityEditor;
@@ -68,7 +68,7 @@ namespace SkillEditor
 
             // 变换轨道项默认30帧长度（1秒）
             int frameCount = 30;
-            var newItem = new SkillEditorTrackItem(trackArea, itemName, trackType, frameCount, startFrame);
+            var newItem = new SkillEditorTrackItem(trackArea, itemName, trackType, frameCount, startFrame, trackIndex);
 
             // 添加到技能配置
             if (addToConfig)
@@ -103,7 +103,7 @@ namespace SkillEditor
         /// <returns>创建的变换轨道项</returns>
         public SkillEditorTrackItem CreateTransformItem(string transformName, GameObject targetObject, int startFrame, int frameCount = 30, bool addToConfig = true)
         {
-            var newItem = new SkillEditorTrackItem(trackArea, transformName, trackType, frameCount, startFrame);
+            var newItem = new SkillEditorTrackItem(trackArea, transformName, trackType, frameCount, startFrame, trackIndex);
 
             if (addToConfig)
             {
@@ -150,7 +150,9 @@ namespace SkillEditor
             }
 
             // 获取变换轨道
-            var transformTrack = skillConfig.trackContainer.transformTrack;            // 确保变换片段列表存在
+            var transformTrack = skillConfig.trackContainer.transformTrack;
+
+            // 确保变换片段列表存在
             if (transformTrack.transformClips == null)
             {
                 transformTrack.transformClips = new System.Collections.Generic.List<FFramework.Kit.TransformTrack.TransformClip>();

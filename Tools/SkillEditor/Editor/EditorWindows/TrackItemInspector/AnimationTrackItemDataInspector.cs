@@ -60,9 +60,7 @@ namespace SkillEditor
         {
             SafeExecute(() =>
             {
-                // Debug.Log($"播放速度更改为: {newValue}");
-                // TODO: 同步到配置文件
-                MarkSkillConfigDirty();
+                UpdateAnimationTrackConfig(configClip => configClip.playSpeed = newValue, "播放速度更新");
             }, "播放速度更新");
         }
 
@@ -70,9 +68,7 @@ namespace SkillEditor
         {
             SafeExecute(() =>
             {
-                // Debug.Log($"循环播放设置为: {newValue}");
-                // TODO: 同步到配置文件
-                MarkSkillConfigDirty();
+                UpdateAnimationTrackConfig(configClip => configClip.isLoop = newValue, "循环播放设置更新");
             }, "循环播放设置更新");
         }
 
@@ -80,10 +76,32 @@ namespace SkillEditor
         {
             SafeExecute(() =>
             {
-                // Debug.Log($"应用根运动设置为: {newValue}");
-                // TODO: 同步到配置文件
-                MarkSkillConfigDirty();
+                UpdateAnimationTrackConfig(configClip => configClip.applyRootMotion = newValue, "根运动设置更新");
             }, "根运动设置更新");
+        }
+
+        /// <summary>
+        /// 起始帧变化事件处理
+        /// </summary>
+        /// <param name="newValue">新的起始帧值</param>
+        protected override void OnStartFrameChanged(int newValue)
+        {
+            SafeExecute(() =>
+            {
+                UpdateAnimationTrackConfig(configClip => configClip.startFrame = newValue, "起始帧更新");
+            }, "起始帧更新");
+        }
+
+        /// <summary>
+        /// 持续帧数变化事件处理
+        /// </summary>
+        /// <param name="newValue">新的持续帧数值</param>
+        protected override void OnDurationFrameChanged(int newValue)
+        {
+            SafeExecute(() =>
+            {
+                UpdateAnimationTrackConfig(configClip => configClip.durationFrame = newValue, "持续帧数更新");
+            }, "持续帧数更新");
         }
 
         #endregion

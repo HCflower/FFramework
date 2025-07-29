@@ -146,7 +146,9 @@
     border-left-width: 2px;
     border-left-color: rgba(193, 193, 193, 0.51);
 }
-
+.LabeledContainerContent:hover{
+    border-left-color: rgba(212, 136, 65, 1);
+}
 /* 控制区域容器标题 */
 .LabeledContainerTitle{
     width: auto;

@@ -12,9 +12,9 @@ namespace FFramework.Kit
     public class CameraTrackSO : ScriptableObject
     {
         [Header("轨道基础信息")]
-        [Tooltip("轨道名称")] public string trackName = "Camera";
+        [ShowOnly][Tooltip("轨道名称")] public string trackName = "Camera";
+        [ShowOnly][Tooltip("轨道优先级，数值越大优先级越高")] public int trackIndex;
         [Tooltip("是否启用轨道")] public bool isEnabled = true;
-        [Tooltip("轨道优先级，数值越大优先级越高")] public int trackIndex;
 
         [Header("摄像机片段列表")]
         public List<CameraTrack.CameraClip> cameraClips = new List<CameraTrack.CameraClip>();

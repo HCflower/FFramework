@@ -53,7 +53,7 @@ namespace SkillEditor
             int frameCount = Mathf.RoundToInt(1f * frameRate); // 默认1秒持续时间
             string itemName = gameObject.name;
 
-            var newItem = new SkillEditorTrackItem(trackArea, itemName, trackType, frameCount, startFrame);
+            var newItem = new SkillEditorTrackItem(trackArea, itemName, trackType, frameCount, startFrame, trackIndex);
 
             // 设置游戏物体轨道项的数据
             if (newItem.ItemData is GameObjectTrackItemData gameObjectData)
@@ -110,7 +110,7 @@ namespace SkillEditor
             float frameRate = GetFrameRate();
             int frameCount = Mathf.RoundToInt(1f * frameRate); // 默认1秒持续时间
 
-            var newItem = new SkillEditorTrackItem(trackArea, itemName, trackType, frameCount, startFrame);
+            var newItem = new SkillEditorTrackItem(trackArea, itemName, trackType, frameCount, startFrame, trackIndex);
 
             // 设置游戏物体轨道项的数据
             if (newItem.ItemData is GameObjectTrackItemData gameObjectData)

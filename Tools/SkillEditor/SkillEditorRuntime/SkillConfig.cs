@@ -152,7 +152,7 @@ namespace FFramework.Kit
         /// <summary>
         /// 清理没有被引用的嵌套子SO文件
         /// </summary>
-        [Button("检查轨道配置", "yellow")]
+        [Button("清理多余的轨道配置", "yellow")]
         private void CleanupUnreferencedSubAssets()
         {
             var assetPath = UnityEditor.AssetDatabase.GetAssetPath(this);

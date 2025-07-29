@@ -2,6 +2,7 @@ using UnityEngine.UIElements;
 using UnityEditor.UIElements;
 using UnityEditor;
 using UnityEngine;
+using System.Linq;
 
 namespace SkillEditor
 {
@@ -86,8 +87,10 @@ namespace SkillEditor
         {
             SafeExecute(() =>
             {
-                // TODO: 同步到配置文件
-                MarkSkillConfigDirty();
+                UpdateAttackTrackConfig(configClip =>
+                {
+                    configClip.targetLayers = newValue;
+                }, "目标层级更新");
             }, "目标层级更新");
         }
 
@@ -95,8 +98,10 @@ namespace SkillEditor
         {
             SafeExecute(() =>
             {
-                // TODO: 同步到配置文件
-                MarkSkillConfigDirty();
+                UpdateAttackTrackConfig(configClip =>
+                {
+                    configClip.isMultiInjuryDetection = newValue;
+                }, "多段伤害检测更新");
             }, "多段伤害检测更新");
         }
 
@@ -104,8 +109,10 @@ namespace SkillEditor
         {
             SafeExecute(() =>
             {
-                // TODO: 同步到配置文件
-                MarkSkillConfigDirty();
+                UpdateAttackTrackConfig(configClip =>
+                {
+                    configClip.multiInjuryDetectionInterval = newValue;
+                }, "检测间隔更新");
             }, "检测间隔更新");
         }
 
@@ -113,8 +120,10 @@ namespace SkillEditor
         {
             SafeExecute(() =>
             {
-                // TODO: 同步到配置文件
-                MarkSkillConfigDirty();
+                UpdateAttackTrackConfig(configClip =>
+                {
+                    configClip.colliderType = newValue;
+                }, "碰撞体类型更新");
             }, "碰撞体类型更新");
         }
 
@@ -122,8 +131,10 @@ namespace SkillEditor
         {
             SafeExecute(() =>
             {
-                // TODO: 同步到配置文件
-                MarkSkillConfigDirty();
+                UpdateAttackTrackConfig(configClip =>
+                {
+                    configClip.innerCircleRadius = newValue;
+                }, "扇形内圆半径更新");
             }, "扇形内圆半径更新");
         }
 
@@ -131,8 +142,10 @@ namespace SkillEditor
         {
             SafeExecute(() =>
             {
-                // TODO: 同步到配置文件
-                MarkSkillConfigDirty();
+                UpdateAttackTrackConfig(configClip =>
+                {
+                    configClip.outerCircleRadius = newValue;
+                }, "扇形外圆半径更新");
             }, "扇形外圆半径更新");
         }
 
@@ -140,8 +153,10 @@ namespace SkillEditor
         {
             SafeExecute(() =>
             {
-                // TODO: 同步到配置文件
-                MarkSkillConfigDirty();
+                UpdateAttackTrackConfig(configClip =>
+                {
+                    configClip.sectorAngle = newValue;
+                }, "扇形角度更新");
             }, "扇形角度更新");
         }
 
@@ -149,8 +164,10 @@ namespace SkillEditor
         {
             SafeExecute(() =>
             {
-                // TODO: 同步到配置文件
-                MarkSkillConfigDirty();
+                UpdateAttackTrackConfig(configClip =>
+                {
+                    configClip.sectorThickness = newValue;
+                }, "扇形厚度更新");
             }, "扇形厚度更新");
         }
 
@@ -158,8 +175,10 @@ namespace SkillEditor
         {
             SafeExecute(() =>
             {
-                // TODO: 同步到配置文件
-                MarkSkillConfigDirty();
+                UpdateAttackTrackConfig(configClip =>
+                {
+                    configClip.position = newValue;
+                }, "碰撞体位置更新");
             }, "碰撞体位置更新");
         }
 
@@ -167,8 +186,10 @@ namespace SkillEditor
         {
             SafeExecute(() =>
             {
-                // TODO: 同步到配置文件
-                MarkSkillConfigDirty();
+                UpdateAttackTrackConfig(configClip =>
+                {
+                    configClip.rotation = newValue;
+                }, "碰撞体旋转更新");
             }, "碰撞体旋转更新");
         }
 
@@ -176,14 +197,101 @@ namespace SkillEditor
         {
             SafeExecute(() =>
             {
-                // TODO: 同步到配置文件
-                MarkSkillConfigDirty();
+                UpdateAttackTrackConfig(configClip =>
+                {
+                    configClip.scale = newValue;
+                }, "碰撞体缩放更新");
             }, "碰撞体缩放更新");
+        }
+
+        /// <summary>
+        /// 起始帧变化事件处理
+        /// </summary>
+        /// <param name="newValue">新的起始帧值</param>
+        protected override void OnStartFrameChanged(int newValue)
+        {
+            SafeExecute(() =>
+            {
+                UpdateAttackTrackConfig(configClip => configClip.startFrame = newValue, "起始帧更新");
+            }, "起始帧更新");
+        }
+
+        /// <summary>
+        /// 持续帧数变化事件处理
+        /// </summary>
+        /// <param name="newValue">新的持续帧数值</param>
+        protected override void OnDurationFrameChanged(int newValue)
+        {
+            SafeExecute(() =>
+            {
+                UpdateAttackTrackConfig(configClip => configClip.durationFrame = newValue, "持续帧数更新");
+            }, "持续帧数更新");
         }
 
         #endregion
 
         #region 数据同步方法
+
+        /// <summary>
+        /// 统一的攻击配置数据更新方法
+        /// </summary>
+        /// <param name="updateAction">更新操作的委托</param>
+        /// <param name="operationName">操作名称，用于调试信息</param>
+        private void UpdateAttackTrackConfig(System.Action<FFramework.Kit.InjuryDetectionTrack.InjuryDetectionClip> updateAction, string operationName = "更新配置")
+        {
+            var skillConfig = SkillEditorData.CurrentSkillConfig;
+            if (skillConfig?.trackContainer?.injuryDetectionTrack == null || attackTargetData == null)
+            {
+                Debug.LogWarning($"无法执行 {operationName}：技能配置或伤害检测轨道为空");
+                return;
+            }
+
+            // 使用trackIndex精确定位对应的轨道
+            FFramework.Kit.InjuryDetectionTrack.InjuryDetectionClip targetConfigClip = null;
+
+            if (skillConfig.trackContainer.injuryDetectionTrack.injuryDetectionTracks != null)
+            {
+                // 根据trackIndex查找对应的轨道
+                var targetTrack = skillConfig.trackContainer.injuryDetectionTrack.injuryDetectionTracks
+                    .FirstOrDefault(track => track.trackIndex == attackTargetData.trackIndex);
+
+                if (targetTrack?.injuryDetectionClips != null)
+                {
+                    // 在指定轨道中查找对应的片段
+                    var candidateClips = targetTrack.injuryDetectionClips
+                        .Where(clip => clip.clipName == attackTargetData.trackItemName).ToList();
+
+                    if (candidateClips.Count > 0)
+                    {
+                        if (candidateClips.Count == 1)
+                        {
+                            targetConfigClip = candidateClips[0];
+                        }
+                        else
+                        {
+                            // 如果有多个同名片段，尝试通过起始帧匹配
+                            var exactMatch = candidateClips.FirstOrDefault(clip => clip.startFrame == attackTargetData.startFrame);
+                            targetConfigClip = exactMatch ?? candidateClips[0];
+                        }
+                    }
+                }
+                else
+                {
+                    Debug.LogWarning($"无法执行 {operationName}：未找到trackIndex为 {attackTargetData.trackIndex} 的攻击轨道");
+                }
+            }
+
+            if (targetConfigClip != null)
+            {
+                updateAction(targetConfigClip);
+                MarkSkillConfigDirty();
+                // Debug.Log($"{operationName} 成功同步到配置文件 (轨道索引: {attackTargetData.trackIndex})");
+            }
+            else
+            {
+                Debug.LogWarning($"无法执行 {operationName}：找不到对应的伤害检测片段配置 (轨道索引: {attackTargetData.trackIndex}, 片段名: {attackTargetData.trackItemName})");
+            }
+        }
 
         /// <summary>
         /// 删除攻击轨道项的完整流程
@@ -200,8 +308,43 @@ namespace SkillEditor
                     return;
                 }
 
-                // TODO: 实现攻击轨道项的配置数据删除逻辑
-                // 由于攻击轨道的具体数据结构需要进一步确认，这里保留删除框架
+                // 根据trackIndex查找对应的攻击轨道并删除片段
+                bool deleted = false;
+                if (skillConfig.trackContainer.injuryDetectionTrack.injuryDetectionTracks != null)
+                {
+                    var targetTrack = skillConfig.trackContainer.injuryDetectionTrack.injuryDetectionTracks
+                        .FirstOrDefault(track => track.trackIndex == attackTargetData.trackIndex);
+
+                    if (targetTrack?.injuryDetectionClips != null)
+                    {
+                        // 查找要删除的片段
+                        var clipToRemove = targetTrack.injuryDetectionClips.FirstOrDefault(clip =>
+                            clip.clipName == attackTargetData.trackItemName &&
+                            clip.startFrame == attackTargetData.startFrame);
+
+                        if (clipToRemove != null)
+                        {
+                            targetTrack.injuryDetectionClips.Remove(clipToRemove);
+                            deleted = true;
+                            Debug.Log($"从配置中删除攻击片段: {clipToRemove.clipName} (轨道索引: {attackTargetData.trackIndex})");
+                        }
+                        else
+                        {
+                            Debug.LogWarning($"未找到要删除的攻击片段: {attackTargetData.trackItemName} (轨道索引: {attackTargetData.trackIndex})");
+                        }
+                    }
+                    else
+                    {
+                        Debug.LogWarning($"未找到trackIndex为 {attackTargetData.trackIndex} 的攻击轨道");
+                    }
+                }
+
+                if (deleted)
+                {
+                    // 标记配置文件为已修改
+                    MarkSkillConfigDirty();
+                    UnityEditor.AssetDatabase.SaveAssets();
+                }
 
                 // 删除ScriptableObject资产
                 if (attackTargetData != null)

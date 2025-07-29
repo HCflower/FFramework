@@ -466,19 +466,13 @@ namespace SkillEditor
         /// 起始帧变化事件处理
         /// </summary>
         /// <param name="newValue">新的起始帧值</param>
-        protected virtual void OnStartFrameChanged(int newValue)
-        {
-            // Debug.Log($"[{TrackItemTypeName}] 起始帧更改为: {newValue}");
-        }
+        protected virtual void OnStartFrameChanged(int newValue) { }
 
         /// <summary>
         /// 持续帧数变化事件处理
         /// </summary>
         /// <param name="newValue">新的持续帧数值</param>
-        protected virtual void OnDurationFrameChanged(int newValue)
-        {
-            // Debug.Log($"[{TrackItemTypeName}] 持续帧数更改为: {newValue}");
-        }
+        protected virtual void OnDurationFrameChanged(int newValue) { }
 
         #endregion
 

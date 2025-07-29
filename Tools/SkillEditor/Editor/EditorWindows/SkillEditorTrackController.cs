@@ -254,15 +254,27 @@ namespace SkillEditor
         {
             GenericMenu menu = new GenericMenu();
 
-            // 轨道状态控制选项
-            menu.AddItem(new GUIContent("设置轨道为激活状态"), false, () =>
+            // 获取当前轨道的激活状态
+            var info = SkillEditorData.tracks?.Find(t => t.Control == this);
+            bool currentActiveState = info?.IsActive ?? true;
+
+            // 轨道状态控制选项 - 根据当前状态显示相反操作
+            if (currentActiveState)
             {
-                OnActiveStateChanged?.Invoke(this, true);
-            });
-            menu.AddItem(new GUIContent("设置轨道为失活状态"), false, () =>
+                menu.AddItem(new GUIContent("设置轨道为失活状态"), false, () =>
+                {
+                    OnActiveStateChanged?.Invoke(this, false);
+                });
+                menu.AddDisabledItem(new GUIContent("设置轨道为激活状态"));
+            }
+            else
             {
-                OnActiveStateChanged?.Invoke(this, false);
-            });
+                menu.AddItem(new GUIContent("设置轨道为激活状态"), false, () =>
+                {
+                    OnActiveStateChanged?.Invoke(this, true);
+                });
+                menu.AddDisabledItem(new GUIContent("设置轨道为失活状态"));
+            }
 
             // 轨道重命名选项
             menu.AddItem(new GUIContent("更改当前轨道名称"), false, () =>

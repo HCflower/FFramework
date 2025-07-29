@@ -52,7 +52,7 @@ namespace SkillEditor
             int frameCount = Mathf.RoundToInt(audioClip.length * frameRate);
             string itemName = audioClip.name;
 
-            var newItem = new SkillEditorTrackItem(trackArea, itemName, trackType, frameCount, startFrame);
+            var newItem = new SkillEditorTrackItem(trackArea, itemName, trackType, frameCount, startFrame, trackIndex);
 
             // 设置音频轨道项的数据
             if (newItem.ItemData is AudioTrackItemData audioData)
@@ -105,7 +105,7 @@ namespace SkillEditor
             float frameRate = GetFrameRate();
             int frameCount = Mathf.RoundToInt(audioClip.length * frameRate);
 
-            var newItem = new SkillEditorTrackItem(trackArea, itemName, trackType, frameCount, startFrame);
+            var newItem = new SkillEditorTrackItem(trackArea, itemName, trackType, frameCount, startFrame, trackIndex);
 
             // 设置音频轨道项的数据
             if (newItem.ItemData is AudioTrackItemData audioData)

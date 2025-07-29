@@ -190,6 +190,30 @@ namespace SkillEditor
             }, "摄像机路径更新");
         }
 
+        /// <summary>
+        /// 起始帧变化事件处理
+        /// </summary>
+        /// <param name="newValue">新的起始帧值</param>
+        protected override void OnStartFrameChanged(int newValue)
+        {
+            SafeExecute(() =>
+            {
+                UpdateCameraTrackConfig(configClip => configClip.startFrame = newValue, "起始帧更新");
+            }, "起始帧更新");
+        }
+
+        /// <summary>
+        /// 持续帧数变化事件处理
+        /// </summary>
+        /// <param name="newValue">新的持续帧数值</param>
+        protected override void OnDurationFrameChanged(int newValue)
+        {
+            SafeExecute(() =>
+            {
+                UpdateCameraTrackConfig(configClip => configClip.durationFrame = newValue, "持续帧数更新");
+            }, "持续帧数更新");
+        }
+
         #endregion
 
         #region 数据同步方法
@@ -204,11 +228,10 @@ namespace SkillEditor
             var skillConfig = SkillEditorData.CurrentSkillConfig;
             if (skillConfig?.trackContainer?.cameraTrack == null || cameraTargetData == null)
             {
-                Debug.LogWarning($"无法执行 {operationName}：技能配置或摄像机轨道为空");
                 return;
             }
 
-            // 查找对应的摄像机片段配置
+            // 摄像机轨道是单轨道，直接在cameraClips中查找对应的片段
             FFramework.Kit.CameraTrack.CameraClip targetConfigClip = null;
 
             if (skillConfig.trackContainer.cameraTrack.cameraClips != null)
@@ -237,37 +260,32 @@ namespace SkillEditor
                     if (nameMatches.Count > 0)
                     {
                         targetConfigClip = nameMatches[0];
+                        // Debug.LogWarning($"未找到精确匹配的摄像机片段，使用名称匹配。名称: {cameraTargetData.trackItemName}");
                     }
                     else
                     {
-                        // 最后尝试按起始帧匹配
-                        var frameMatches = skillConfig.trackContainer.cameraTrack.cameraClips
-                            .Where(clip => clip.startFrame == cameraTargetData.startFrame)
-                            .ToList();
-
-                        if (frameMatches.Count > 0)
-                        {
-                            targetConfigClip = frameMatches[0];
-                        }
+                        Debug.LogWarning($"未找到名称匹配的摄像机片段: {cameraTargetData.trackItemName}");
                     }
                 }
             }
 
-            if (targetConfigClip == null)
+            if (targetConfigClip != null)
             {
-                Debug.LogError($"未找到对应的摄像机片段配置。名称: '{cameraTargetData.trackItemName}', 起始帧: {cameraTargetData.startFrame}");
-                return;
+                // 执行更新操作
+                try
+                {
+                    updateAction(targetConfigClip);
+                    MarkSkillConfigDirty();
+                    // Debug.Log($"{operationName} 成功同步到配置文件 (片段名: {cameraTargetData.trackItemName})");
+                }
+                catch (System.Exception ex)
+                {
+                    Debug.LogError($"{operationName} 失败: {ex.Message}");
+                }
             }
-
-            // 执行更新操作
-            try
+            else
             {
-                updateAction(targetConfigClip);
-                MarkSkillConfigDirty();
-            }
-            catch (System.Exception ex)
-            {
-                Debug.LogError($"{operationName} 失败: {ex.Message}");
+                Debug.LogWarning($"无法执行 {operationName}：找不到对应的摄像机片段配置 (片段名: {cameraTargetData.trackItemName}, 起始帧: {cameraTargetData.startFrame})");
             }
         }
 
@@ -286,8 +304,8 @@ namespace SkillEditor
                     return;
                 }
 
-                // 实现摄像机轨道项的配置数据删除逻辑
                 // 摄像机轨道是单轨道，需要从cameraClips列表中移除对应的片段
+                bool deleted = false;
                 var cameraTrack = skillConfig.trackContainer.cameraTrack;
                 if (cameraTrack?.cameraClips != null)
                 {
@@ -298,12 +316,20 @@ namespace SkillEditor
                     if (clipToRemove != null)
                     {
                         cameraTrack.cameraClips.Remove(clipToRemove);
+                        deleted = true;
                         Debug.Log($"从配置中删除摄像机片段: {clipToRemove.clipName}");
                     }
                     else
                     {
                         Debug.LogWarning($"未找到要删除的摄像机片段: {cameraTargetData.trackItemName}");
                     }
+                }
+
+                if (deleted)
+                {
+                    // 标记配置文件为已修改
+                    MarkSkillConfigDirty();
+                    UnityEditor.AssetDatabase.SaveAssets();
                 }
 
                 // 删除ScriptableObject资产

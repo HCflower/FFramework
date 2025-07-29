@@ -1,6 +1,7 @@
 using UnityEngine.UIElements;
 using UnityEditor;
 using UnityEngine;
+using System.Linq;
 
 namespace SkillEditor
 {
@@ -124,6 +125,99 @@ namespace SkillEditor
                 // TODO: 同步到配置文件
                 MarkSkillConfigDirty();
             }, "延迟销毁");
+        }
+
+        /// <summary>
+        /// 起始帧变化事件处理
+        /// </summary>
+        /// <param name="newValue">新的起始帧值</param>
+        protected override void OnStartFrameChanged(int newValue)
+        {
+            SafeExecute(() =>
+            {
+                UpdateGameObjectTrackConfig(configClip => configClip.startFrame = newValue, "起始帧更新");
+            }, "起始帧更新");
+        }
+
+        /// <summary>
+        /// 持续帧数变化事件处理
+        /// </summary>
+        /// <param name="newValue">新的持续帧数值</param>
+        protected override void OnDurationFrameChanged(int newValue)
+        {
+            SafeExecute(() =>
+            {
+                UpdateGameObjectTrackConfig(configClip => configClip.durationFrame = newValue, "持续帧数更新");
+            }, "持续帧数更新");
+        }
+
+        #endregion
+
+        #region 数据同步方法
+
+        /// <summary>
+        /// 统一的游戏物体配置数据更新方法
+        /// </summary>
+        /// <param name="updateAction">更新操作的委托</param>
+        /// <param name="operationName">操作名称，用于调试信息</param>
+        private void UpdateGameObjectTrackConfig(System.Action<FFramework.Kit.GameObjectTrack.GameObjectClip> updateAction, string operationName = "更新配置")
+        {
+            var skillConfig = SkillEditorData.CurrentSkillConfig;
+            if (skillConfig?.trackContainer?.gameObjectTrack == null || gameObjectTargetData == null)
+            {
+                Debug.LogWarning($"无法执行 {operationName}：技能配置或游戏物体轨道为空");
+                return;
+            }
+
+            // 查找对应的游戏物体片段配置
+            FFramework.Kit.GameObjectTrack.GameObjectClip targetConfigClip = null;
+
+            if (skillConfig.trackContainer.gameObjectTrack.gameObjectTracks != null)
+            {
+                // 遍历所有游戏物体轨道查找匹配的片段
+                foreach (var track in skillConfig.trackContainer.gameObjectTrack.gameObjectTracks)
+                {
+                    if (track.gameObjectClips != null)
+                    {
+                        var candidateClips = track.gameObjectClips
+                            .Where(clip => clip.clipName == gameObjectTargetData.trackItemName).ToList();
+
+                        if (candidateClips.Count > 0)
+                        {
+                            if (candidateClips.Count == 1)
+                            {
+                                targetConfigClip = candidateClips[0];
+                                break;
+                            }
+                            else
+                            {
+                                // 如果有多个同名片段，尝试通过起始帧匹配
+                                var exactMatch = candidateClips.FirstOrDefault(clip => clip.startFrame == gameObjectTargetData.startFrame);
+                                if (exactMatch != null)
+                                {
+                                    targetConfigClip = exactMatch;
+                                    break;
+                                }
+                                else
+                                {
+                                    targetConfigClip = candidateClips[0];
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (targetConfigClip != null)
+            {
+                updateAction(targetConfigClip);
+                MarkSkillConfigDirty();
+            }
+            else
+            {
+                Debug.LogWarning($"无法执行 {operationName}：找不到对应的游戏物体片段配置");
+            }
         }
 
         #endregion

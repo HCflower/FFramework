@@ -26,6 +26,12 @@ namespace SkillEditor
         /// <summary>轨道内容容器的引用，用于同步宽度</summary>
         private VisualElement trackContent;
 
+        /// <summary>技能配置显示字段</summary>
+        private ObjectField skillConfigField;
+
+        /// <summary>技能使用者显示字段</summary>
+        private ObjectField skillOwnerField;
+
         #endregion
 
         #region 构造函数
@@ -37,6 +43,12 @@ namespace SkillEditor
         public SkillEditorTimeline(SkillEditorEvent skillEditorEvent)
         {
             this.skillEditorEvent = skillEditorEvent;
+
+            // 订阅技能配置变更事件
+            if (skillEditorEvent != null)
+            {
+                skillEditorEvent.OnSkillConfigChanged += UpdateTipsDisplay;
+            }
         }
 
         #endregion
@@ -53,6 +65,9 @@ namespace SkillEditor
             timelineContainer = trackArea;
             EnsureCorrectElementOrder();
             DrawCurrentFrameIndicator();
+
+            // 初始化后刷新提示显示
+            RefreshTipsDisplay();
         }
 
         /// <summary>
@@ -145,6 +160,31 @@ namespace SkillEditor
         }
 
         /// <summary>
+        /// 更新提示区域显示
+        /// 根据当前技能配置更新提示区域的配置显示
+        /// </summary>
+        /// <param name="newConfig">新的技能配置</param>
+        public void UpdateTipsDisplay(SkillConfig newConfig)
+        {
+            if (skillConfigField != null)
+            {
+                skillConfigField.value = newConfig;
+            }
+        }
+
+        /// <summary>
+        /// 刷新提示区域显示
+        /// 重新读取当前配置并更新显示
+        /// </summary>
+        public void RefreshTipsDisplay()
+        {
+            if (skillConfigField != null)
+            {
+                skillConfigField.value = SkillEditorData.CurrentSkillConfig;
+            }
+        }
+
+        /// <summary>
         /// 更新滚动偏移
         /// 根据新的滚动偏移量重新绘制时间轴刻度和更新帧指示器位置
         /// </summary>
@@ -226,10 +266,18 @@ namespace SkillEditor
         {
             var tipsContent = new Label();
             tipsContent.AddToClassList("TipsContent");
-            // 当前配置
-            tipsContent.Add(TipsContent("当前选择的配置:", "技能配置请在设置面板中选择", typeof(SkillConfig), null, true));
-            // 当前技能使用者
-            tipsContent.Add(TipsContent("技能所属对象:", "技能所属对象可点击层级/选择按钮选择", typeof(GameObject), null));
+
+            // 当前配置 - 保存字段引用以便后续更新
+            var configTip = TipsContent("当前选择的配置:", "技能配置请在设置面板中选择", typeof(SkillConfig), null, true);
+            skillConfigField = configTip.Q<ObjectField>();
+            skillConfigField.value = SkillEditorData.CurrentSkillConfig; // 设置当前配置
+            tipsContent.Add(configTip);
+
+            // 当前技能使用者 - 保存字段引用以便后续更新
+            var ownerTip = TipsContent("技能所属对象:", "技能所属对象可点击层级/选择按钮选择", typeof(GameObject), null, false);
+            skillOwnerField = ownerTip.Q<ObjectField>();
+            tipsContent.Add(ownerTip);
+
             timelineContainer.Add(tipsContent);
         }
 

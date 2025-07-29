@@ -150,10 +150,18 @@ namespace SkillEditor
             // 创建轨道信息并添加到数据中
             var trackInfo = new SkillEditorTrackInfo(trackControl, track, trackType, trackName);
             trackInfo.TrackIndex = trackIndex; // 设置轨道索引
+
+            // 从配置文件中读取并设置轨道的激活状态
+            bool isActive = GetTrackActiveStateFromConfig(trackType, trackIndex);
+            trackInfo.IsActive = isActive;
+
             SkillEditorData.tracks.Add(trackInfo);
 
             // 订阅轨道事件
             SubscribeTrackEvents(trackControl);
+
+            // 应用激活状态到UI显示
+            trackControl.RefreshState(isActive);
 
             // 如果配置文件中有对应轨道的数据，使用索引加载对应的数据
             CreateTrackItemsFromConfigByIndex(track, trackType, trackIndex);
@@ -342,10 +350,18 @@ namespace SkillEditor
             // 创建轨道信息并添加到数据中
             var trackInfo = new SkillEditorTrackInfo(trackControl, track, trackType, trackName);
             trackInfo.TrackIndex = trackIndex; // 设置轨道索引
+
+            // 从配置文件中读取并设置轨道的激活状态
+            bool isActive = GetTrackActiveStateFromConfig(trackType, trackIndex);
+            trackInfo.IsActive = isActive;
+
             SkillEditorData.tracks.Add(trackInfo);
 
             // 订阅轨道事件
             SubscribeTrackEvents(trackControl);
+
+            // 应用激活状态到UI显示
+            trackControl.RefreshState(isActive);
 
             // 根据轨道索引创建对应的轨道项
             CreateTrackItemsFromConfigByIndex(track, trackType, trackIndex);
@@ -615,6 +631,15 @@ namespace SkillEditor
                     // 从音频轨道列表中删除指定索引的轨道
                     if (skillConfig.trackContainer.audioTrack?.audioTracks != null)
                     {
+                        Debug.Log($"音频轨道删除: 查找索引 {trackIndex}, 现有轨道数量: {skillConfig.trackContainer.audioTrack.audioTracks.Count}");
+
+                        // 打印所有现有轨道的索引
+                        for (int i = 0; i < skillConfig.trackContainer.audioTrack.audioTracks.Count; i++)
+                        {
+                            var track = skillConfig.trackContainer.audioTrack.audioTracks[i];
+                            Debug.Log($"  音频轨道[{i}]: trackIndex={track.trackIndex}, trackName={track.trackName}");
+                        }
+
                         var trackToRemove = skillConfig.trackContainer.audioTrack.audioTracks
                             .FirstOrDefault(t => t.trackIndex == trackIndex);
                         if (trackToRemove != null)
@@ -625,9 +650,20 @@ namespace SkillEditor
                             // 如果没有更多轨道了，删除整个SO
                             if (skillConfig.trackContainer.audioTrack.audioTracks.Count == 0)
                             {
+                                var audioTrackSO = skillConfig.trackContainer.audioTrack;
                                 skillConfig.trackContainer.audioTrack = null;
-                                Debug.Log("删除音频轨道SO（已无轨道数据）");
+
+                                // 从资产中移除ScriptableObject子资产
+                                if (audioTrackSO != null)
+                                {
+                                    UnityEditor.AssetDatabase.RemoveObjectFromAsset(audioTrackSO);
+                                    Debug.Log("删除音频轨道SO子资产");
+                                }
                             }
+                        }
+                        else
+                        {
+                            Debug.LogWarning($"未找到要删除的音频轨道，索引: {trackIndex}");
                         }
                     }
                     break;
@@ -636,6 +672,15 @@ namespace SkillEditor
                     // 从特效轨道列表中删除指定索引的轨道
                     if (skillConfig.trackContainer.effectTrack?.effectTracks != null)
                     {
+                        Debug.Log($"特效轨道删除: 查找索引 {trackIndex}, 现有轨道数量: {skillConfig.trackContainer.effectTrack.effectTracks.Count}");
+
+                        // 打印所有现有轨道的索引
+                        for (int i = 0; i < skillConfig.trackContainer.effectTrack.effectTracks.Count; i++)
+                        {
+                            var track = skillConfig.trackContainer.effectTrack.effectTracks[i];
+                            Debug.Log($"  特效轨道[{i}]: trackIndex={track.trackIndex}, trackName={track.trackName}");
+                        }
+
                         var trackToRemove = skillConfig.trackContainer.effectTrack.effectTracks
                             .FirstOrDefault(t => t.trackIndex == trackIndex);
                         if (trackToRemove != null)
@@ -646,9 +691,20 @@ namespace SkillEditor
                             // 如果没有更多轨道了，删除整个SO
                             if (skillConfig.trackContainer.effectTrack.effectTracks.Count == 0)
                             {
+                                var effectTrackSO = skillConfig.trackContainer.effectTrack;
                                 skillConfig.trackContainer.effectTrack = null;
-                                Debug.Log("删除特效轨道SO（已无轨道数据）");
+
+                                // 从资产中移除ScriptableObject子资产
+                                if (effectTrackSO != null)
+                                {
+                                    UnityEditor.AssetDatabase.RemoveObjectFromAsset(effectTrackSO);
+                                    Debug.Log("删除特效轨道SO子资产");
+                                }
                             }
+                        }
+                        else
+                        {
+                            Debug.LogWarning($"未找到要删除的特效轨道，索引: {trackIndex}");
                         }
                     }
                     break;
@@ -667,8 +723,15 @@ namespace SkillEditor
                             // 如果没有更多轨道了，删除整个SO
                             if (skillConfig.trackContainer.injuryDetectionTrack.injuryDetectionTracks.Count == 0)
                             {
+                                var attackTrackSO = skillConfig.trackContainer.injuryDetectionTrack;
                                 skillConfig.trackContainer.injuryDetectionTrack = null;
-                                Debug.Log("删除攻击轨道SO（已无轨道数据）");
+
+                                // 从资产中移除ScriptableObject子资产
+                                if (attackTrackSO != null)
+                                {
+                                    UnityEditor.AssetDatabase.RemoveObjectFromAsset(attackTrackSO);
+                                    Debug.Log("删除攻击轨道SO子资产");
+                                }
                             }
                         }
                     }
@@ -688,8 +751,15 @@ namespace SkillEditor
                             // 如果没有更多轨道了，删除整个SO
                             if (skillConfig.trackContainer.eventTrack.eventTracks.Count == 0)
                             {
+                                var eventTrackSO = skillConfig.trackContainer.eventTrack;
                                 skillConfig.trackContainer.eventTrack = null;
-                                Debug.Log("删除事件轨道SO（已无轨道数据）");
+
+                                // 从资产中移除ScriptableObject子资产
+                                if (eventTrackSO != null)
+                                {
+                                    UnityEditor.AssetDatabase.RemoveObjectFromAsset(eventTrackSO);
+                                    Debug.Log("删除事件轨道SO子资产");
+                                }
                             }
                         }
                     }
@@ -709,43 +779,63 @@ namespace SkillEditor
                             // 如果没有更多轨道了，删除整个SO
                             if (skillConfig.trackContainer.gameObjectTrack.gameObjectTracks.Count == 0)
                             {
+                                var gameObjectTrackSO = skillConfig.trackContainer.gameObjectTrack;
                                 skillConfig.trackContainer.gameObjectTrack = null;
-                                Debug.Log("删除游戏物体轨道SO（已无轨道数据）");
+
+                                // 从资产中移除ScriptableObject子资产
+                                if (gameObjectTrackSO != null)
+                                {
+                                    UnityEditor.AssetDatabase.RemoveObjectFromAsset(gameObjectTrackSO);
+                                    Debug.Log("删除游戏物体轨道SO子资产");
+                                }
                             }
                         }
                     }
                     break;
 
                 case TrackType.TransformTrack:
-                    // 变换轨道是单轨道，清空数据即可
+                    // 变换轨道是单轨道，删除整个SO
                     if (skillConfig.trackContainer.transformTrack != null)
                     {
+                        var transformTrackSO = skillConfig.trackContainer.transformTrack;
                         skillConfig.trackContainer.transformTrack = null;
-                        Debug.Log("从配置中删除变换轨道数据");
+
+                        // 从资产中移除ScriptableObject子资产
+                        UnityEditor.AssetDatabase.RemoveObjectFromAsset(transformTrackSO);
+                        Debug.Log("删除变换轨道SO子资产");
                     }
                     break;
 
                 case TrackType.CameraTrack:
-                    // 摄像机轨道是单轨道，清空数据即可
+                    // 摄像机轨道是单轨道，删除整个SO
                     if (skillConfig.trackContainer.cameraTrack != null)
                     {
+                        var cameraTrackSO = skillConfig.trackContainer.cameraTrack;
                         skillConfig.trackContainer.cameraTrack = null;
-                        Debug.Log("从配置中删除摄像机轨道数据");
+
+                        // 从资产中移除ScriptableObject子资产
+                        UnityEditor.AssetDatabase.RemoveObjectFromAsset(cameraTrackSO);
+                        Debug.Log("删除摄像机轨道SO子资产");
                     }
                     break;
 
                 case TrackType.AnimationTrack:
-                    // 动画轨道是单轨道，清空数据即可
+                    // 动画轨道是单轨道，删除整个SO
                     if (skillConfig.trackContainer.animationTrack != null)
                     {
+                        var animationTrackSO = skillConfig.trackContainer.animationTrack;
                         skillConfig.trackContainer.animationTrack = null;
-                        Debug.Log("从配置中删除动画轨道数据");
+
+                        // 从资产中移除ScriptableObject子资产
+                        UnityEditor.AssetDatabase.RemoveObjectFromAsset(animationTrackSO);
+                        Debug.Log("删除动画轨道SO子资产");
                     }
                     break;
             }
 
-            // 标记配置文件为已修改
+            // 标记配置文件为已修改并保存资产
             UnityEditor.EditorUtility.SetDirty(skillConfig);
+            UnityEditor.AssetDatabase.SaveAssets();
         }
 
         #endregion
@@ -821,6 +911,8 @@ namespace SkillEditor
             var info = SkillEditorData.tracks.Find(t => t.Control == ctrl);
             if (info != null)
             {
+                Debug.Log($"准备删除轨道: {info.TrackName}, 类型: {info.TrackType}, 索引: {info.TrackIndex}");
+
                 // 从配置数据中删除对应的轨道数据
                 RemoveTrackDataFromConfig(info.TrackType, info.TrackIndex);
 
@@ -831,11 +923,15 @@ namespace SkillEditor
                 // 触发刷新以重建UI和重新索引
                 skillEditorEvent?.TriggerRefreshRequested();
             }
+            else
+            {
+                Debug.LogWarning("HandleTrackDelete: 未找到要删除的轨道信息");
+            }
         }
 
         /// <summary>
         /// 处理轨道激活状态变化事件
-        /// 更新轨道激活状态并刷新显示
+        /// 更新轨道激活状态并刷新显示，同时同步到配置文件
         /// </summary>
         /// <param name="ctrl">轨道控制器</param>
         /// <param name="isActive">新的激活状态</param>
@@ -844,10 +940,226 @@ namespace SkillEditor
             var info = SkillEditorData.tracks.Find(t => t.Control == ctrl);
             if (info != null)
             {
+                // 更新UI数据中的激活状态
                 info.IsActive = isActive;
                 info.Control.RefreshState(isActive);
-                Debug.Log($"轨道[{info.TrackName}]激活状态: {(isActive ? "激活" : "失活")}");
+
+                // 同步激活状态到配置文件
+                UpdateTrackActiveStateInConfig(info.TrackType, info.TrackIndex, isActive);
+
+                // Debug.Log($"轨道[{info.TrackName}]激活状态: {(isActive ? "激活" : "失活")}");
             }
+        }
+
+        /// <summary>
+        /// 更新轨道在配置文件中的激活状态
+        /// 根据轨道类型和索引找到对应的配置数据并更新isEnabled状态
+        /// </summary>
+        /// <param name="trackType">轨道类型</param>
+        /// <param name="trackIndex">轨道索引</param>
+        /// <param name="isActive">新的激活状态</param>
+        private void UpdateTrackActiveStateInConfig(TrackType trackType, int trackIndex, bool isActive)
+        {
+            var skillConfig = SkillEditorData.CurrentSkillConfig;
+            if (skillConfig?.trackContainer == null)
+            {
+                Debug.LogWarning("无法更新轨道激活状态：技能配置为空");
+                return;
+            }
+
+            try
+            {
+                switch (trackType)
+                {
+                    case TrackType.AnimationTrack:
+                        if (skillConfig.trackContainer.animationTrack != null)
+                        {
+                            skillConfig.trackContainer.animationTrack.isEnabled = isActive;
+                            UnityEditor.EditorUtility.SetDirty(skillConfig.trackContainer.animationTrack);
+                        }
+                        break;
+
+                    case TrackType.CameraTrack:
+                        if (skillConfig.trackContainer.cameraTrack != null)
+                        {
+                            skillConfig.trackContainer.cameraTrack.isEnabled = isActive;
+                            UnityEditor.EditorUtility.SetDirty(skillConfig.trackContainer.cameraTrack);
+                        }
+                        break;
+
+                    case TrackType.TransformTrack:
+                        if (skillConfig.trackContainer.transformTrack != null)
+                        {
+                            skillConfig.trackContainer.transformTrack.isEnabled = isActive;
+                            UnityEditor.EditorUtility.SetDirty(skillConfig.trackContainer.transformTrack);
+                        }
+                        break;
+
+                    case TrackType.AudioTrack:
+                        if (skillConfig.trackContainer.audioTrack?.audioTracks != null)
+                        {
+                            var audioTrack = skillConfig.trackContainer.audioTrack.audioTracks
+                                .FirstOrDefault(t => t.trackIndex == trackIndex);
+                            if (audioTrack != null)
+                            {
+                                audioTrack.isEnabled = isActive;
+                                UnityEditor.EditorUtility.SetDirty(skillConfig.trackContainer.audioTrack);
+                            }
+                        }
+                        break;
+
+                    case TrackType.EffectTrack:
+                        if (skillConfig.trackContainer.effectTrack?.effectTracks != null)
+                        {
+                            var effectTrack = skillConfig.trackContainer.effectTrack.effectTracks
+                                .FirstOrDefault(t => t.trackIndex == trackIndex);
+                            if (effectTrack != null)
+                            {
+                                effectTrack.isEnabled = isActive;
+                                UnityEditor.EditorUtility.SetDirty(skillConfig.trackContainer.effectTrack);
+                            }
+                        }
+                        break;
+
+                    case TrackType.AttackTrack:
+                        if (skillConfig.trackContainer.injuryDetectionTrack?.injuryDetectionTracks != null)
+                        {
+                            var attackTrack = skillConfig.trackContainer.injuryDetectionTrack.injuryDetectionTracks
+                                .FirstOrDefault(t => t.trackIndex == trackIndex);
+                            if (attackTrack != null)
+                            {
+                                attackTrack.isEnabled = isActive;
+                                UnityEditor.EditorUtility.SetDirty(skillConfig.trackContainer.injuryDetectionTrack);
+                            }
+                        }
+                        break;
+
+                    case TrackType.EventTrack:
+                        if (skillConfig.trackContainer.eventTrack?.eventTracks != null)
+                        {
+                            var eventTrack = skillConfig.trackContainer.eventTrack.eventTracks
+                                .FirstOrDefault(t => t.trackIndex == trackIndex);
+                            if (eventTrack != null)
+                            {
+                                eventTrack.isEnabled = isActive;
+                                UnityEditor.EditorUtility.SetDirty(skillConfig.trackContainer.eventTrack);
+                            }
+                        }
+                        break;
+
+                    case TrackType.GameObjectTrack:
+                        if (skillConfig.trackContainer.gameObjectTrack?.gameObjectTracks != null)
+                        {
+                            var gameObjectTrack = skillConfig.trackContainer.gameObjectTrack.gameObjectTracks
+                                .FirstOrDefault(t => t.trackIndex == trackIndex);
+                            if (gameObjectTrack != null)
+                            {
+                                gameObjectTrack.isEnabled = isActive;
+                                UnityEditor.EditorUtility.SetDirty(skillConfig.trackContainer.gameObjectTrack);
+                                // Debug.Log($"更新游戏物体轨道[{trackIndex}]激活状态: {isActive}");
+                            }
+                        }
+                        break;
+
+                    default:
+                        Debug.LogWarning($"未支持的轨道类型: {trackType}");
+                        break;
+                }
+
+                // 标记主配置文件为已修改并保存
+                UnityEditor.EditorUtility.SetDirty(skillConfig);
+                UnityEditor.AssetDatabase.SaveAssets();
+            }
+            catch (System.Exception ex)
+            {
+                Debug.LogError($"更新轨道激活状态失败: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// 从配置文件中获取轨道的激活状态
+        /// 根据轨道类型和索引从配置文件中读取isEnabled状态
+        /// </summary>
+        /// <param name="trackType">轨道类型</param>
+        /// <param name="trackIndex">轨道索引</param>
+        /// <returns>轨道的激活状态，默认为true</returns>
+        private bool GetTrackActiveStateFromConfig(TrackType trackType, int trackIndex)
+        {
+            var skillConfig = SkillEditorData.CurrentSkillConfig;
+            if (skillConfig?.trackContainer == null)
+            {
+                return true; // 默认激活状态
+            }
+
+            try
+            {
+                switch (trackType)
+                {
+                    case TrackType.AnimationTrack:
+                        return skillConfig.trackContainer.animationTrack?.isEnabled ?? true;
+
+                    case TrackType.CameraTrack:
+                        return skillConfig.trackContainer.cameraTrack?.isEnabled ?? true;
+
+                    case TrackType.TransformTrack:
+                        return skillConfig.trackContainer.transformTrack?.isEnabled ?? true;
+
+                    case TrackType.AudioTrack:
+                        if (skillConfig.trackContainer.audioTrack?.audioTracks != null)
+                        {
+                            var audioTrack = skillConfig.trackContainer.audioTrack.audioTracks
+                                .FirstOrDefault(t => t.trackIndex == trackIndex);
+                            return audioTrack?.isEnabled ?? true;
+                        }
+                        break;
+
+                    case TrackType.EffectTrack:
+                        if (skillConfig.trackContainer.effectTrack?.effectTracks != null)
+                        {
+                            var effectTrack = skillConfig.trackContainer.effectTrack.effectTracks
+                                .FirstOrDefault(t => t.trackIndex == trackIndex);
+                            return effectTrack?.isEnabled ?? true;
+                        }
+                        break;
+
+                    case TrackType.AttackTrack:
+                        if (skillConfig.trackContainer.injuryDetectionTrack?.injuryDetectionTracks != null)
+                        {
+                            var attackTrack = skillConfig.trackContainer.injuryDetectionTrack.injuryDetectionTracks
+                                .FirstOrDefault(t => t.trackIndex == trackIndex);
+                            return attackTrack?.isEnabled ?? true;
+                        }
+                        break;
+
+                    case TrackType.EventTrack:
+                        if (skillConfig.trackContainer.eventTrack?.eventTracks != null)
+                        {
+                            var eventTrack = skillConfig.trackContainer.eventTrack.eventTracks
+                                .FirstOrDefault(t => t.trackIndex == trackIndex);
+                            return eventTrack?.isEnabled ?? true;
+                        }
+                        break;
+
+                    case TrackType.GameObjectTrack:
+                        if (skillConfig.trackContainer.gameObjectTrack?.gameObjectTracks != null)
+                        {
+                            var gameObjectTrack = skillConfig.trackContainer.gameObjectTrack.gameObjectTracks
+                                .FirstOrDefault(t => t.trackIndex == trackIndex);
+                            return gameObjectTrack?.isEnabled ?? true;
+                        }
+                        break;
+
+                    default:
+                        Debug.LogWarning($"未支持的轨道类型: {trackType}");
+                        break;
+                }
+            }
+            catch (System.Exception ex)
+            {
+                Debug.LogError($"读取轨道激活状态失败: {ex.Message}");
+            }
+
+            return true; // 默认返回激活状态
         }
 
         /// <summary>

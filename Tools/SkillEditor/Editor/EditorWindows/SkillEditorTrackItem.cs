@@ -41,6 +41,9 @@ namespace SkillEditor
         /// <summary>当前轨道项数据对象</summary>
         private BaseTrackItemData currentTrackItemData;
 
+        /// <summary>轨道索引，用于多轨道数据定位</summary>
+        private int trackIndex;
+
         #endregion
 
         #region 构造函数
@@ -54,11 +57,13 @@ namespace SkillEditor
         /// <param name="trackType">轨道类型，决定样式和行为</param>
         /// <param name="frameCount">轨道项持续帧数，影响宽度显示</param>
         /// <param name="startFrame">轨道项的起始帧位置，默认为0</param>
-        public SkillEditorTrackItem(VisualElement visual, string title, TrackType trackType, int frameCount, int startFrame = 0)
+        /// <param name="trackIndex">轨道索引，用于多轨道数据定位，默认为0</param>
+        public SkillEditorTrackItem(VisualElement visual, string title, TrackType trackType, int frameCount, int startFrame = 0, int trackIndex = 0)
         {
             this.frameCount = frameCount;
             this.trackType = trackType;
             this.startFrame = startFrame;
+            this.trackIndex = trackIndex; // 保存轨道索引用于数据定位
 
             // 创建并配置轨道项容器
             InitializeTrackItem();
@@ -495,6 +500,7 @@ namespace SkillEditor
             data.trackItemName = itemName;
             data.frameCount = frameCount;
             data.startFrame = startFrame;
+            data.trackIndex = trackIndex; // 设置轨道索引用于多轨道数据定位
         }
 
         /// <summary>
@@ -584,6 +590,7 @@ namespace SkillEditor
             audioData.trackItemName = itemName;
             audioData.frameCount = frameCount;
             audioData.startFrame = startFrame;
+            audioData.trackIndex = trackIndex; // 设置轨道索引用于多轨道数据定位
             audioData.durationFrame = frameCount;
             audioData.audioClip = audioClip;
             audioData.volume = volume;
@@ -603,6 +610,7 @@ namespace SkillEditor
             effectData.trackItemName = itemName;
             effectData.frameCount = frameCount;
             effectData.startFrame = startFrame;
+            effectData.trackIndex = trackIndex; // 设置轨道索引用于多轨道数据定位
             effectData.durationFrame = frameCount;
             return effectData;
         }
@@ -618,6 +626,7 @@ namespace SkillEditor
             attackData.trackItemName = itemName;
             attackData.frameCount = frameCount;
             attackData.startFrame = startFrame;
+            attackData.trackIndex = trackIndex; // 设置轨道索引用于多轨道数据定位
             attackData.durationFrame = frameCount;
             return attackData;
         }
@@ -633,6 +642,7 @@ namespace SkillEditor
             eventData.trackItemName = itemName;
             eventData.frameCount = frameCount;
             eventData.startFrame = startFrame;
+            eventData.trackIndex = trackIndex; // 设置轨道索引用于多轨道数据定位
             eventData.durationFrame = frameCount;
             return eventData;
         }
@@ -648,6 +658,7 @@ namespace SkillEditor
             transformData.trackItemName = itemName;
             transformData.frameCount = frameCount;
             transformData.startFrame = startFrame;
+            transformData.trackIndex = trackIndex; // 设置轨道索引用于多轨道数据定位
             transformData.durationFrame = frameCount;
             return transformData;
         }
@@ -663,6 +674,7 @@ namespace SkillEditor
             cameraData.trackItemName = itemName;
             cameraData.frameCount = frameCount;
             cameraData.startFrame = startFrame;
+            cameraData.trackIndex = trackIndex; // 设置轨道索引用于多轨道数据定位
             cameraData.durationFrame = frameCount;
             return cameraData;
         }
@@ -678,6 +690,7 @@ namespace SkillEditor
             gameObjectData.trackItemName = itemName;
             gameObjectData.frameCount = frameCount;
             gameObjectData.startFrame = startFrame;
+            gameObjectData.trackIndex = trackIndex; // 设置轨道索引用于多轨道数据定位
             gameObjectData.durationFrame = frameCount;
             return gameObjectData;
         }

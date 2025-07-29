@@ -51,7 +51,7 @@ namespace SkillEditor
 
             // 事件轨道项默认1帧长度
             int frameCount = 1;
-            var newItem = new SkillEditorTrackItem(trackArea, eventName, trackType, frameCount, startFrame);
+            var newItem = new SkillEditorTrackItem(trackArea, eventName, trackType, frameCount, startFrame, trackIndex);
 
             // 添加到技能配置
             if (addToConfig)

@@ -51,7 +51,7 @@ namespace SkillEditor
 
             // 伤害检测轨道项默认5帧长度
             int frameCount = 5;
-            var newItem = new SkillEditorTrackItem(trackArea, injuryDetectionName, trackType, frameCount, startFrame);
+            var newItem = new SkillEditorTrackItem(trackArea, injuryDetectionName, trackType, frameCount, startFrame, trackIndex);
 
             // 添加到技能配置
             if (addToConfig)

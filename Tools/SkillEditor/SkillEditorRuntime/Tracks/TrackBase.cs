@@ -9,9 +9,9 @@ namespace FFramework.Kit
     [Serializable]
     public abstract class TrackBase
     {
-        [Tooltip("轨道名称")] public string trackName;
+        [ShowOnly][Tooltip("轨道名称")] public string trackName;
+        [ShowOnly][Tooltip("轨道优先级，数值越大优先级越高")] public int trackIndex;
         [Tooltip("是否启用轨道")] public bool isEnabled = true;
-        [Tooltip("轨道优先级，数值越大优先级越高")] public int trackIndex;
 
         public abstract float GetTrackDuration(float frameRate);
 

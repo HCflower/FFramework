@@ -196,7 +196,8 @@ namespace SkillEditor
             // 为每个拖拽的对象创建轨道项
             foreach (var obj in DragAndDrop.objectReferences)
             {
-                AddTrackItem(obj, frameIndex);
+                Debug.Log($"BaseSkillEditorTrack.OnDragPerform: 处理对象 {obj?.name} (类型: {obj?.GetType()?.Name})");
+                AddTrackItem(obj, frameIndex); // 这里默认 addToConfig = true
             }
             evt.StopPropagation();
         }

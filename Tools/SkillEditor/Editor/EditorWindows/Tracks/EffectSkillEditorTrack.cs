@@ -1,5 +1,6 @@
 using UnityEngine.UIElements;
 using UnityEngine;
+using System.Linq;
 
 #if UNITY_EDITOR
 using UnityEditor;
@@ -46,21 +47,35 @@ namespace SkillEditor
         protected override SkillEditorTrackItem CreateTrackItemFromResource(object resource, int startFrame, bool addToConfig)
         {
             if (!(resource is GameObject gameObject))
+            {
+                Debug.LogWarning($"EffectTrack: 无法识别的资源类型: {resource?.GetType()?.Name}");
                 return null;
+            }
 
             float frameRate = GetFrameRate();
             float duration = GetEffectDuration(gameObject);
             int frameCount = Mathf.RoundToInt(duration * frameRate);
             string itemName = gameObject.name;
 
-            var newItem = new SkillEditorTrackItem(trackArea, itemName, trackType, frameCount, startFrame);
+            var newItem = new SkillEditorTrackItem(trackArea, itemName, trackType, frameCount, startFrame, trackIndex);
 
+            // 设置特效轨道项的数据
+            if (newItem.ItemData is EffectTrackItemData effectData)
+            {
+                effectData.effectPrefab = gameObject;
+                effectData.position = Vector3.zero;
+                effectData.rotation = Vector3.zero;
+                effectData.scale = Vector3.one;
+
+#if UNITY_EDITOR
+                EditorUtility.SetDirty(effectData);
+#endif
+            }
             // 添加到技能配置
             if (addToConfig)
             {
                 AddEffectToConfig(gameObject, itemName, startFrame, frameCount);
             }
-
             return newItem;
         }
 
@@ -111,11 +126,19 @@ namespace SkillEditor
         /// <param name="frameCount">总帧数</param>
         private void AddEffectToConfig(GameObject effectGameObject, string itemName, int startFrame, int frameCount)
         {
-            if (skillConfig?.trackContainer == null) return;
+            Debug.Log($"AddEffectToConfig: 开始添加特效 '{itemName}' (GameObject: {effectGameObject?.name})");
+
+            if (skillConfig?.trackContainer == null)
+            {
+                Debug.LogError("AddEffectToConfig: skillConfig 或 trackContainer 为空");
+                return;
+            }
 
             // 确保特效轨道存在
             if (skillConfig.trackContainer.effectTrack == null)
             {
+                Debug.Log("AddEffectToConfig: 创建新的 EffectTrackSO");
+
                 // 创建特效轨道ScriptableObject
                 var newEffectTrackSO = ScriptableObject.CreateInstance<FFramework.Kit.EffectTrackSO>();
                 newEffectTrackSO.effectTracks = new System.Collections.Generic.List<FFramework.Kit.EffectTrack>();
@@ -145,15 +168,18 @@ namespace SkillEditor
                     effectClips = new System.Collections.Generic.List<FFramework.Kit.EffectTrack.EffectClip>()
                 };
                 effectTrackSO.effectTracks.Add(newTrack);
+                Debug.Log($"AddEffectToConfig: 创建新轨道 {newTrack.trackName} (索引: {newTrack.trackIndex})");
             }
 
             // 获取指定索引的特效轨道
             var effectTrack = effectTrackSO.effectTracks[trackIndex];
+            Debug.Log($"AddEffectToConfig: 使用轨道索引 {trackIndex}, 轨道名称: {effectTrack.trackName}");
 
             // 确保特效片段列表存在
             if (effectTrack.effectClips == null)
             {
                 effectTrack.effectClips = new System.Collections.Generic.List<FFramework.Kit.EffectTrack.EffectClip>();
+                Debug.Log("AddEffectToConfig: 初始化特效片段列表");
             }
 
             // 创建技能配置中的特效片段数据
@@ -171,8 +197,6 @@ namespace SkillEditor
             // 添加到对应索引的特效轨道
             effectTrack.effectClips.Add(configEffectClip);
 
-            Debug.Log($"AddEffectToConfig: 添加特效 '{itemName}' 到轨道索引 {trackIndex}");
-
 #if UNITY_EDITOR
             // 标记轨道数据和技能配置为已修改
             if (effectTrackSO != null)
@@ -183,9 +207,17 @@ namespace SkillEditor
             {
                 EditorUtility.SetDirty(skillConfig);
             }
+
+            // 强制保存资产
+            UnityEditor.AssetDatabase.SaveAssets();
 #endif
         }
 
-        #endregion
+
     }
+
+
+    #endregion
 }
+
+

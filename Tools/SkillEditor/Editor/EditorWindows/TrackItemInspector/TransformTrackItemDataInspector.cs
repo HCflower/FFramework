@@ -2,6 +2,7 @@ using UnityEngine.UIElements;
 using UnityEditor.UIElements;
 using UnityEditor;
 using UnityEngine;
+using System.Linq;
 
 namespace SkillEditor
 {
@@ -69,8 +70,7 @@ namespace SkillEditor
         {
             SafeExecute(() =>
             {
-                // TODO: 同步到配置文件
-                MarkSkillConfigDirty();
+                UpdateTransformTrackConfig(configClip => configClip.enablePosition = newValue, "位置变换启用状态更新");
             }, "位置变换启用状态更新");
         }
 
@@ -78,8 +78,7 @@ namespace SkillEditor
         {
             SafeExecute(() =>
             {
-                // TODO: 同步到配置文件
-                MarkSkillConfigDirty();
+                UpdateTransformTrackConfig(configClip => configClip.enableRotation = newValue, "旋转变换启用状态更新");
             }, "旋转变换启用状态更新");
         }
 
@@ -87,8 +86,7 @@ namespace SkillEditor
         {
             SafeExecute(() =>
             {
-                // TODO: 同步到配置文件
-                MarkSkillConfigDirty();
+                UpdateTransformTrackConfig(configClip => configClip.enableScale = newValue, "缩放变换启用状态更新");
             }, "缩放变换启用状态更新");
         }
 
@@ -96,8 +94,7 @@ namespace SkillEditor
         {
             SafeExecute(() =>
             {
-                // TODO: 同步到配置文件
-                MarkSkillConfigDirty();
+                UpdateTransformTrackConfig(configClip => configClip.startPosition = newValue, "起始位置更新");
             }, "起始位置更新");
         }
 
@@ -105,8 +102,7 @@ namespace SkillEditor
         {
             SafeExecute(() =>
             {
-                // TODO: 同步到配置文件
-                MarkSkillConfigDirty();
+                UpdateTransformTrackConfig(configClip => configClip.startRotation = newValue, "起始旋转更新");
             }, "起始旋转更新");
         }
 
@@ -114,8 +110,7 @@ namespace SkillEditor
         {
             SafeExecute(() =>
             {
-                // TODO: 同步到配置文件
-                MarkSkillConfigDirty();
+                UpdateTransformTrackConfig(configClip => configClip.startScale = newValue, "起始缩放更新");
             }, "起始缩放更新");
         }
 
@@ -123,8 +118,7 @@ namespace SkillEditor
         {
             SafeExecute(() =>
             {
-                // TODO: 同步到配置文件
-                MarkSkillConfigDirty();
+                UpdateTransformTrackConfig(configClip => configClip.endPosition = newValue, "目标位置更新");
             }, "目标位置更新");
         }
 
@@ -132,8 +126,7 @@ namespace SkillEditor
         {
             SafeExecute(() =>
             {
-                // TODO: 同步到配置文件
-                MarkSkillConfigDirty();
+                UpdateTransformTrackConfig(configClip => configClip.endRotation = newValue, "目标旋转更新");
             }, "目标旋转更新");
         }
 
@@ -141,8 +134,7 @@ namespace SkillEditor
         {
             SafeExecute(() =>
             {
-                // TODO: 同步到配置文件
-                MarkSkillConfigDirty();
+                UpdateTransformTrackConfig(configClip => configClip.endScale = newValue, "目标缩放更新");
             }, "目标缩放更新");
         }
 
@@ -150,8 +142,7 @@ namespace SkillEditor
         {
             SafeExecute(() =>
             {
-                // TODO: 同步到配置文件
-                MarkSkillConfigDirty();
+                UpdateTransformTrackConfig(configClip => configClip.customCurve = newValue, "自定义曲线更新");
             }, "自定义曲线更新");
         }
 
@@ -159,14 +150,85 @@ namespace SkillEditor
         {
             SafeExecute(() =>
             {
-                // TODO: 同步到配置文件
-                MarkSkillConfigDirty();
+                UpdateTransformTrackConfig(configClip => configClip.curveType = newValue, "曲线类型更新");
             }, "曲线类型更新");
+        }
+
+        /// <summary>
+        /// 起始帧变化事件处理
+        /// </summary>
+        /// <param name="newValue">新的起始帧值</param>
+        protected override void OnStartFrameChanged(int newValue)
+        {
+            SafeExecute(() =>
+            {
+                UpdateTransformTrackConfig(configClip => configClip.startFrame = newValue, "起始帧更新");
+            }, "起始帧更新");
+        }
+
+        /// <summary>
+        /// 持续帧数变化事件处理
+        /// </summary>
+        /// <param name="newValue">新的持续帧数值</param>
+        protected override void OnDurationFrameChanged(int newValue)
+        {
+            SafeExecute(() =>
+            {
+                UpdateTransformTrackConfig(configClip => configClip.durationFrame = newValue, "持续帧数更新");
+            }, "持续帧数更新");
         }
 
         #endregion
 
         #region 数据同步方法
+
+        /// <summary>
+        /// 统一的变换配置数据更新方法
+        /// </summary>
+        /// <param name="updateAction">更新操作的委托</param>
+        /// <param name="operationName">操作名称，用于调试信息</param>
+        private void UpdateTransformTrackConfig(System.Action<FFramework.Kit.TransformTrack.TransformClip> updateAction, string operationName = "更新配置")
+        {
+            var skillConfig = SkillEditorData.CurrentSkillConfig;
+            if (skillConfig?.trackContainer?.transformTrack == null || transformTargetData == null)
+            {
+                Debug.LogWarning($"无法执行 {operationName}：技能配置或变换轨道为空");
+                return;
+            }
+
+            // 查找对应的变换片段配置
+            FFramework.Kit.TransformTrack.TransformClip targetConfigClip = null;
+
+            if (skillConfig.trackContainer.transformTrack.transformClips != null)
+            {
+                var candidateClips = skillConfig.trackContainer.transformTrack.transformClips
+                    .Where(clip => clip.clipName == transformTargetData.trackItemName).ToList();
+
+                if (candidateClips.Count > 0)
+                {
+                    if (candidateClips.Count == 1)
+                    {
+                        targetConfigClip = candidateClips[0];
+                    }
+                    else
+                    {
+                        // 如果有多个同名片段，尝试通过起始帧匹配
+                        var exactMatch = candidateClips.FirstOrDefault(clip => clip.startFrame == transformTargetData.startFrame);
+                        targetConfigClip = exactMatch ?? candidateClips[0];
+                    }
+                }
+            }
+
+            if (targetConfigClip != null)
+            {
+                updateAction(targetConfigClip);
+                MarkSkillConfigDirty();
+            }
+            else
+            {
+                Debug.LogWarning($"无法执行 {operationName}：找不到对应的变换片段配置");
+            }
+        }
 
         /// <summary>
         /// 删除变换轨道项的完整流程

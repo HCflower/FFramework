@@ -79,7 +79,7 @@ namespace SkillEditor
 
             // 摄像机轨道项默认30帧长度（1秒）
             int frameCount = 30;
-            var newItem = new SkillEditorTrackItem(trackArea, itemName, trackType, frameCount, startFrame);
+            var newItem = new SkillEditorTrackItem(trackArea, itemName, trackType, frameCount, startFrame, trackIndex);
 
             // 添加到技能配置
             if (addToConfig)
@@ -114,7 +114,7 @@ namespace SkillEditor
         /// <returns>创建的摄像机轨道项</returns>
         public SkillEditorTrackItem CreateCameraItem(string cameraName, Camera targetCamera, int startFrame, int frameCount = 60, bool addToConfig = true)
         {
-            var newItem = new SkillEditorTrackItem(trackArea, cameraName, trackType, frameCount, startFrame);
+            var newItem = new SkillEditorTrackItem(trackArea, cameraName, trackType, frameCount, startFrame, trackIndex);
 
             if (addToConfig)
             {

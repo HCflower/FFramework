@@ -52,7 +52,7 @@ namespace SkillEditor
             int frameCount = Mathf.RoundToInt(animationClip.length * frameRate);
             string itemName = animationClip.name;
 
-            var newItem = new SkillEditorTrackItem(trackArea, itemName, trackType, frameCount, startFrame);
+            var newItem = new SkillEditorTrackItem(trackArea, itemName, trackType, frameCount, startFrame, trackIndex);
 
             // 添加到技能配置
             if (addToConfig)

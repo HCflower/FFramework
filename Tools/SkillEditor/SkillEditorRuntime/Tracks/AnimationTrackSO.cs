@@ -12,9 +12,9 @@ namespace FFramework.Kit
     public class AnimationTrackSO : ScriptableObject
     {
         [Header("轨道基础信息")]
-        [Tooltip("轨道名称")] public string trackName = "Animation";
+        [ShowOnly][Tooltip("轨道名称")] public string trackName = "Animation";
+        [ShowOnly][Tooltip("轨道优先级，数值越大优先级越高")] public int trackIndex;
         [Tooltip("是否启用轨道")] public bool isEnabled = true;
-        [Tooltip("轨道优先级，数值越大优先级越高")] public int trackIndex;
 
         [Header("动画片段列表")]
         public List<AnimationTrack.AnimationClip> animationClips = new List<AnimationTrack.AnimationClip>();

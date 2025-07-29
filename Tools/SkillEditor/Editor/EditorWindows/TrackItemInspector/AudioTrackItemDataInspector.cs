@@ -79,6 +79,30 @@ namespace SkillEditor
             }, "循环状态更新");
         }
 
+        /// <summary>
+        /// 起始帧变化事件处理
+        /// </summary>
+        /// <param name="newValue">新的起始帧值</param>
+        protected override void OnStartFrameChanged(int newValue)
+        {
+            SafeExecute(() =>
+            {
+                UpdateAudioTrackConfig(configClip => configClip.startFrame = newValue, "起始帧更新");
+            }, "起始帧更新");
+        }
+
+        /// <summary>
+        /// 持续帧数变化事件处理
+        /// </summary>
+        /// <param name="newValue">新的持续帧数值</param>
+        protected override void OnDurationFrameChanged(int newValue)
+        {
+            SafeExecute(() =>
+            {
+                UpdateAudioTrackConfig(configClip => configClip.durationFrame = newValue, "持续帧数更新");
+            }, "持续帧数更新");
+        }
+
         #endregion
 
         #region 数据同步方法
@@ -101,37 +125,26 @@ namespace SkillEditor
             FFramework.Kit.AudioTrack.AudioClip targetConfigClip = null;
 
             var audioTrackSO = skillConfig.trackContainer.audioTrack;
-            if (audioTrackSO.audioTracks != null)
+            if (audioTrackSO.audioTracks != null && audioTargetData.trackIndex < audioTrackSO.audioTracks.Count)
             {
-                // 遍历所有音频轨道查找匹配的片段
-                foreach (var audioTrack in audioTrackSO.audioTracks)
+                // 直接通过 trackIndex 定位到对应的音频轨道
+                var targetAudioTrack = audioTrackSO.audioTracks[audioTargetData.trackIndex];
+                if (targetAudioTrack.audioClips != null)
                 {
-                    if (audioTrack.audioClips != null)
-                    {
-                        var candidateClips = audioTrack.audioClips
-                            .Where(clip => clip.clipName == audioTargetData.trackItemName).ToList();
+                    var candidateClips = targetAudioTrack.audioClips
+                        .Where(clip => clip.clipName == audioTargetData.trackItemName).ToList();
 
-                        if (candidateClips.Count > 0)
+                    if (candidateClips.Count > 0)
+                    {
+                        if (candidateClips.Count == 1)
                         {
-                            if (candidateClips.Count == 1)
-                            {
-                                targetConfigClip = candidateClips[0];
-                                break; // 找到匹配的片段，退出循环
-                            }
-                            else
-                            {
-                                // 如果有多个同名片段，尝试通过起始帧匹配
-                                var exactMatch = candidateClips.FirstOrDefault(clip => clip.startFrame == audioTargetData.startFrame);
-                                if (exactMatch != null)
-                                {
-                                    targetConfigClip = exactMatch;
-                                    break; // 找到精确匹配，退出循环
-                                }
-                                else
-                                {
-                                    targetConfigClip = candidateClips[0]; // 使用第一个匹配项作为后备
-                                }
-                            }
+                            targetConfigClip = candidateClips[0];
+                        }
+                        else
+                        {
+                            // 如果有多个同名片段，尝试通过起始帧匹配
+                            var exactMatch = candidateClips.FirstOrDefault(clip => clip.startFrame == audioTargetData.startFrame);
+                            targetConfigClip = exactMatch ?? candidateClips[0]; // 使用精确匹配或第一个匹配项
                         }
                     }
                 }
@@ -167,41 +180,28 @@ namespace SkillEditor
 
             // 查找对应的音频片段配置
             var audioTrackSO = skillConfig.trackContainer.audioTrack;
-            if (audioTrackSO?.audioTracks != null)
+            if (audioTrackSO?.audioTracks != null && audioTargetData.trackIndex < audioTrackSO.audioTracks.Count)
             {
-                // 遍历所有音频轨道查找匹配的片段
-                foreach (var audioTrack in audioTrackSO.audioTracks)
+                // 直接通过 trackIndex 定位到对应的音频轨道
+                var targetAudioTrack = audioTrackSO.audioTracks[audioTargetData.trackIndex];
+                if (targetAudioTrack.audioClips != null)
                 {
-                    if (audioTrack.audioClips != null)
-                    {
-                        var candidateClips = audioTrack.audioClips
-                            .Where(clip => clip.clipName == audioTargetData.trackItemName).ToList();
+                    var candidateClips = targetAudioTrack.audioClips
+                        .Where(clip => clip.clipName == audioTargetData.trackItemName).ToList();
 
-                        if (candidateClips.Count > 0)
+                    if (candidateClips.Count > 0)
+                    {
+                        if (candidateClips.Count == 1)
                         {
-                            if (candidateClips.Count == 1)
-                            {
-                                targetConfigClip = candidateClips[0];
-                                parentAudioTrack = audioTrack;
-                                break; // 找到匹配项，退出循环
-                            }
-                            else
-                            {
-                                // 如果有多个同名片段，尝试通过起始帧匹配
-                                var exactMatch = candidateClips.FirstOrDefault(clip => clip.startFrame == audioTargetData.startFrame);
-                                if (exactMatch != null)
-                                {
-                                    targetConfigClip = exactMatch;
-                                    parentAudioTrack = audioTrack;
-                                    break; // 找到精确匹配，退出循环
-                                }
-                                else
-                                {
-                                    targetConfigClip = candidateClips[0];
-                                    parentAudioTrack = audioTrack;
-                                    // 继续查找是否有更精确的匹配
-                                }
-                            }
+                            targetConfigClip = candidateClips[0];
+                            parentAudioTrack = targetAudioTrack;
+                        }
+                        else
+                        {
+                            // 如果有多个同名片段，尝试通过起始帧匹配
+                            var exactMatch = candidateClips.FirstOrDefault(clip => clip.startFrame == audioTargetData.startFrame);
+                            targetConfigClip = exactMatch ?? candidateClips[0]; // 使用精确匹配或第一个匹配项
+                            parentAudioTrack = targetAudioTrack;
                         }
                     }
                 }

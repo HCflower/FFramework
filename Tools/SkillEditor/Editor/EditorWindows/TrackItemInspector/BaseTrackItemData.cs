@@ -12,5 +12,6 @@ namespace SkillEditor
         public int frameCount;                  // 帧数
         public int startFrame;                  // 起始帧
         public int durationFrame;               // 持续帧数
+        public int trackIndex;                  // 轨道索引，用于多轨道环境中识别所属轨道
     }
 }
