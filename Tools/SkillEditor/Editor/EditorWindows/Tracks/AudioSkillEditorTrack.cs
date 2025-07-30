@@ -221,5 +221,57 @@ namespace SkillEditor
         }
 
         #endregion
+
+        #region 配置恢复方法
+
+        /// <summary>
+        /// 根据索引从配置创建音频轨道项
+        /// </summary>
+        /// <param name="track">音频轨道实例</param>
+        /// <param name="skillConfig">技能配置</param>
+        /// <param name="trackIndex">轨道索引</param>
+        public static void CreateTrackItemsFromConfig(AudioSkillEditorTrack track, FFramework.Kit.SkillConfig skillConfig, int trackIndex)
+        {
+            var audioTrackSO = skillConfig.trackContainer.audioTrack;
+            if (audioTrackSO?.audioTracks == null || trackIndex >= audioTrackSO.audioTracks.Count)
+            {
+                Debug.Log($"CreateAudioTrackItemsFromConfig: 没有找到索引 {trackIndex} 的音频轨道数据");
+                return;
+            }
+
+            var audioTrack = audioTrackSO.audioTracks[trackIndex];
+            if (audioTrack.audioClips == null) return;
+
+            foreach (var clip in audioTrack.audioClips)
+            {
+                if (clip.clip != null)
+                {
+                    // 从配置加载时，使用配置中的名称，并设置addToConfig为false，避免重复添加到配置文件
+                    var trackItem = track.AddTrackItem(clip.clip, clip.clipName, clip.startFrame, false);
+
+                    // 从配置中恢复完整的音频属性
+                    if (trackItem?.ItemData is AudioTrackItemData audioData)
+                    {
+                        audioData.durationFrame = clip.durationFrame;
+                        audioData.volume = clip.volume;
+                        audioData.pitch = clip.pitch;
+                        audioData.isLoop = clip.isLoop;
+
+#if UNITY_EDITOR
+                        // 标记数据已修改
+                        UnityEditor.EditorUtility.SetDirty(audioData);
+#endif
+                    }
+
+                    // 更新轨道项的帧数和宽度显示
+                    if (clip.durationFrame > 0)
+                    {
+                        trackItem?.UpdateFrameCount(clip.durationFrame);
+                    }
+                }
+            }
+        }
+
+        #endregion
     }
 }

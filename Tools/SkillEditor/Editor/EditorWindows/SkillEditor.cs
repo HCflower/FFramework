@@ -17,8 +17,6 @@ namespace SkillEditor
         private SkillEditorTimeline skillEditorTimeline;
         /// <summary>滚动同步管理器 - 协调各滚动视图的同步</summary>
         private SkillEditorScrollSync skillEditorScrollSync;
-        /// <summary>事件系统 - 处理编辑器内部事件通信</summary>
-        private SkillEditorEvent skillEditorEvent;
 
         /// <summary>当前选中的轨道项</summary>
         public static SkillEditorTrackItem CurrentTrackItem;
@@ -75,7 +73,7 @@ namespace SkillEditor
         private void OnDisable()
         {
             SkillEditorData.SaveData();
-            skillEditorEvent?.Cleanup();
+            SkillEditorEvent.Cleanup();
 
             // 清理编辑器数据，释放内存资源
             SkillEditorData.ResetData();
@@ -88,17 +86,16 @@ namespace SkillEditor
         private void InitializeManagers()
         {
             // SkillEditorData为静态类，无需实例化
-            skillEditorEvent = new SkillEditorEvent();
-            skillEditorTimeline = new SkillEditorTimeline(skillEditorEvent);
-            uiBuilder = new SkillEditorUIBuilder(skillEditorEvent);
+            skillEditorTimeline = new SkillEditorTimeline();
+            uiBuilder = new SkillEditorUIBuilder();
             skillEditorScrollSync = new SkillEditorScrollSync();
 
             // 注册事件监听
-            skillEditorEvent.OnCurrentFrameChanged += OnCurrentFrameChanged;
-            skillEditorEvent.OnMaxFrameChanged += OnMaxFrameChanged;
-            skillEditorEvent.OnGlobalControlToggled += OnGlobalControlToggled;
-            skillEditorEvent.OnRefreshRequested += RefreshView;
-            skillEditorEvent.OnTimelineZoomChanged += OnTimelineZoomChanged;
+            SkillEditorEvent.OnCurrentFrameChanged += OnCurrentFrameChanged;
+            SkillEditorEvent.OnMaxFrameChanged += OnMaxFrameChanged;
+            SkillEditorEvent.OnGlobalControlToggled += OnGlobalControlToggled;
+            SkillEditorEvent.OnRefreshRequested += RefreshView;
+            SkillEditorEvent.OnTimelineZoomChanged += OnTimelineZoomChanged;
         }
 
         /// <summary>

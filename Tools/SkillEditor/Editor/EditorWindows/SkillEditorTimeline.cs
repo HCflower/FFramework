@@ -14,9 +14,6 @@ namespace SkillEditor
     {
         #region 私有字段
 
-        /// <summary>事件管理器，用于触发时间轴相关事件</summary>
-        private readonly SkillEditorEvent skillEditorEvent;
-
         /// <summary>时间轴容器元素</summary>
         private VisualElement timelineContainer;
 
@@ -39,16 +36,10 @@ namespace SkillEditor
         /// <summary>
         /// 构造函数，初始化时间轴管理器
         /// </summary>
-        /// <param name="skillEditorEvent">事件管理器实例</param>
-        public SkillEditorTimeline(SkillEditorEvent skillEditorEvent)
+        public SkillEditorTimeline()
         {
-            this.skillEditorEvent = skillEditorEvent;
-
             // 订阅技能配置变更事件
-            if (skillEditorEvent != null)
-            {
-                skillEditorEvent.OnSkillConfigChanged += UpdateTipsDisplay;
-            }
+            SkillEditorEvent.OnSkillConfigChanged += UpdateTipsDisplay;
         }
 
         #endregion
@@ -489,7 +480,7 @@ namespace SkillEditor
                     SkillEditorData.SetFrameUnitWidth(SkillEditorData.FrameUnitWidth + zoomDelta);
 
                     // 触发缩放事件，让外部统一处理刷新
-                    skillEditorEvent.TriggerTimelineZoomChanged();
+                    SkillEditorEvent.TriggerTimelineZoomChanged();
 
                     evt.StopPropagation();
                 }
@@ -510,7 +501,7 @@ namespace SkillEditor
             int nearestFrame = Mathf.RoundToInt(exactFrame);
             nearestFrame = Mathf.Clamp(nearestFrame, 0, SkillEditorData.MaxFrame);
 
-            skillEditorEvent.TriggerCurrentFrameChanged(nearestFrame);
+            SkillEditorEvent.TriggerCurrentFrameChanged(nearestFrame);
         }
 
         #endregion

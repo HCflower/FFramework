@@ -205,5 +205,71 @@ namespace SkillEditor
         }
 
         #endregion
+
+        #region 配置恢复方法
+
+        /// <summary>
+        /// 根据索引从配置创建摄像机轨道项
+        /// </summary>
+        /// <param name="track">摄像机轨道实例</param>
+        /// <param name="skillConfig">技能配置</param>
+        /// <param name="trackIndex">轨道索引</param>
+        public static void CreateTrackItemsFromConfig(CameraSkillEditorTrack track, FFramework.Kit.SkillConfig skillConfig, int trackIndex)
+        {
+            var cameraTrack = skillConfig.trackContainer.cameraTrack;
+            if (cameraTrack == null)
+            {
+                Debug.Log($"CreateCameraTrackItemsFromConfig: 没有找到摄像机轨道数据");
+                return;
+            }
+
+            // 摄像机轨道是单轨道，只有trackIndex为0时才处理
+            if (trackIndex != 0)
+            {
+                Debug.Log($"CreateCameraTrackItemsFromConfig: 摄像机轨道是单轨道，只处理索引0，当前索引为{trackIndex}");
+                return;
+            }
+
+            if (cameraTrack.cameraClips != null)
+            {
+                foreach (var clip in cameraTrack.cameraClips)
+                {
+                    // 从配置加载时，设置addToConfig为false，避免重复添加到配置文件
+                    var trackItem = track.AddTrackItem(clip.clipName, clip.startFrame, false);
+
+                    // 更新轨道项的持续帧数和相关数据
+                    if (trackItem?.ItemData is CameraTrackItemData cameraData)
+                    {
+                        cameraData.durationFrame = clip.durationFrame;
+                        // 从配置中恢复完整的摄像机属性
+                        cameraData.enablePosition = clip.enablePosition;
+                        cameraData.enableRotation = clip.enableRotation;
+                        cameraData.enableFieldOfView = clip.enableFieldOfView;
+                        cameraData.startPosition = clip.startPosition;
+                        cameraData.startRotation = clip.startRotation;
+                        cameraData.startFieldOfView = clip.startFieldOfView;
+                        cameraData.endPosition = clip.endPosition;
+                        cameraData.endRotation = clip.endRotation;
+                        cameraData.endFieldOfView = clip.endFieldOfView;
+                        cameraData.curveType = clip.curveType;
+                        cameraData.customCurve = clip.customCurve;
+                        cameraData.isRelative = clip.isRelative;
+
+#if UNITY_EDITOR
+                        // 标记数据已修改
+                        UnityEditor.EditorUtility.SetDirty(cameraData);
+#endif
+                    }
+
+                    // 更新轨道项的帧数和宽度显示
+                    if (clip.durationFrame > 0)
+                    {
+                        trackItem?.UpdateFrameCount(clip.durationFrame);
+                    }
+                }
+            }
+        }
+
+        #endregion
     }
 }

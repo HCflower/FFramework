@@ -1,5 +1,6 @@
 using UnityEngine.UIElements;
 using UnityEngine;
+using System.Linq;
 
 #if UNITY_EDITOR
 using UnityEditor;
@@ -225,6 +226,67 @@ namespace SkillEditor
                 EditorUtility.SetDirty(skillConfig);
             }
 #endif
+        }
+
+        #endregion
+
+        #region 配置恢复方法
+
+        /// <summary>
+        /// 根据索引从配置创建游戏物体轨道项
+        /// </summary>
+        /// <param name="track">游戏物体轨道实例</param>
+        /// <param name="skillConfig">技能配置</param>
+        /// <param name="trackIndex">轨道索引</param>
+        public static void CreateTrackItemsFromConfig(GameObjectSkillEditorTrack track, FFramework.Kit.SkillConfig skillConfig, int trackIndex)
+        {
+            var gameObjectTrack = skillConfig.trackContainer.gameObjectTrack;
+            if (gameObjectTrack == null)
+            {
+                Debug.Log($"CreateGameObjectTrackItemsFromConfig: 没有找到游戏物体轨道数据");
+                return;
+            }
+
+            // 根据索引获取对应的轨道数据
+            var targetTrack = gameObjectTrack.gameObjectTracks?.FirstOrDefault(t => t.trackIndex == trackIndex);
+            if (targetTrack?.gameObjectClips == null)
+            {
+                Debug.Log($"CreateGameObjectTrackItemsFromConfig: 没有找到索引为{trackIndex}的游戏物体轨道数据");
+                return;
+            }
+
+            foreach (var clip in targetTrack.gameObjectClips)
+            {
+                if (clip.prefab != null)
+                {
+                    // 从配置加载时，使用配置中的名称，并设置addToConfig为false，避免重复添加到配置文件
+                    var trackItem = track.AddTrackItem(clip.prefab, clip.clipName, clip.startFrame, false);
+
+                    // 从配置中恢复完整的游戏物体属性
+                    if (trackItem?.ItemData is GameObjectTrackItemData gameObjectData)
+                    {
+                        gameObjectData.durationFrame = clip.durationFrame;
+                        gameObjectData.autoDestroy = clip.autoDestroy;
+                        gameObjectData.positionOffset = clip.positionOffset;
+                        gameObjectData.rotationOffset = clip.rotationOffset;
+                        gameObjectData.scale = clip.scale;
+                        gameObjectData.useParent = clip.useParent;
+                        gameObjectData.parentName = clip.parentName;
+                        gameObjectData.destroyDelay = clip.destroyDelay;
+
+#if UNITY_EDITOR
+                        // 标记数据已修改
+                        UnityEditor.EditorUtility.SetDirty(gameObjectData);
+#endif
+                    }
+
+                    // 更新轨道项的帧数和宽度显示
+                    if (clip.durationFrame > 0)
+                    {
+                        trackItem?.UpdateFrameCount(clip.durationFrame);
+                    }
+                }
+            }
         }
 
         #endregion

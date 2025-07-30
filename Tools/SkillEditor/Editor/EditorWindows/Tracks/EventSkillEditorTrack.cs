@@ -1,5 +1,6 @@
 using UnityEngine.UIElements;
 using UnityEngine;
+using System.Linq;
 
 #if UNITY_EDITOR
 using UnityEditor;
@@ -162,6 +163,52 @@ namespace SkillEditor
                 EditorUtility.SetDirty(skillConfig);
             }
 #endif
+        }
+
+        #endregion
+
+        #region 配置恢复方法
+
+        /// <summary>
+        /// 根据索引从配置创建事件轨道项
+        /// </summary>
+        /// <param name="track">事件轨道实例</param>
+        /// <param name="skillConfig">技能配置</param>
+        /// <param name="trackIndex">轨道索引</param>
+        public static void CreateTrackItemsFromConfig(EventSkillEditorTrack track, FFramework.Kit.SkillConfig skillConfig, int trackIndex)
+        {
+            var eventTrack = skillConfig.trackContainer.eventTrack;
+            if (eventTrack?.eventTracks == null) return;
+
+            // 根据索引获取对应的轨道数据
+            var targetTrack = eventTrack.eventTracks.FirstOrDefault(t => t.trackIndex == trackIndex);
+            if (targetTrack?.eventClips == null) return;
+
+            foreach (var clip in targetTrack.eventClips)
+            {
+                // 从配置加载时，设置addToConfig为false，避免重复添加到配置文件
+                var trackItem = track.AddTrackItem(clip.clipName, clip.startFrame, false);
+
+                // 更新轨道项的持续帧数和相关数据
+                if (trackItem?.ItemData is EventTrackItemData eventData)
+                {
+                    eventData.durationFrame = clip.durationFrame;
+                    // 从配置中恢复完整的事件属性
+                    eventData.eventType = clip.eventType;
+                    eventData.eventParameters = clip.eventParameters;
+
+#if UNITY_EDITOR
+                    // 标记数据已修改
+                    UnityEditor.EditorUtility.SetDirty(eventData);
+#endif
+                }
+
+                // 更新轨道项的帧数和宽度显示
+                if (clip.durationFrame > 0)
+                {
+                    trackItem?.UpdateFrameCount(clip.durationFrame);
+                }
+            }
         }
 
         #endregion

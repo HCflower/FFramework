@@ -49,7 +49,74 @@ namespace SkillEditor
 
         protected override void PerformDelete()
         {
-            // TODO: 实现删除逻辑，需要从技能配置中移除对应的游戏物体片段
+            SafeExecute(() =>
+            {
+                DeleteGameObjectTrackItem();
+            }, "删除游戏物体轨道项");
+        }
+
+        /// <summary>
+        /// 删除游戏物体轨道项的完整流程
+        /// 包括移除UI元素、删除配置数据和触发界面刷新
+        /// </summary>
+        private void DeleteGameObjectTrackItem()
+        {
+            var skillConfig = SkillEditorData.CurrentSkillConfig;
+            if (skillConfig?.trackContainer?.gameObjectTrack == null || gameObjectTargetData == null)
+            {
+                Debug.LogWarning("无法删除游戏物体轨道项：技能配置或游戏物体轨道为空");
+                return;
+            }
+
+            bool deleted = false;
+
+            // 从游戏物体轨道中查找并删除对应的片段
+            if (skillConfig.trackContainer.gameObjectTrack.gameObjectTracks != null)
+            {
+                foreach (var track in skillConfig.trackContainer.gameObjectTrack.gameObjectTracks)
+                {
+                    if (track.gameObjectClips != null)
+                    {
+                        // 查找要删除的片段
+                        var clipToRemove = track.gameObjectClips.FirstOrDefault(clip =>
+                            clip.clipName == gameObjectTargetData.trackItemName &&
+                            clip.startFrame == gameObjectTargetData.startFrame);
+
+                        if (clipToRemove != null)
+                        {
+                            track.gameObjectClips.Remove(clipToRemove);
+                            deleted = true;
+                            Debug.Log($"从配置中删除游戏物体片段: {clipToRemove.clipName} (轨道索引: {gameObjectTargetData.trackIndex})");
+                            break;
+                        }
+                    }
+                }
+            }
+
+            if (deleted)
+            {
+                // 标记配置文件为已修改
+                MarkSkillConfigDirty();
+                UnityEditor.AssetDatabase.SaveAssets();
+
+                // 触发UI刷新
+                SkillEditorEvent.TriggerRefreshRequested();
+                SkillEditorEvent.TriggerCurrentFrameChanged(SkillEditorData.CurrentFrame);
+            }
+            else
+            {
+                Debug.LogWarning($"未找到要删除的游戏物体片段: {gameObjectTargetData.trackItemName} (轨道索引: {gameObjectTargetData.trackIndex})");
+            }
+
+            // 删除ScriptableObject资产
+            if (gameObjectTargetData != null)
+            {
+                UnityEditor.AssetDatabase.DeleteAsset(UnityEditor.AssetDatabase.GetAssetPath(gameObjectTargetData));
+            }
+
+            // 清空Inspector选择
+            UnityEditor.Selection.activeObject = null;
+
             Debug.Log($"删除游戏物体轨道项: {gameObjectTargetData.trackItemName}");
         }
 
@@ -59,8 +126,8 @@ namespace SkillEditor
         {
             SafeExecute(() =>
            {
-               // TODO: 同步到配置文件
-               MarkSkillConfigDirty();
+               UpdateGameObjectTrackConfig(configClip => configClip.prefab = newPrefab, "预制体更新");
+               // 预制体更改可能影响轨道项显示，刷新UI
            }, "预制体改变");
         }
 
@@ -68,8 +135,7 @@ namespace SkillEditor
         {
             SafeExecute(() =>
             {
-                // TODO: 同步到配置文件
-                MarkSkillConfigDirty();
+                UpdateGameObjectTrackConfig(configClip => configClip.autoDestroy = newValue, "自动销毁更新");
             }, "自动销毁");
         }
 
@@ -77,54 +143,48 @@ namespace SkillEditor
         {
             SafeExecute(() =>
             {
-                // TODO: 同步到配置文件
-                MarkSkillConfigDirty();
-            }, "位置变换启用状态更新");
+                UpdateGameObjectTrackConfig(configClip => configClip.positionOffset = newValue, "位置偏移更新");
+            }, "位置偏移更新");
         }
 
         private void OnRotationOffsetChanged(Vector3 newValue)
         {
             SafeExecute(() =>
             {
-                // TODO: 同步到配置文件
-                MarkSkillConfigDirty();
-            }, "旋转变换启用状态更新");
+                UpdateGameObjectTrackConfig(configClip => configClip.rotationOffset = newValue, "旋转偏移更新");
+            }, "旋转偏移更新");
         }
 
         private void OnScaleChanged(Vector3 newValue)
         {
             SafeExecute(() =>
             {
-                // TODO: 同步到配置文件
-                MarkSkillConfigDirty();
-            }, "缩放变换启用状态更新");
+                UpdateGameObjectTrackConfig(configClip => configClip.scale = newValue, "缩放更新");
+            }, "缩放更新");
         }
 
         private void OnUseParentChanged(bool newValue)
         {
             SafeExecute(() =>
             {
-                // TODO: 同步到配置文件
-                MarkSkillConfigDirty();
-            }, "使用父级变换");
+                UpdateGameObjectTrackConfig(configClip => configClip.useParent = newValue, "使用父对象更新");
+            }, "使用父对象更新");
         }
 
         private void OnParentNameChanged(string newValue)
         {
             SafeExecute(() =>
             {
-                // TODO: 同步到配置文件
-                MarkSkillConfigDirty();
-            }, "父级名称");
+                UpdateGameObjectTrackConfig(configClip => configClip.parentName = newValue, "父对象名称更新");
+            }, "父对象名称更新");
         }
 
         private void OnDestroyDelayChanged(float newValue)
         {
             SafeExecute(() =>
             {
-                // TODO: 同步到配置文件
-                MarkSkillConfigDirty();
-            }, "延迟销毁");
+                UpdateGameObjectTrackConfig(configClip => configClip.destroyDelay = newValue, "延迟销毁更新");
+            }, "延迟销毁更新");
         }
 
         /// <summary>
@@ -136,6 +196,8 @@ namespace SkillEditor
             SafeExecute(() =>
             {
                 UpdateGameObjectTrackConfig(configClip => configClip.startFrame = newValue, "起始帧更新");
+                // 调用基类方法进行UI刷新
+                base.OnStartFrameChanged(newValue);
             }, "起始帧更新");
         }
 

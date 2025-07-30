@@ -60,6 +60,8 @@ namespace SkillEditor
             SafeExecute(() =>
             {
                 UpdateEventTrackConfig(configClip => configClip.startFrame = newValue, "起始帧更新");
+                // 调用基类方法进行UI刷新
+                base.OnStartFrameChanged(newValue);
             }, "起始帧更新");
         }
 
@@ -256,14 +258,8 @@ namespace SkillEditor
                     {
                         window.Repaint();
 
-                        // 通过反射获取skillEditorEvent实例并触发刷新
-                        var skillEditorEventField = typeof(SkillEditor).GetField("skillEditorEvent",
-                            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-                        if (skillEditorEventField != null)
-                        {
-                            var skillEditorEvent = skillEditorEventField.GetValue(window) as SkillEditorEvent;
-                            skillEditorEvent?.TriggerRefreshRequested();
-                        }
+                        // 直接调用静态事件方法
+                        SkillEditorEvent.TriggerRefreshRequested();
                     };
                 }
 

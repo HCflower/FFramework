@@ -1,7 +1,8 @@
 using UnityEngine.UIElements;
 using UnityEditor.UIElements;
-using UnityEditor;
 using UnityEngine;
+using UnityEditor;
+using System.Linq;
 
 namespace SkillEditor
 {
@@ -207,6 +208,19 @@ namespace SkillEditor
             if (onValueChanged != null)
             {
                 field.RegisterValueChangedCallback(evt => onValueChanged(evt.newValue));
+            }
+
+            // 添加回车键事件处理
+            if (onValueChanged != null)
+            {
+                field.RegisterCallback<KeyDownEvent>(evt =>
+                {
+                    if (evt.keyCode == KeyCode.Return || evt.keyCode == KeyCode.KeypadEnter)
+                    {
+                        SkillEditorEvent.TriggerRefreshRequested();
+                        evt.StopPropagation();
+                    }
+                });
             }
 
             content.Add(field);
@@ -507,6 +521,30 @@ namespace SkillEditor
             }
         }
 
+        /// <summary>
+        /// 刷新轨道UI显示
+        /// 当检查器数据发生变化时，调用此方法同步更新轨道UI
+        /// </summary>
+        protected void RefreshTrackUI()
+        {
+            SafeExecute(() =>
+            {
+                // 延迟刷新，避免在用户交互过程中立即刷新
+                UnityEditor.EditorApplication.delayCall += () =>
+                {
+                    // 直接触发静态事件刷新
+                    SkillEditorEvent.TriggerRefreshRequested();
+
+                    // 触发当前帧变化事件以确保UI同步
+                    SkillEditorEvent.TriggerCurrentFrameChanged(SkillEditorData.CurrentFrame);
+
+                    // 标记技能配置为已修改
+                    MarkSkillConfigDirty();
+                };
+
+                Debug.Log($"[{TrackItemTypeName}] 轨道UI刷新请求已延迟执行");
+            }, "轨道UI刷新");
+        }
         #endregion
     }
 }

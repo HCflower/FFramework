@@ -1,5 +1,6 @@
 using UnityEngine.UIElements;
 using UnityEngine;
+using System.Linq;
 
 #if UNITY_EDITOR
 using UnityEditor;
@@ -171,6 +172,61 @@ namespace SkillEditor
                 EditorUtility.SetDirty(skillConfig);
             }
 #endif
+        }
+
+        #endregion
+
+        #region 配置恢复方法
+
+        /// <summary>
+        /// 根据索引从配置创建伤害检测轨道项
+        /// </summary>
+        /// <param name="track">伤害检测轨道实例</param>
+        /// <param name="skillConfig">技能配置</param>
+        /// <param name="trackIndex">轨道索引</param>
+        public static void CreateTrackItemsFromConfig(InjuryDetectionSkillEditorTrack track, FFramework.Kit.SkillConfig skillConfig, int trackIndex)
+        {
+            var injuryTrack = skillConfig.trackContainer.injuryDetectionTrack;
+            if (injuryTrack?.injuryDetectionTracks == null) return;
+
+            // 根据索引获取对应的轨道数据
+            var targetTrack = injuryTrack.injuryDetectionTracks.FirstOrDefault(t => t.trackIndex == trackIndex);
+            if (targetTrack?.injuryDetectionClips == null) return;
+
+            foreach (var clip in targetTrack.injuryDetectionClips)
+            {
+                // 从配置加载时，设置addToConfig为false，避免重复添加到配置文件
+                var trackItem = track.AddTrackItem(clip.clipName, clip.startFrame, false);
+
+                // 更新轨道项的持续帧数和相关数据
+                if (trackItem?.ItemData is AttackTrackItemData attackData)
+                {
+                    attackData.durationFrame = clip.durationFrame;
+                    // 从配置中恢复完整的攻击属性
+                    attackData.targetLayers = clip.targetLayers;
+                    attackData.isMultiInjuryDetection = clip.isMultiInjuryDetection;
+                    attackData.multiInjuryDetectionInterval = clip.multiInjuryDetectionInterval;
+                    attackData.colliderType = clip.colliderType;
+                    attackData.innerCircleRadius = clip.innerCircleRadius;
+                    attackData.outerCircleRadius = clip.outerCircleRadius;
+                    attackData.sectorAngle = clip.sectorAngle;
+                    attackData.sectorThickness = clip.sectorThickness;
+                    attackData.position = clip.position;
+                    attackData.rotation = clip.rotation;
+                    attackData.scale = clip.scale;
+
+#if UNITY_EDITOR
+                    // 标记数据已修改
+                    UnityEditor.EditorUtility.SetDirty(attackData);
+#endif
+                }
+
+                // 更新轨道项的帧数和宽度显示
+                if (clip.durationFrame > 0)
+                {
+                    trackItem?.UpdateFrameCount(clip.durationFrame);
+                }
+            }
         }
 
         #endregion

@@ -213,11 +213,54 @@ namespace SkillEditor
 #endif
         }
 
+        #endregion
 
+        #region 配置恢复方法
+
+        /// <summary>
+        /// 根据索引从配置创建特效轨道项
+        /// </summary>
+        /// <param name="track">特效轨道实例</param>
+        /// <param name="skillConfig">技能配置</param>
+        /// <param name="trackIndex">轨道索引</param>
+        public static void CreateTrackItemsFromConfig(EffectSkillEditorTrack track, FFramework.Kit.SkillConfig skillConfig, int trackIndex)
+        {
+            var effectTrackSO = skillConfig.trackContainer.effectTrack;
+            if (effectTrackSO?.effectTracks == null || trackIndex >= effectTrackSO.effectTracks.Count) return;
+
+            var effectTrack = effectTrackSO.effectTracks[trackIndex];
+            if (effectTrack.effectClips == null) return;
+
+            foreach (var clip in effectTrack.effectClips)
+            {
+                if (clip.effectPrefab != null)
+                {
+                    // 从配置加载时，设置addToConfig为false，避免重复添加到配置文件
+                    var trackItem = track.AddTrackItem(clip.effectPrefab, clip.startFrame, false);
+
+                    // 从配置中恢复完整的特效属性
+                    if (trackItem?.ItemData is EffectTrackItemData effectData)
+                    {
+                        effectData.durationFrame = clip.durationFrame;
+                        effectData.position = clip.position;
+                        effectData.rotation = clip.rotation;
+                        effectData.scale = clip.scale;
+
+#if UNITY_EDITOR
+                        // 标记数据已修改
+                        UnityEditor.EditorUtility.SetDirty(effectData);
+#endif
+                    }
+
+                    // 更新轨道项的帧数和宽度显示
+                    if (clip.durationFrame > 0)
+                    {
+                        trackItem?.UpdateFrameCount(clip.durationFrame);
+                    }
+                }
+            }
+        }
+
+        #endregion
     }
-
-
-    #endregion
 }
-
-

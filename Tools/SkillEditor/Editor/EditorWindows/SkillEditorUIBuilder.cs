@@ -16,9 +16,6 @@ namespace SkillEditor
     {
         #region 私有字段
 
-        /// <summary>技能编辑器事件管理器</summary>
-        private readonly SkillEditorEvent skillEditorEvent;
-
         /// <summary>轨道管理器</summary>
         private readonly SkillEditorTrackHandler trackManager;
 
@@ -36,15 +33,12 @@ namespace SkillEditor
         /// UI构建器构造函数
         /// 初始化事件管理器并订阅刷新事件
         /// </summary>
-        /// <param name="skillEditorEvent">技能编辑器事件管理器实例</param>
-        public SkillEditorUIBuilder(SkillEditorEvent skillEditorEvent)
+        public SkillEditorUIBuilder()
         {
-            this.skillEditorEvent = skillEditorEvent;
-            this.trackManager = new SkillEditorTrackHandler(skillEditorEvent);
+            this.trackManager = new SkillEditorTrackHandler();
 
             // 订阅刷新事件
-            if (skillEditorEvent != null)
-                skillEditorEvent.OnRefreshRequested += OnRefreshRequested;
+            SkillEditorEvent.OnRefreshRequested += OnRefreshRequested;
         }
 
         #endregion
@@ -173,7 +167,7 @@ namespace SkillEditor
         private void CreateGlobalControlShowButton(VisualElement parent)
         {
             var buttonWrapper = CreateAndAddElement(parent, "GlobalControlShowButtonWrapper");
-            var showButton = CreateButton("", "Global Setting", () => skillEditorEvent.TriggerGlobalControlToggled(true));
+            var showButton = CreateButton("", "Global Setting", () => SkillEditorEvent.TriggerGlobalControlToggled(true));
             showButton.AddToClassList("GlobalControlShowButton");
             buttonWrapper.Add(showButton);
         }
@@ -213,8 +207,8 @@ namespace SkillEditor
                     trackManager.ClearAllTracks();
                 }
 
-                skillEditorEvent.TriggerSkillConfigChanged(SkillEditorData.CurrentSkillConfig);
-                skillEditorEvent.TriggerRefreshRequested();
+                SkillEditorEvent.TriggerSkillConfigChanged(SkillEditorData.CurrentSkillConfig);
+                SkillEditorEvent.TriggerRefreshRequested();
             });
 
             // 动画帧率输入框
@@ -309,7 +303,7 @@ namespace SkillEditor
             // 隐藏全局控制区域按钮
             CreateButton(parent, "隐藏全局设置区域", "", () =>
             {
-                skillEditorEvent.TriggerGlobalControlToggled(false);
+                SkillEditorEvent.TriggerGlobalControlToggled(false);
             });
 
             // 保存配置文件按钮
@@ -322,7 +316,7 @@ namespace SkillEditor
             // 刷新视图按钮
             CreateButton(parent, "刷新视图", "", () =>
             {
-                skillEditorEvent.TriggerRefreshRequested();
+                SkillEditorEvent.TriggerRefreshRequested();
             });
 
             // 添加配置按钮
@@ -397,20 +391,20 @@ namespace SkillEditor
             // 上一帧按钮
             CreateIconButton(parent, "d_Animation.PrevKey", "上一帧", () =>
             {
-                skillEditorEvent.TriggerCurrentFrameChanged(SkillEditorData.CurrentFrame - 1);
+                SkillEditorEvent.TriggerCurrentFrameChanged(SkillEditorData.CurrentFrame - 1);
             });
 
             // 播放/暂停按钮
             CreateIconButton(parent, SkillEditorData.IsPlaying ? "d_PauseButton@2x" : "d_Animation.Play", "播放", () =>
             {
                 SkillEditorData.IsPlaying = !SkillEditorData.IsPlaying;
-                skillEditorEvent.TriggerPlayStateChanged(SkillEditorData.IsPlaying);
+                SkillEditorEvent.TriggerPlayStateChanged(SkillEditorData.IsPlaying);
             });
 
             // 下一帧按钮
             CreateIconButton(parent, "d_Animation.NextKey", "下一帧", () =>
             {
-                skillEditorEvent.TriggerCurrentFrameChanged(SkillEditorData.CurrentFrame + 1);
+                SkillEditorEvent.TriggerCurrentFrameChanged(SkillEditorData.CurrentFrame + 1);
             });
 
             // 循环播放按钮
@@ -434,7 +428,7 @@ namespace SkillEditor
             // 当前帧输入
             var currentFrameInput = CreateIntegerField("当前帧", SkillEditorData.CurrentFrame, (value) =>
             {
-                skillEditorEvent.TriggerCurrentFrameChanged(value);
+                SkillEditorEvent.TriggerCurrentFrameChanged(value);
             });
             currentFrameInput.name = "current-frame-input";
             frameInputContent.Add(currentFrameInput);
@@ -465,14 +459,14 @@ namespace SkillEditor
                 if (SkillEditorData.CurrentSkillConfig != null)
                 {
                     SkillEditorData.CurrentSkillConfig.maxFrames = value;
-                    skillEditorEvent.TriggerMaxFrameChanged(value);
-                    skillEditorEvent.TriggerRefreshRequested();
+                    SkillEditorEvent.TriggerMaxFrameChanged(value);
+                    SkillEditorEvent.TriggerRefreshRequested();
                 }
             });
             parent.Add(maxFrameInput);
 
             // 订阅配置切换事件以更新显示
-            skillEditorEvent.OnSkillConfigChanged += (config) =>
+            SkillEditorEvent.OnSkillConfigChanged += (config) =>
             {
                 if (maxFrameInput != null)
                 {
