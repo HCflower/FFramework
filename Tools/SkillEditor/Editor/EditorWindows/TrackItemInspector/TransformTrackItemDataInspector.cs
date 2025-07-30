@@ -27,16 +27,13 @@ namespace SkillEditor
             CreateToggleField("启用位置:", "enablePosition", OnEnablePositionChanged);
             CreateToggleField("启用旋转:", "enableRotation", OnEnableRotationChanged);
             CreateToggleField("启用缩放:", "enableScale", OnEnableScaleChanged);
-            // 起始变换设置
-            CreateVector3Field("起始位置:", "startPosition", OnStartPositionChanged);
-            CreateVector3Field("起始旋转:", "startRotation", OnStartRotationChanged);
-            CreateVector3Field("起始缩放:", "startScale", OnStartScaleChanged);
-            CreateSeparator();
             // 目标变换设置
-            CreateVector3Field("目标位置:", "endPosition", OnEndPositionChanged);
-            CreateVector3Field("目标旋转:", "endRotation", OnEndRotationChanged);
-            CreateVector3Field("目标缩放:", "endScale", OnEndScaleChanged);
+            CreateSeparatorTitle("变换目标设置");
+            CreateVector3Field("位置偏移:", "positionOffset", OnPositionOffsetChanged);
+            CreateVector3Field("目标旋转:", "targetRotation", OnTargetRotationChanged);
+            CreateVector3Field("目标缩放:", "targetScale", OnTargetScaleChanged);
             // 动画设置
+            CreateSeparatorTitle("动画设置");
             CreateCurveTypeField();
             CreateCurveField("自定义曲线:", "customCurve", OnCustomCurveChanged);
         }
@@ -90,51 +87,27 @@ namespace SkillEditor
             }, "缩放变换启用状态更新");
         }
 
-        private void OnStartPositionChanged(Vector3 newValue)
+        private void OnPositionOffsetChanged(Vector3 newValue)
         {
             SafeExecute(() =>
             {
-                UpdateTransformTrackConfig(configClip => configClip.startPosition = newValue, "起始位置更新");
-            }, "起始位置更新");
+                UpdateTransformTrackConfig(configClip => configClip.positionOffset = newValue, "目标偏移更新");
+            }, "目标偏移更新");
         }
 
-        private void OnStartRotationChanged(Vector3 newValue)
+        private void OnTargetRotationChanged(Vector3 newValue)
         {
             SafeExecute(() =>
             {
-                UpdateTransformTrackConfig(configClip => configClip.startRotation = newValue, "起始旋转更新");
-            }, "起始旋转更新");
-        }
-
-        private void OnStartScaleChanged(Vector3 newValue)
-        {
-            SafeExecute(() =>
-            {
-                UpdateTransformTrackConfig(configClip => configClip.startScale = newValue, "起始缩放更新");
-            }, "起始缩放更新");
-        }
-
-        private void OnEndPositionChanged(Vector3 newValue)
-        {
-            SafeExecute(() =>
-            {
-                UpdateTransformTrackConfig(configClip => configClip.endPosition = newValue, "目标位置更新");
-            }, "目标位置更新");
-        }
-
-        private void OnEndRotationChanged(Vector3 newValue)
-        {
-            SafeExecute(() =>
-            {
-                UpdateTransformTrackConfig(configClip => configClip.endRotation = newValue, "目标旋转更新");
+                UpdateTransformTrackConfig(configClip => configClip.targetRotation = newValue, "目标旋转更新");
             }, "目标旋转更新");
         }
 
-        private void OnEndScaleChanged(Vector3 newValue)
+        private void OnTargetScaleChanged(Vector3 newValue)
         {
             SafeExecute(() =>
             {
-                UpdateTransformTrackConfig(configClip => configClip.endScale = newValue, "目标缩放更新");
+                UpdateTransformTrackConfig(configClip => configClip.targetScale = newValue, "目标缩放更新");
             }, "目标缩放更新");
         }
 

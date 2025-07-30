@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using System;
+using UnityEditor.EditorTools;
 
 namespace FFramework.Kit
 {
@@ -107,6 +108,7 @@ namespace FFramework.Kit
         {
             [Tooltip("动画片段")] public UnityEngine.AnimationClip clip;
             [Tooltip("动画播放速度"), Min(0)] public float playSpeed = 1.0f;
+            [Tooltip("归一化动画过渡时间"), Min(0.0f)] public float normalizedTransitionTime = 0.0f;
             [Tooltip("动画是否循环播放")] public bool isLoop = false;
             [Tooltip("是否应用动画根运动")] public bool applyRootMotion = false;
         }

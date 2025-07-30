@@ -455,6 +455,10 @@
     width: 160px;
 }
 
+.TipText{
+    width: auto;
+}
+
 /* 技能轨道滚动视图 */
 .TrackScrollView{
     width: 100%;

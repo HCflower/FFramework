@@ -92,13 +92,16 @@
     flex-basis: 0;  /* 初始宽度为0，完全依赖flex-grow */
 }
 
-.ObjectField,.TextField,.Vector3Field,.Toggle,.EnumField,.CurveField ,.LayerMaskField{
+/* 输入框样式 */
+.ObjectField,.TextField,.Vector3Field,.Toggle,.EnumField,.CurveField ,.LayerMaskField,.Slider{
     max-width: none;  
     height: 20px;
+    
     margin: 0px;
     margin-right: 2px;
     padding: 0px;
 
+    align-sfelf: center;
     position: relative;  
     right: 2px;  
     flex-grow: 1;   /* 允许输入区域根据可用空间扩展 */
@@ -106,15 +109,35 @@
     flex-basis: 0;  /* 初始宽度为0，完全依赖flex-grow */
 }
 
-/* 分隔线 */
-.Separator{
+.SliderValueLabel{
+    min-width: 40px;
+    max-width: none;
+    height: 18px;
+    right:5px;
+
+    margin: 0px;
+    margin-left: 2px;
+    padding: 0px;
+    padding-left: 2px;
+
+    -unity-text-align: middle-left;
+    -unity-font-style: bold;
+    border-radius: 4px;
+    font-size: 12px;
+}
+
+/* 分隔线标题 */
+.SeparatorTitle{
     max-width: none;  
-    height: 2px;
+    height: 18px;
     margin-top: 1px;
-    margin-right:7px;
-    background-color: #ffffff;
-    flex-grow: 0;   /* 不允许扩展 */
-    flex-shrink: 0; /* 不允许收缩 */
+    margin-bottom: 2px;
+    margin-right:5px;
+    border-width: 1px;
+    border-color: rgba(255, 255, 255, 1);
+    -unity-text-align: middle-center;
+    -unity-font-style: bold;
+    font-size: 12px;
 }
 
 

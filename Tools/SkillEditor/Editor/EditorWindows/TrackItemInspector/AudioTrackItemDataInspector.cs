@@ -2,6 +2,7 @@ using UnityEngine.UIElements;
 using System.Linq;
 using UnityEditor;
 using UnityEngine;
+using System;
 
 namespace SkillEditor
 {
@@ -32,7 +33,9 @@ namespace SkillEditor
             CreateFloatField("音调:", "pitch", OnPitchChanged);
 
             // 循环状态
-            CreateToggleField("是否启用循环:", "isLoop", OnLoopChanged);
+            CreateSliderField("空间混合:", "spatialBlend", 0.0f, 1.0f, OnSpatialBlendChanged);
+            CreateSliderField("混响区混音:", "reverbZoneMix", 0.0f, 1.0f, OnReverbZoneMixChanged);
+            CreateToggleField("是否循环:", "isLoop", OnLoopChanged);
         }
 
         protected override void PerformDelete()
@@ -69,6 +72,24 @@ namespace SkillEditor
             {
                 UpdateAudioTrackConfig(configClip => configClip.pitch = newValue, "音调更新");
             }, "音调更新");
+        }
+
+        private void OnSpatialBlendChanged(float newValue)
+        {
+
+            SafeExecute(() =>
+            {
+                UpdateAudioTrackConfig(configClip => configClip.spatialBlend = newValue, "空间混合更新");
+            }, "空间混合更新");
+        }
+
+        private void OnReverbZoneMixChanged(float newValue)
+        {
+
+            SafeExecute(() =>
+            {
+                UpdateAudioTrackConfig(configClip => configClip.reverbZoneMix = newValue, "混响区混音更新");
+            }, "混响区混音更新");
         }
 
         private void OnLoopChanged(bool newValue)

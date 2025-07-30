@@ -33,6 +33,62 @@ namespace FFramework.Kit
         }
 
         /// <summary>
+        /// 执行轨道在指定帧的摄像机控制
+        /// </summary>
+        /// <param name="targetCamera">目标Camera组件</param>
+        /// <param name="currentFrame">当前帧</param>
+        /// <returns>是否执行了摄像机控制</returns>
+        public bool ExecuteAtFrame(Camera targetCamera, int currentFrame)
+        {
+            if (!isEnabled || targetCamera == null || cameraClips == null || cameraClips.Count == 0)
+                return false;
+
+            bool executed = false;
+
+            // 遍历所有摄像机片段，应用当前帧内的摄像机状态
+            foreach (var clip in cameraClips)
+            {
+                Vector3 position, rotation;
+                float fieldOfView;
+                if (clip.GetCameraAtFrame(currentFrame, out position, out rotation, out fieldOfView))
+                {
+                    // 应用摄像机状态
+                    if (clip.enablePosition)
+                        targetCamera.transform.position = position;
+
+                    if (clip.enableRotation)
+                        targetCamera.transform.rotation = Quaternion.Euler(rotation);
+
+                    if (clip.enableFieldOfView)
+                        targetCamera.fieldOfView = fieldOfView;
+
+                    executed = true;
+                }
+            }
+
+            return executed;
+        }
+
+        /// <summary>
+        /// 初始化轨道中所有片段的初始摄像机状态
+        /// </summary>
+        /// <param name="targetCamera">目标Camera组件</param>
+        public void InitializeCameras(Camera targetCamera)
+        {
+            if (targetCamera == null || cameraClips == null)
+                return;
+
+            foreach (var clip in cameraClips)
+            {
+                clip.SetInitialCamera(
+                    targetCamera.transform.position,
+                    targetCamera.transform.rotation.eulerAngles,
+                    targetCamera.fieldOfView
+                );
+            }
+        }
+
+        /// <summary>
         /// 验证轨道数据有效性
         /// </summary>
         public bool ValidateTrack()
@@ -110,20 +166,59 @@ namespace FFramework.Kit
             [Tooltip("是否启用旋转变换")] public bool enableRotation = true;
             [Tooltip("是否启用视野变换")] public bool enableFieldOfView = false;
 
-            [Header("起始状态")]
-            [Tooltip("起始位置")] public Vector3 startPosition = Vector3.zero;
-            [Tooltip("起始旋转")] public Vector3 startRotation = Vector3.zero;
-            [Tooltip("起始视野角度")] public float startFieldOfView = 60f;
-
             [Header("目标状态")]
-            [Tooltip("目标位置")] public Vector3 endPosition = Vector3.zero;
-            [Tooltip("目标旋转")] public Vector3 endRotation = Vector3.zero;
-            [Tooltip("目标视野角度")] public float endFieldOfView = 60f;
+            [Tooltip("位置偏移量（相对于初始位置）")] public Vector3 positionOffset = Vector3.zero;
+            [Tooltip("目标旋转（绝对值）")] public Vector3 targetRotation = Vector3.zero;
+            [Tooltip("目标视野角度（绝对值）")] public float targetFieldOfView = 60f;
 
             [Header("动画设置")]
             [Tooltip("动画曲线类型")] public AnimationCurveType curveType = AnimationCurveType.Linear;
             [Tooltip("自定义动画曲线")] public AnimationCurve customCurve = AnimationCurve.Linear(0, 0, 1, 1);
-            [Tooltip("是否相对于当前状态")] public bool isRelative = false;
+
+            // 运行时初始摄像机状态（不序列化，每次播放时设置）
+            [System.NonSerialized] private Vector3 runtimeStartPosition;
+            [System.NonSerialized] private Vector3 runtimeStartRotation;
+            [System.NonSerialized] private float runtimeStartFieldOfView;
+            [System.NonSerialized] private bool isInitialized = false;
+
+            /// <summary>
+            /// 设置初始摄像机状态（通常在开始播放时调用）
+            /// </summary>
+            /// <param name="currentPosition">当前位置</param>
+            /// <param name="currentRotation">当前旋转</param>
+            /// <param name="currentFieldOfView">当前视野角度</param>
+            public void SetInitialCamera(Vector3 currentPosition, Vector3 currentRotation, float currentFieldOfView)
+            {
+                runtimeStartPosition = currentPosition;
+                runtimeStartRotation = currentRotation;
+                runtimeStartFieldOfView = currentFieldOfView;
+                isInitialized = true;
+            }
+
+            /// <summary>
+            /// 获取实际的目标位置（位置使用加模式）
+            /// </summary>
+            private Vector3 GetActualEndPosition()
+            {
+                if (!isInitialized) return positionOffset;
+                return runtimeStartPosition + positionOffset;
+            }
+
+            /// <summary>
+            /// 获取实际的目标旋转（旋转使用直接变换）
+            /// </summary>
+            private Vector3 GetActualEndRotation()
+            {
+                return targetRotation;
+            }
+
+            /// <summary>
+            /// 获取实际的目标视野角度（视野使用直接变换）
+            /// </summary>
+            private float GetActualEndFieldOfView()
+            {
+                return targetFieldOfView;
+            }
 
             /// <summary>
             /// 根据时间进度获取插值后的位置
@@ -132,10 +227,11 @@ namespace FFramework.Kit
             /// <returns>插值后的位置</returns>
             public Vector3 GetInterpolatedPosition(float progress)
             {
-                if (!enablePosition) return startPosition;
+                if (!enablePosition) return isInitialized ? runtimeStartPosition : Vector3.zero;
 
+                Vector3 startPos = isInitialized ? runtimeStartPosition : Vector3.zero;
                 float curveValue = GetCurveValue(progress);
-                return Vector3.Lerp(startPosition, endPosition, curveValue);
+                return Vector3.Lerp(startPos, GetActualEndPosition(), curveValue);
             }
 
             /// <summary>
@@ -145,10 +241,11 @@ namespace FFramework.Kit
             /// <returns>插值后的旋转</returns>
             public Vector3 GetInterpolatedRotation(float progress)
             {
-                if (!enableRotation) return startRotation;
+                if (!enableRotation) return isInitialized ? runtimeStartRotation : Vector3.zero;
 
+                Vector3 startRot = isInitialized ? runtimeStartRotation : Vector3.zero;
                 float curveValue = GetCurveValue(progress);
-                return Vector3.Lerp(startRotation, endRotation, curveValue);
+                return Vector3.Lerp(startRot, GetActualEndRotation(), curveValue);
             }
 
             /// <summary>
@@ -158,10 +255,65 @@ namespace FFramework.Kit
             /// <returns>插值后的视野角度</returns>
             public float GetInterpolatedFieldOfView(float progress)
             {
-                if (!enableFieldOfView) return startFieldOfView;
+                if (!enableFieldOfView) return isInitialized ? runtimeStartFieldOfView : 60f;
 
+                float startFov = isInitialized ? runtimeStartFieldOfView : 60f;
                 float curveValue = GetCurveValue(progress);
-                return Mathf.Lerp(startFieldOfView, endFieldOfView, curveValue);
+                return Mathf.Lerp(startFov, GetActualEndFieldOfView(), curveValue);
+            }
+
+            /// <summary>
+            /// 应用摄像机状态到指定的Camera组件
+            /// </summary>
+            /// <param name="camera">目标Camera组件</param>
+            /// <param name="progress">时间进度 (0-1)</param>
+            public void ApplyCamera(Camera camera, float progress)
+            {
+                if (camera == null) return;
+
+                if (enablePosition)
+                {
+                    camera.transform.position = GetInterpolatedPosition(progress);
+                }
+
+                if (enableRotation)
+                {
+                    Vector3 rotation = GetInterpolatedRotation(progress);
+                    camera.transform.rotation = Quaternion.Euler(rotation);
+                }
+
+                if (enableFieldOfView)
+                {
+                    camera.fieldOfView = GetInterpolatedFieldOfView(progress);
+                }
+            }
+
+            /// <summary>
+            /// 获取指定帧的摄像机状态
+            /// </summary>
+            /// <param name="currentFrame">当前帧</param>
+            /// <param name="position">输出位置</param>
+            /// <param name="rotation">输出旋转</param>
+            /// <param name="fieldOfView">输出视野角度</param>
+            /// <returns>是否在片段范围内</returns>
+            public bool GetCameraAtFrame(int currentFrame, out Vector3 position, out Vector3 rotation, out float fieldOfView)
+            {
+                // 默认返回运行时初始值或默认值
+                position = isInitialized ? runtimeStartPosition : Vector3.zero;
+                rotation = isInitialized ? runtimeStartRotation : Vector3.zero;
+                fieldOfView = isInitialized ? runtimeStartFieldOfView : 60f;
+
+                if (!IsFrameInRange(currentFrame))
+                    return false;
+
+                float progress = durationFrame > 0 ? (float)(currentFrame - startFrame) / durationFrame : 0f;
+                progress = Mathf.Clamp01(progress);
+
+                position = GetInterpolatedPosition(progress);
+                rotation = GetInterpolatedRotation(progress);
+                fieldOfView = GetInterpolatedFieldOfView(progress);
+
+                return true;
             }
 
             /// <summary>

@@ -622,7 +622,7 @@ namespace SkillEditor
         /// <returns>攻击轨道项数据对象</returns>
         private BaseTrackItemData CreateAttackTrackItemData(string itemName)
         {
-            var attackData = ScriptableObject.CreateInstance<AttackTrackItemData>();
+            var attackData = ScriptableObject.CreateInstance<InjuryDetectionTrackItemData>();
             attackData.trackItemName = itemName;
             attackData.frameCount = frameCount;
             attackData.startFrame = startFrame;

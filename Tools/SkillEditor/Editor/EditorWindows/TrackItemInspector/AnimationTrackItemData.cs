@@ -10,6 +10,7 @@ namespace SkillEditor
     {
         public AnimationClip animationClip;     // 动画片段
         public float playSpeed = 1f;            // 播放速度
+        [Min(0.0f)] public float normalizedTransitionTime = 0.0f; // 过渡时间
         public bool isLoop;                     // 是否循环播放
         public bool applyRootMotion;            // 是应用根运动
     }

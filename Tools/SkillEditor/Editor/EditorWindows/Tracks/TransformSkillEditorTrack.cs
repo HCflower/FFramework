@@ -167,14 +167,7 @@ namespace SkillEditor
                 enablePosition = true,
                 enableRotation = false,
                 enableScale = false,
-                startPosition = Vector3.zero,
-                endPosition = Vector3.forward,
-                startRotation = Vector3.zero,
-                endRotation = Vector3.zero,
-                startScale = Vector3.one,
-                endScale = Vector3.one,
                 curveType = FFramework.Kit.AnimationCurveType.Linear,
-                isRelative = false
             };
 
             // 添加到对应索引的变换轨道
@@ -229,15 +222,11 @@ namespace SkillEditor
                         transformData.enablePosition = clip.enablePosition;
                         transformData.enableRotation = clip.enableRotation;
                         transformData.enableScale = clip.enableScale;
-                        transformData.startPosition = clip.startPosition;
-                        transformData.startRotation = clip.startRotation;
-                        transformData.startScale = clip.startScale;
-                        transformData.endPosition = clip.endPosition;
-                        transformData.endRotation = clip.endRotation;
-                        transformData.endScale = clip.endScale;
+                        transformData.positionOffset = clip.positionOffset;
+                        transformData.targetRotation = clip.targetRotation;
+                        transformData.targetScale = clip.targetScale;
                         transformData.curveType = clip.curveType;
                         transformData.customCurve = clip.customCurve;
-                        transformData.isRelative = clip.isRelative;
 
 #if UNITY_EDITOR
                         // 标记数据已修改

@@ -1174,7 +1174,7 @@ namespace SkillEditor
                 }
                 else if (info.TrackType == TrackType.AttackTrack)
                 {
-                    info.Track.AddTrackItem("Attack");
+                    info.Track.AddTrackItem("InjuryDetection");
                 }
                 else if (info.TrackType == TrackType.TransformTrack)
                 {

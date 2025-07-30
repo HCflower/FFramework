@@ -81,12 +81,7 @@ namespace SkillEditor
         /// </summary>
         protected virtual void OnDeleteButtonClicked()
         {
-            if (EditorUtility.DisplayDialog("删除确认",
-                $"确定要删除轨道项 \"{targetData.trackItemName}\" 吗？\n\n此操作将会：\n• 从界面移除此轨道项\n• 删除对应的配置数据\n• 无法撤销",
-                "确认删除", "取消"))
-            {
-                PerformDelete();
-            }
+            PerformDelete();
         }
 
         /// <summary>
@@ -374,13 +369,21 @@ namespace SkillEditor
             var field = new Slider(minValue, maxValue);
             field.AddToClassList("Slider");
             field.BindProperty(serializedObject.FindProperty(propertyName));
+            content.Add(field);
 
+            // 当前数值显示
+            var currentValueLabel = new Label();
+            currentValueLabel.AddToClassList("SliderValueLabel");
+            content.Add(currentValueLabel);
             if (onValueChanged != null)
             {
-                field.RegisterValueChangedCallback(evt => onValueChanged(evt.newValue));
+                field.RegisterValueChangedCallback(evt =>
+                {
+                    currentValueLabel.text = evt.newValue.ToString();
+                    onValueChanged(evt.newValue);
+                });
             }
 
-            content.Add(field);
             root.Add(content);
         }
 
@@ -444,11 +447,12 @@ namespace SkillEditor
         /// <summary>
         /// 创建分隔线
         /// </summary>
-        protected void CreateSeparator()
+        protected void CreateSeparatorTitle(string separatorTitleText)
         {
-            var separator = new VisualElement();
-            separator.AddToClassList("Separator");
-            root.Add(separator);
+            Label separatorTitle = new Label();
+            separatorTitle.AddToClassList("SeparatorTitle");
+            separatorTitle.text = separatorTitleText;
+            root.Add(separatorTitle);
         }
 
         /// <summary>

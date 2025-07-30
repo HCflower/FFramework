@@ -6,10 +6,10 @@ using System.Linq;
 
 namespace SkillEditor
 {
-    [CustomEditor(typeof(AttackTrackItemData))]
-    public class AttackTrackItemDataInspector : BaseTrackItemDataInspector
+    [CustomEditor(typeof(InjuryDetectionTrackItemData))]
+    public class InjuryDetectionTrackItemDataInspector : BaseTrackItemDataInspector
     {
-        private AttackTrackItemData attackTargetData;
+        private InjuryDetectionTrackItemData attackTargetData;
 
         protected override string TrackItemTypeName => "Attack";
         protected override string TrackItemDisplayTitle => "攻击轨道项信息";
@@ -17,7 +17,7 @@ namespace SkillEditor
 
         public override VisualElement CreateInspectorGUI()
         {
-            attackTargetData = target as AttackTrackItemData;
+            attackTargetData = target as InjuryDetectionTrackItemData;
             return base.CreateInspectorGUI();
         }
 
@@ -28,19 +28,20 @@ namespace SkillEditor
             CreateToggleField("多段伤害检测:", "isMultiInjuryDetection", OnMultiInjuryDetectionChanged);
             CreateFloatField("检测间隔:", "multiInjuryDetectionInterval", OnMultiInjuryDetectionIntervalChanged);
 
-            // 碰撞体设置
-            CreateColliderTypeField();
+            // Transform设置
+            CreateSeparatorTitle("Transform设置");
+            CreateVector3Field("碰撞体位置:", "position", OnPositionChanged);
+            CreateVector3Field("碰撞体旋转:", "rotation", OnRotationChanged);
+            CreateVector3Field("碰撞体缩放:", "scale", OnScaleChanged);
 
+            // 碰撞体设置
+            CreateSeparatorTitle("碰撞体设置");
+            CreateColliderTypeField();
             // 扇形碰撞体设置
             CreateFloatField("扇形内圆半径:", "innerCircleRadius", OnInnerCircleRadiusChanged);
             CreateFloatField("扇形外圆半径:", "outerCircleRadius", OnOuterCircleRadiusChanged);
             CreateFloatField("扇形角度:", "sectorAngle", OnSectorAngleChanged);
             CreateFloatField("扇形厚度:", "sectorThickness", OnSectorThicknessChanged);
-
-            // Transform设置
-            CreateVector3Field("碰撞体位置:", "position", OnPositionChanged);
-            CreateVector3Field("碰撞体旋转:", "rotation", OnRotationChanged);
-            CreateVector3Field("碰撞体缩放:", "scale", OnScaleChanged);
         }
 
         /// <summary>

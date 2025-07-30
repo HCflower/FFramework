@@ -29,6 +29,9 @@ namespace SkillEditor
         /// <summary>技能使用者显示字段</summary>
         private ObjectField skillOwnerField;
 
+        /// <summary>技能持续时间显示标签</summary>
+        private Label durationLable;
+
         #endregion
 
         #region 构造函数
@@ -161,6 +164,11 @@ namespace SkillEditor
             {
                 skillConfigField.value = newConfig;
             }
+            if (durationLable != null)
+            {
+                string durationText = newConfig != null ? newConfig.Duration.ToString() : "未加载技能配置";
+                durationLable.text = durationText;
+            }
         }
 
         /// <summary>
@@ -172,6 +180,12 @@ namespace SkillEditor
             if (skillConfigField != null)
             {
                 skillConfigField.value = SkillEditorData.CurrentSkillConfig;
+            }
+            if (durationLable != null)
+            {
+                string durationText = SkillEditorData.CurrentSkillConfig != null ?
+                    SkillEditorData.CurrentSkillConfig.Duration.ToString() : "未加载技能配置";
+                durationLable.text = durationText;
             }
         }
 
@@ -258,21 +272,31 @@ namespace SkillEditor
             var tipsContent = new Label();
             tipsContent.AddToClassList("TipsContent");
 
-            // 当前配置 - 保存字段引用以便后续更新
-            var configTip = TipsContent("当前选择的配置:", "技能配置请在设置面板中选择", typeof(SkillConfig), null, true);
-            skillConfigField = configTip.Q<ObjectField>();
+            // 当前配置  
+            var configTip = TipsContent("当前选择的配置:");
+            skillConfigField = TipsObjectField(typeof(SkillConfig), "技能配置请在设置面板中选择", true);
             skillConfigField.value = SkillEditorData.CurrentSkillConfig; // 设置当前配置
+            configTip.Add(skillConfigField);
             tipsContent.Add(configTip);
 
-            // 当前技能使用者 - 保存字段引用以便后续更新
-            var ownerTip = TipsContent("技能所属对象:", "技能所属对象可点击层级/选择按钮选择", typeof(GameObject), null, false);
-            skillOwnerField = ownerTip.Q<ObjectField>();
+            // 当前技能使用者  
+            var ownerTip = TipsContent("技能所属对象:");
+            skillOwnerField = TipsObjectField(typeof(GameObject), "技能所属对象可点击层级/选择按钮选择", false);
+            ownerTip.Add(skillOwnerField);
             tipsContent.Add(ownerTip);
+
+            // 技能总时长
+            var durationTip = TipsContent("技能总时长:");
+            string durationText = SkillEditorData.CurrentSkillConfig != null ?
+                SkillEditorData.CurrentSkillConfig.Duration.ToString() : "未加载技能配置";
+            durationLable = TipsTextField(durationText, "技能总时长");
+            durationTip.Add(durationLable);
+            tipsContent.Add(durationTip);
 
             timelineContainer.Add(tipsContent);
         }
 
-        private VisualElement TipsContent(string titleName, string description, Type type, Action action, bool isShowOnly = false)
+        private VisualElement TipsContent(string titleName)
         {
             // Tip区域
             VisualElement tipContent = new VisualElement();
@@ -281,22 +305,32 @@ namespace SkillEditor
             Label title = new Label(titleName);
             title.AddToClassList("TipTitle");
             tipContent.Add(title);
+
+            return tipContent;
+        }
+
+        private ObjectField TipsObjectField(Type type, string tooltip, bool isShowOnly = false)
+        {
             // 技能使用对象
             ObjectField ownerObjectField = new ObjectField();
             ownerObjectField.objectType = type;
             ownerObjectField.AddToClassList("TipObject");
-            ownerObjectField.tooltip = description;
+            ownerObjectField.tooltip = tooltip;
             if (isShowOnly)
             {
                 ownerObjectField.style.display = DisplayStyle.Flex;
                 ownerObjectField.SetEnabled(false);
             }
-            ownerObjectField.RegisterValueChangedCallback((evt) =>
-            {
-                if (action != null) action();
-            });
-            tipContent.Add(ownerObjectField);
-            return tipContent;
+            return ownerObjectField;
+        }
+
+        private Label TipsTextField(string titleName, string tooltip)
+        {
+            Label textLabel = new Label();
+            textLabel.text = titleName;
+            textLabel.AddToClassList("TipText");
+            textLabel.tooltip = tooltip;
+            return textLabel;
         }
 
         /// <summary>

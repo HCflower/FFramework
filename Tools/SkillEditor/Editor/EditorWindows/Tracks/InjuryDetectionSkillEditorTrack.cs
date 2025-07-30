@@ -199,7 +199,7 @@ namespace SkillEditor
                 var trackItem = track.AddTrackItem(clip.clipName, clip.startFrame, false);
 
                 // 更新轨道项的持续帧数和相关数据
-                if (trackItem?.ItemData is AttackTrackItemData attackData)
+                if (trackItem?.ItemData is InjuryDetectionTrackItemData attackData)
                 {
                     attackData.durationFrame = clip.durationFrame;
                     // 从配置中恢复完整的攻击属性

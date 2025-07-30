@@ -113,6 +113,8 @@ namespace SkillEditor
                 audioData.audioClip = audioClip;
                 audioData.volume = 1.0f;
                 audioData.pitch = 1.0f;
+                audioData.spatialBlend = 0.0f;
+                audioData.reverbZoneMix = 1.0f;
                 audioData.isLoop = false;
 
 #if UNITY_EDITOR
@@ -199,6 +201,8 @@ namespace SkillEditor
                 clip = audioClip,
                 volume = 1.0f,
                 pitch = 1.0f,
+                spatialBlend = 0.0f,
+                reverbZoneMix = 1.0f,
                 isLoop = false
             };
 

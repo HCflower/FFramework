@@ -14,15 +14,10 @@ namespace SkillEditor
         public bool enableRotation = true;          // 是否启用旋转变换
         public bool enableFieldOfView = false;      // 是否启用视野变换
 
-        [Header("起始状态")]
-        public Vector3 startPosition = Vector3.zero;       // 起始位置
-        public Vector3 startRotation = Vector3.zero;       // 起始旋转
-        public float startFieldOfView = 60f;                // 起始视野角度
-
         [Header("目标状态")]
-        public Vector3 endPosition = Vector3.zero;         // 目标位置
-        public Vector3 endRotation = Vector3.zero;         // 目标旋转
-        public float endFieldOfView = 60f;                  // 目标视野角度
+        public Vector3 positionOffset = Vector3.zero;         // 目标位置
+        public Vector3 targetRotation = Vector3.zero;         // 目标旋转
+        public float targetFieldOfView = 60f;                  // 目标视野角度
 
         [Header("动画设置")]
         public AnimationCurveType curveType = AnimationCurveType.Linear;        // 动画曲线类型

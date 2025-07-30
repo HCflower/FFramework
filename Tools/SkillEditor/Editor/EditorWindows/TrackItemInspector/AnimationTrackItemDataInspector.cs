@@ -29,6 +29,9 @@ namespace SkillEditor
             // 播放速度
             CreateFloatField("播放速度:", "playSpeed", OnPlaySpeedChanged);
 
+            // 动画过渡时间
+            CreateFloatField("动画过渡时间:", "normalizedTransitionTime", OnNormalizedTransitionTimeChanged);
+
             // 循环播放
             CreateToggleField("是否循环播放:", "isLoop", OnLoopChanged);
 
@@ -62,6 +65,15 @@ namespace SkillEditor
             {
                 UpdateAnimationTrackConfig(configClip => configClip.playSpeed = newValue, "播放速度更新");
             }, "播放速度更新");
+        }
+
+        private void OnNormalizedTransitionTimeChanged(float newValue)
+        {
+            SafeExecute(() =>
+            {
+                UpdateAnimationTrackConfig(configClip => configClip.normalizedTransitionTime = newValue, "过渡时间更新");
+            }, "过渡时间更新");
+
         }
 
         private void OnLoopChanged(bool newValue)

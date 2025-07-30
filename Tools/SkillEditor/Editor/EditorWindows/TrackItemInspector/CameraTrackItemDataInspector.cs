@@ -28,26 +28,16 @@ namespace SkillEditor
             CreateToggleField("启用旋转变换:", "enableRotation", OnEnableRotationChanged);
             CreateToggleField("启用视野变换:", "enableFieldOfView", OnEnableFieldOfViewChanged);
 
-            // 起始状态设置
-            CreateVector3Field("起始位置:", "startPosition", OnStartPositionChanged);
-            CreateVector3Field("起始旋转:", "startRotation", OnStartRotationChanged);
-            CreateFloatField("起始视野角度:", "startFieldOfView", OnStartFieldOfViewChanged);
-            CreateSeparator();
-
             // 目标状态设置
-            CreateVector3Field("目标位置:", "endPosition", OnEndPositionChanged);
-            CreateVector3Field("目标旋转:", "endRotation", OnEndRotationChanged);
-            CreateFloatField("目标视野角度:", "endFieldOfView", OnEndFieldOfViewChanged);
-            CreateSeparator();
+            CreateSeparatorTitle("摄像机目标状态");
+            CreateVector3Field("位置偏移:", "positionOffset", OnPositionOffsetChanged);
+            CreateVector3Field("目标旋转:", "targetRotation", OnTargetRotationChanged);
+            CreateFloatField("目标视野角度:", "targetFieldOfView", OnTargetFieldOfViewChanged);
 
             // 动画设置
+            CreateSeparatorTitle("动画设置");
             CreateCurveTypeField();
             CreateCurveField("自定义曲线:", "customCurve", OnCustomCurveChanged);
-            CreateToggleField("相对于当前状态:", "isRelative", OnIsRelativeChanged);
-
-            // 摄像机引用设置
-            CreateObjectField<Camera>("目标摄像机:", "targetCamera", OnTargetCameraChanged);
-            CreateTextField("摄像机路径:", "cameraPath", OnCameraPathChanged);
         }
 
         protected override void PerformDelete()
@@ -100,51 +90,27 @@ namespace SkillEditor
             }, "视野变换启用状态更新");
         }
 
-        private void OnStartPositionChanged(Vector3 newValue)
+        private void OnPositionOffsetChanged(Vector3 newValue)
         {
             SafeExecute(() =>
             {
-                UpdateCameraTrackConfig(configClip => configClip.startPosition = newValue, "起始位置更新");
-            }, "起始位置更新");
+                UpdateCameraTrackConfig(configClip => configClip.positionOffset = newValue, "位置偏移更新");
+            }, "位置偏移更新");
         }
 
-        private void OnStartRotationChanged(Vector3 newValue)
+        private void OnTargetRotationChanged(Vector3 newValue)
         {
             SafeExecute(() =>
             {
-                UpdateCameraTrackConfig(configClip => configClip.startRotation = newValue, "起始旋转更新");
-            }, "起始旋转更新");
-        }
-
-        private void OnStartFieldOfViewChanged(float newValue)
-        {
-            SafeExecute(() =>
-            {
-                UpdateCameraTrackConfig(configClip => configClip.startFieldOfView = newValue, "起始视野角度更新");
-            }, "起始视野角度更新");
-        }
-
-        private void OnEndPositionChanged(Vector3 newValue)
-        {
-            SafeExecute(() =>
-            {
-                UpdateCameraTrackConfig(configClip => configClip.endPosition = newValue, "目标位置更新");
-            }, "目标位置更新");
-        }
-
-        private void OnEndRotationChanged(Vector3 newValue)
-        {
-            SafeExecute(() =>
-            {
-                UpdateCameraTrackConfig(configClip => configClip.endRotation = newValue, "目标旋转更新");
+                UpdateCameraTrackConfig(configClip => configClip.targetRotation = newValue, "目标旋转更新");
             }, "目标旋转更新");
         }
 
-        private void OnEndFieldOfViewChanged(float newValue)
+        private void OnTargetFieldOfViewChanged(float newValue)
         {
             SafeExecute(() =>
             {
-                UpdateCameraTrackConfig(configClip => configClip.endFieldOfView = newValue, "目标视野角度更新");
+                UpdateCameraTrackConfig(configClip => configClip.targetFieldOfView = newValue, "目标视野角度更新");
             }, "目标视野角度更新");
         }
 
@@ -162,32 +128,6 @@ namespace SkillEditor
             {
                 UpdateCameraTrackConfig(configClip => configClip.curveType = newValue, "曲线类型更新");
             }, "曲线类型更新");
-        }
-
-        private void OnIsRelativeChanged(bool newValue)
-        {
-            SafeExecute(() =>
-            {
-                UpdateCameraTrackConfig(configClip => configClip.isRelative = newValue, "相对状态更新");
-            }, "相对状态更新");
-        }
-
-        private void OnTargetCameraChanged(Camera newCamera)
-        {
-            SafeExecute(() =>
-            {
-                // 摄像机引用主要用于编辑器阶段，不需要同步到配置文件
-                MarkSkillConfigDirty();
-            }, "目标摄像机更新");
-        }
-
-        private void OnCameraPathChanged(string newPath)
-        {
-            SafeExecute(() =>
-            {
-                // 摄像机路径主要用于运行时查找，不需要同步到配置文件
-                MarkSkillConfigDirty();
-            }, "摄像机路径更新");
         }
 
         /// <summary>
@@ -260,7 +200,6 @@ namespace SkillEditor
                     if (nameMatches.Count > 0)
                     {
                         targetConfigClip = nameMatches[0];
-                        // Debug.LogWarning($"未找到精确匹配的摄像机片段，使用名称匹配。名称: {cameraTargetData.trackItemName}");
                     }
                     else
                     {
@@ -276,7 +215,6 @@ namespace SkillEditor
                 {
                     updateAction(targetConfigClip);
                     MarkSkillConfigDirty();
-                    // Debug.Log($"{operationName} 成功同步到配置文件 (片段名: {cameraTargetData.trackItemName})");
                 }
                 catch (System.Exception ex)
                 {

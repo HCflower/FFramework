@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
 using System;
-using System.Linq;
 
 namespace FFramework.Kit
 {
@@ -28,8 +27,11 @@ namespace FFramework.Kit
 
         [Header("轨道管理")]
         public TrackContainer trackContainer = new TrackContainer();
+        // 技能持续时间
+        public string Duration => $"{FramesToTime(maxFrames):F2}s";
 
         #region 编辑器辅助方法
+
 
         /// <summary>
         /// 帧转换为时间

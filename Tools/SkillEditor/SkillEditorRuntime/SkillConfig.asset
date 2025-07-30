@@ -17,17 +17,14 @@ MonoBehaviour:
   isEnabled: 1
   cameraClips:
   - clipName: Camera Main Camera
-    startFrame: 20
+    startFrame: 0
     durationFrame: 20
     enablePosition: 1
     enableRotation: 0
     enableFieldOfView: 0
-    startPosition: {x: 0, y: 7.1, z: -13.2}
-    startRotation: {x: 35.53, y: 0, z: 0}
-    startFieldOfView: 60
-    endPosition: {x: 0, y: 7.1, z: -13.2}
-    endRotation: {x: 35.53, y: 0, z: 0}
-    endFieldOfView: 60
+    positionOffset: {x: 0, y: 0, z: 0}
+    targetRotation: {x: 0, y: 0, z: 0}
+    targetFieldOfView: 60
     curveType: 0
     customCurve:
       serializedVersion: 2
@@ -53,7 +50,6 @@ MonoBehaviour:
       m_PreInfinity: 2
       m_PostInfinity: 2
       m_RotationOrder: 4
-    isRelative: 0
 --- !u!114 &-5395276449008929806
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -76,12 +72,9 @@ MonoBehaviour:
     enablePosition: 1
     enableRotation: 0
     enableScale: 0
-    startPosition: {x: 0, y: 0, z: 0}
-    startRotation: {x: 0, y: 0, z: 0}
-    startScale: {x: 1, y: 1, z: 1}
-    endPosition: {x: 0, y: 0, z: 1}
-    endRotation: {x: 0, y: 0, z: 0}
-    endScale: {x: 1, y: 1, z: 1}
+    positionOffset: {x: 0, y: 0, z: 0}
+    targetRotation: {x: 0, y: 0, z: 0}
+    targetScale: {x: 1, y: 1, z: 1}
     curveType: 0
     customCurve:
       serializedVersion: 2
@@ -107,7 +100,6 @@ MonoBehaviour:
       m_PreInfinity: 2
       m_PostInfinity: 2
       m_RotationOrder: 4
-    isRelative: 0
 --- !u!114 &-3162120677461194959
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -132,34 +124,6 @@ MonoBehaviour:
       position: {x: 0, y: 0, z: 0}
       rotation: {x: 0, y: 0, z: 0}
       scale: {x: 1, y: 1, z: 1}
---- !u!114 &-1830081165421314388
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c076a4411d50e1641a3ee1fa8d87623f, type: 3}
-  m_Name: GameObjectTracks
-  m_EditorClassIdentifier: 
-  gameObjectTracks:
-  - trackName: "\u6E38\u620F\u7269\u4F53\u8F68\u9053"
-    trackIndex: 0
-    isEnabled: 1
-    gameObjectClips:
-    - clipName: Enemy
-      startFrame: 12
-      durationFrame: 24
-      prefab: {fileID: 8843524388128232295, guid: ab43ea5bb0b56a043b082acacf7b1e82, type: 3}
-      autoDestroy: 1
-      positionOffset: {x: 0, y: 0, z: 0}
-      rotationOffset: {x: 0, y: 0, z: 0}
-      scale: {x: 1, y: 1, z: 1}
-      useParent: 0
-      parentName: 
-      destroyDelay: -1
 --- !u!114 &11400000
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -173,7 +137,7 @@ MonoBehaviour:
   m_Name: SkillConfig
   m_EditorClassIdentifier: 
   frameRate: 24
-  maxFrames: 100
+  maxFrames: 54
   owner: {fileID: 0}
   skillIcon: {fileID: 21300000, guid: 48e7bec8a4f0e3049a6c34938bf5a7ca, type: 3}
   skillName: "\u6D66\u4E1C\u516C\u9E21"
@@ -188,7 +152,7 @@ MonoBehaviour:
     effectTrack: {fileID: -3162120677461194959}
     injuryDetectionTrack: {fileID: 776813478751267645}
     eventTrack: {fileID: 7653467681583022307}
-    gameObjectTrack: {fileID: -1830081165421314388}
+    gameObjectTrack: {fileID: 0}
 --- !u!114 &297339559337665363
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -210,6 +174,7 @@ MonoBehaviour:
     durationFrame: 32
     clip: {fileID: 7400000, guid: 3815f3daf7d9638429e1dd2ffc3866e9, type: 2}
     playSpeed: 1
+    normalizedTransitionTime: 0
     isLoop: 0
     applyRootMotion: 0
 --- !u!114 &776813478751267645
@@ -229,7 +194,7 @@ MonoBehaviour:
     trackIndex: 0
     isEnabled: 1
     injuryDetectionClips:
-    - clipName: Attack
+    - clipName: InjuryDetection
       startFrame: 15
       durationFrame: 5
       targetLayers:
@@ -242,7 +207,7 @@ MonoBehaviour:
       outerCircleRadius: 1
       sectorAngle: 0
       sectorThickness: 0.1
-      position: {x: 1, y: 1, z: 1}
+      position: {x: 0, y: 0, z: 0}
       rotation: {x: 0, y: 0, z: 0}
       scale: {x: 1, y: 1, z: 1}
 --- !u!114 &4144422302740679402
@@ -263,22 +228,26 @@ MonoBehaviour:
     isEnabled: 1
     audioClips:
     - clipName: 032-033_hit
-      startFrame: 7
-      durationFrame: 30
+      startFrame: 10
+      durationFrame: 24
       clip: {fileID: 8300000, guid: a2fb213c8a76ee641b91674426aea94a, type: 3}
       volume: 1
       pitch: 1
+      spatialBlend: 0
+      reverbZoneMix: 1
       isLoop: 0
   - trackName: "\u97F3\u9891\u8F68\u9053 2"
     trackIndex: 1
     isEnabled: 1
     audioClips:
     - clipName: 032-033_hit
-      startFrame: 11
+      startFrame: 14
       durationFrame: 24
       clip: {fileID: 8300000, guid: a2fb213c8a76ee641b91674426aea94a, type: 3}
       volume: 1
       pitch: 1
+      spatialBlend: 0
+      reverbZoneMix: 1
       isLoop: 0
 --- !u!114 &7653467681583022307
 MonoBehaviour:
@@ -298,7 +267,7 @@ MonoBehaviour:
     isEnabled: 1
     eventClips:
     - clipName: Event
-      startFrame: 19
+      startFrame: 17
       durationFrame: 1
       eventType: Event
       eventParameters: 

@@ -176,14 +176,7 @@ namespace SkillEditor
                 startFrame = startFrame,
                 durationFrame = frameCount,
                 // 默认摄像机动作参数
-                startPosition = targetCamera != null ? targetCamera.transform.position : Vector3.zero,
-                endPosition = targetCamera != null ? targetCamera.transform.position : Vector3.forward * 5,
-                startRotation = targetCamera != null ? targetCamera.transform.rotation.eulerAngles : Vector3.zero,
-                endRotation = targetCamera != null ? targetCamera.transform.rotation.eulerAngles : Vector3.zero,
-                startFieldOfView = targetCamera != null ? targetCamera.fieldOfView : 60f,
-                endFieldOfView = targetCamera != null ? targetCamera.fieldOfView : 60f,
                 curveType = FFramework.Kit.AnimationCurveType.Linear,
-                isRelative = false,
             };
 
             // 添加到摄像机轨道
@@ -245,15 +238,8 @@ namespace SkillEditor
                         cameraData.enablePosition = clip.enablePosition;
                         cameraData.enableRotation = clip.enableRotation;
                         cameraData.enableFieldOfView = clip.enableFieldOfView;
-                        cameraData.startPosition = clip.startPosition;
-                        cameraData.startRotation = clip.startRotation;
-                        cameraData.startFieldOfView = clip.startFieldOfView;
-                        cameraData.endPosition = clip.endPosition;
-                        cameraData.endRotation = clip.endRotation;
-                        cameraData.endFieldOfView = clip.endFieldOfView;
                         cameraData.curveType = clip.curveType;
                         cameraData.customCurve = clip.customCurve;
-                        cameraData.isRelative = clip.isRelative;
 
 #if UNITY_EDITOR
                         // 标记数据已修改
