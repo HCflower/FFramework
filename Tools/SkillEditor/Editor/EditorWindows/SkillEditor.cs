@@ -335,6 +335,15 @@ namespace SkillEditor
             };
         }
 
+        /// <summary>
+        /// 刷新特效预览器数据
+        /// 当轨道项发生变化时调用，确保特效预览与最新的配置数据同步
+        /// </summary>
+        public void RefreshEffectPreviewerData()
+        {
+            skillEditorTimeline?.RefreshEffectPreviewerData();
+        }
+
         #endregion
     }
 }

@@ -14,6 +14,7 @@ namespace FFramework.Kit
         [Tooltip("技能配置文件")] public SkillConfig skillConfig;
         [Tooltip("技能控制的摄像机")] public Camera skillCamera;
         [Tooltip("技能动画状态机")] public Animator skillAnimator;
+        [Tooltip("技能动画状态名")] public string animationStateName;
         // 自动获取
         public ISkillEvent skillEvent => GetComponent<ISkillEvent>();
     }

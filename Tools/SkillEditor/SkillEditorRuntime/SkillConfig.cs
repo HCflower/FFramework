@@ -32,7 +32,6 @@ namespace FFramework.Kit
 
         #region 编辑器辅助方法
 
-
         /// <summary>
         /// 帧转换为时间
         /// </summary>
@@ -49,105 +48,199 @@ namespace FFramework.Kit
             return Mathf.RoundToInt(time * frameRate);
         }
 
-        /// <summary>
-        /// 获取指定帧的所有活动片段信息（用于编辑器预览）
-        /// </summary>
-        public string GetFrameInfo(int frame)
+        // 获取当前帧的动画片段数据
+        public FrameTrackData GetTrackDataAtFrame(int frame)
         {
-            var info = new System.Text.StringBuilder();
-            info.AppendLine($"Frame {frame} ({FramesToTime(frame):F2}s):");
+            var frameData = new FrameTrackData();
+            frameData.frame = frame;
+            frameData.time = FramesToTime(frame);
 
-            // 检查音频轨道的活动片段
-            if (trackContainer.audioTrack != null)
+            if (trackContainer == null)
+                return frameData;
+
+            // 获取所有轨道
+            foreach (var track in trackContainer.GetAllTracks())
             {
-                foreach (var audioTrack in trackContainer.audioTrack.audioTracks)
+                if (!track.isEnabled) continue;
+
+                // 根据轨道类型获取当前帧的片段数据
+                switch (track)
                 {
-                    if (audioTrack.isEnabled && audioTrack.audioClips != null)
-                    {
-                        foreach (var clip in audioTrack.audioClips)
-                        {
-                            if (frame >= clip.startFrame && frame < clip.startFrame + clip.durationFrame)
-                            {
-                                info.AppendLine($"  Audio Track '{audioTrack.trackName}': {clip.clipName}");
-                            }
-                        }
-                    }
+                    case AnimationTrack animTrack:
+                        GetAnimationClipsAtFrame(animTrack, frame, frameData);
+                        break;
+                    case AudioTrack audioTrack:
+                        GetAudioClipsAtFrame(audioTrack, frame, frameData);
+                        break;
+                    case EffectTrack effectTrack:
+                        GetEffectClipsAtFrame(effectTrack, frame, frameData);
+                        break;
+                    case EventTrack eventTrack:
+                        GetEventClipsAtFrame(eventTrack, frame, frameData);
+                        break;
+                    case TransformTrack transformTrack:
+                        GetTransformClipsAtFrame(transformTrack, frame, frameData);
+                        break;
+                    case CameraTrack cameraTrack:
+                        GetCameraClipsAtFrame(cameraTrack, frame, frameData);
+                        break;
+                    case InjuryDetectionTrack injuryTrack:
+                        GetInjuryDetectionClipsAtFrame(injuryTrack, frame, frameData);
+                        break;
+                    case GameObjectTrack gameObjectTrack:
+                        GetGameObjectClipsAtFrame(gameObjectTrack, frame, frameData);
+                        break;
                 }
             }
 
-            // 检查特效轨道的活动片段
-            if (trackContainer.effectTrack != null)
+            return frameData;
+        }
+
+        /// <summary>
+        /// 获取指定时间的轨道数据
+        /// </summary>
+        /// <param name="time">时间(秒)</param>
+        /// <returns>帧轨道数据</returns>
+        public FrameTrackData GetTrackDataAtTime(float time)
+        {
+            int frame = TimeToFrames(time);
+            return GetTrackDataAtFrame(frame);
+        }
+
+        /// <summary>
+        /// 获取指定帧范围内的所有轨道数据
+        /// </summary>
+        /// <param name="startFrame">起始帧</param>
+        /// <param name="endFrame">结束帧</param>
+        /// <returns>帧轨道数据列表</returns>
+        public List<FrameTrackData> GetTrackDataInRange(int startFrame, int endFrame)
+        {
+            var frameDataList = new List<FrameTrackData>();
+            for (int frame = startFrame; frame <= endFrame; frame++)
             {
-                foreach (var effectTrack in trackContainer.effectTrack.effectTracks)
+                var frameData = GetTrackDataAtFrame(frame);
+                if (frameData.HasAnyActiveClips)
                 {
-                    if (effectTrack.isEnabled && effectTrack.effectClips != null)
-                    {
-                        foreach (var clip in effectTrack.effectClips)
-                        {
-                            if (frame >= clip.startFrame && frame < clip.startFrame + clip.durationFrame)
-                            {
-                                info.AppendLine($"  Effect Track '{effectTrack.trackName}': {clip.clipName}");
-                            }
-                        }
-                    }
+                    frameDataList.Add(frameData);
                 }
             }
+            return frameDataList;
+        }
 
-            // 检查事件轨道的活动片段
-            if (trackContainer.eventTrack != null)
+        #endregion
+
+        #region 轨道片段数据获取方法
+
+        /// <summary>
+        /// 获取指定帧的动画片段数据
+        /// </summary>
+        private void GetAnimationClipsAtFrame(AnimationTrack track, int frame, FrameTrackData frameData)
+        {
+            foreach (var clip in track.animationClips)
             {
-                foreach (var eventTrack in trackContainer.eventTrack.eventTracks)
+                if (clip.IsFrameInRange(frame))
                 {
-                    if (eventTrack.isEnabled && eventTrack.eventClips != null)
-                    {
-                        foreach (var clip in eventTrack.eventClips)
-                        {
-                            if (frame >= clip.startFrame && frame < clip.startFrame + clip.durationFrame)
-                            {
-                                info.AppendLine($"  Event Track '{eventTrack.trackName}': {clip.clipName}");
-                            }
-                        }
-                    }
+                    frameData.animationClips.Add(clip);
                 }
             }
+        }
 
-            // 检查伤害检测轨道的活动片段
-            if (trackContainer.injuryDetectionTrack != null)
+        /// <summary>
+        /// 获取指定帧的音频片段数据
+        /// </summary>
+        private void GetAudioClipsAtFrame(AudioTrack track, int frame, FrameTrackData frameData)
+        {
+            foreach (var clip in track.audioClips)
             {
-                foreach (var injuryTrack in trackContainer.injuryDetectionTrack.injuryDetectionTracks)
+                if (clip.IsFrameInRange(frame))
                 {
-                    if (injuryTrack.isEnabled && injuryTrack.injuryDetectionClips != null)
-                    {
-                        foreach (var clip in injuryTrack.injuryDetectionClips)
-                        {
-                            if (frame >= clip.startFrame && frame < clip.startFrame + clip.durationFrame)
-                            {
-                                info.AppendLine($"  Injury Detection Track '{injuryTrack.trackName}': {clip.clipName}");
-                            }
-                        }
-                    }
+                    frameData.audioClips.Add(clip);
                 }
             }
+        }
 
-            // 检查游戏物体轨道的活动片段
-            if (trackContainer.gameObjectTrack != null)
+        /// <summary>
+        /// 获取指定帧的特效片段数据
+        /// </summary>
+        private void GetEffectClipsAtFrame(EffectTrack track, int frame, FrameTrackData frameData)
+        {
+            foreach (var clip in track.effectClips)
             {
-                foreach (var goTrack in trackContainer.gameObjectTrack.gameObjectTracks)
+                if (clip.IsFrameInRange(frame))
                 {
-                    if (goTrack.isEnabled && goTrack.gameObjectClips != null)
-                    {
-                        foreach (var clip in goTrack.gameObjectClips)
-                        {
-                            if (frame >= clip.startFrame && frame < clip.startFrame + clip.durationFrame)
-                            {
-                                info.AppendLine($"  GameObject Track '{goTrack.trackName}': {clip.clipName}");
-                            }
-                        }
-                    }
+                    frameData.effectClips.Add(clip);
                 }
             }
+        }
 
-            return info.ToString();
+        /// <summary>
+        /// 获取指定帧的事件片段数据
+        /// </summary>
+        private void GetEventClipsAtFrame(EventTrack track, int frame, FrameTrackData frameData)
+        {
+            foreach (var clip in track.eventClips)
+            {
+                if (clip.IsFrameInRange(frame))
+                {
+                    frameData.eventClips.Add(clip);
+                }
+            }
+        }
+
+        /// <summary>
+        /// 获取指定帧的变换片段数据
+        /// </summary>
+        private void GetTransformClipsAtFrame(TransformTrack track, int frame, FrameTrackData frameData)
+        {
+            foreach (var clip in track.transformClips)
+            {
+                if (clip.IsFrameInRange(frame))
+                {
+                    frameData.transformClips.Add(clip);
+                }
+            }
+        }
+
+        /// <summary>
+        /// 获取指定帧的摄像机片段数据
+        /// </summary>
+        private void GetCameraClipsAtFrame(CameraTrack track, int frame, FrameTrackData frameData)
+        {
+            foreach (var clip in track.cameraClips)
+            {
+                if (clip.IsFrameInRange(frame))
+                {
+                    frameData.cameraClips.Add(clip);
+                }
+            }
+        }
+
+        /// <summary>
+        /// 获取指定帧的伤害检测片段数据
+        /// </summary>
+        private void GetInjuryDetectionClipsAtFrame(InjuryDetectionTrack track, int frame, FrameTrackData frameData)
+        {
+            foreach (var clip in track.injuryDetectionClips)
+            {
+                if (clip.IsFrameInRange(frame))
+                {
+                    frameData.injuryDetectionClips.Add(clip);
+                }
+            }
+        }
+
+        /// <summary>
+        /// 获取指定帧的游戏物体片段数据
+        /// </summary>
+        private void GetGameObjectClipsAtFrame(GameObjectTrack track, int frame, FrameTrackData frameData)
+        {
+            foreach (var clip in track.gameObjectClips)
+            {
+                if (clip.IsFrameInRange(frame))
+                {
+                    frameData.gameObjectClips.Add(clip);
+                }
+            }
         }
 
 #if UNITY_EDITOR
@@ -242,8 +335,8 @@ namespace FFramework.Kit
         }
 #endif
 
-        #endregion
     }
+    #endregion
 
     #region  轨道
 
@@ -388,6 +481,69 @@ namespace FFramework.Kit
             if (gameObjectTrack != null && !gameObjectTrack.ValidateAllTracks()) return false;
 
             return true;
+        }
+    }
+
+    /// <summary>
+    /// 帧轨道数据 - 包含指定帧所有活跃的轨道片段数据
+    /// </summary>
+    [Serializable]
+    public class FrameTrackData
+    {
+        [Tooltip("帧数")] public int frame;
+        [Tooltip("时间(秒)")] public float time;
+
+        // 各类型片段数据集合
+        [Tooltip("动画片段")] public List<AnimationTrack.AnimationClip> animationClips = new List<AnimationTrack.AnimationClip>();
+        [Tooltip("音频片段")] public List<AudioTrack.AudioClip> audioClips = new List<AudioTrack.AudioClip>();
+        [Tooltip("特效片段")] public List<EffectTrack.EffectClip> effectClips = new List<EffectTrack.EffectClip>();
+        [Tooltip("事件片段")] public List<EventTrack.EventClip> eventClips = new List<EventTrack.EventClip>();
+        [Tooltip("变换片段")] public List<TransformTrack.TransformClip> transformClips = new List<TransformTrack.TransformClip>();
+        [Tooltip("摄像机片段")] public List<CameraTrack.CameraClip> cameraClips = new List<CameraTrack.CameraClip>();
+        [Tooltip("伤害检测片段")] public List<InjuryDetectionTrack.InjuryDetectionClip> injuryDetectionClips = new List<InjuryDetectionTrack.InjuryDetectionClip>();
+        [Tooltip("游戏物体片段")] public List<GameObjectTrack.GameObjectClip> gameObjectClips = new List<GameObjectTrack.GameObjectClip>();
+
+        /// <summary>
+        /// 获取当前帧是否有任何活跃的片段
+        /// </summary>
+        public bool HasAnyActiveClips =>
+            animationClips.Count > 0 || audioClips.Count > 0 || effectClips.Count > 0 ||
+            eventClips.Count > 0 || transformClips.Count > 0 || cameraClips.Count > 0 ||
+            injuryDetectionClips.Count > 0 || gameObjectClips.Count > 0;
+
+        /// <summary>
+        /// 获取当前帧活跃片段的总数
+        /// </summary>
+        public int TotalActiveClips =>
+            animationClips.Count + audioClips.Count + effectClips.Count +
+            eventClips.Count + transformClips.Count + cameraClips.Count +
+            injuryDetectionClips.Count + gameObjectClips.Count;
+
+        /// <summary>
+        /// 清空所有片段数据
+        /// </summary>
+        public void Clear()
+        {
+            animationClips.Clear();
+            audioClips.Clear();
+            effectClips.Clear();
+            eventClips.Clear();
+            transformClips.Clear();
+            cameraClips.Clear();
+            injuryDetectionClips.Clear();
+            gameObjectClips.Clear();
+        }
+
+        /// <summary>
+        /// 获取调试信息字符串
+        /// </summary>
+        public override string ToString()
+        {
+            return $"Frame {frame} ({time:F2}s): {TotalActiveClips} active clips " +
+                   $"[Anim:{animationClips.Count}, Audio:{audioClips.Count}, " +
+                   $"Effect:{effectClips.Count}, Event:{eventClips.Count}, " +
+                   $"Transform:{transformClips.Count}, Camera:{cameraClips.Count}, " +
+                   $"Injury:{injuryDetectionClips.Count}, GameObject:{gameObjectClips.Count}]";
         }
     }
     #endregion

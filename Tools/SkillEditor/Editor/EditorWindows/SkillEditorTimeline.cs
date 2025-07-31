@@ -1,8 +1,8 @@
 using UnityEngine.UIElements;
-using UnityEngine;
 using UnityEditor.UIElements;
-using System;
 using FFramework.Kit;
+using UnityEngine;
+using System;
 
 namespace SkillEditor
 {
@@ -32,6 +32,12 @@ namespace SkillEditor
         /// <summary>技能持续时间显示标签</summary>
         private Label durationLable;
 
+        /// <summary>动画预览管理器</summary>
+        private SkillAnimationPreviewer animationPreviewer;
+
+        /// <summary>特效预览管理器</summary>
+        private SkillEffectPreviewer effectPreviewer;
+
         #endregion
 
         #region 构造函数
@@ -43,6 +49,13 @@ namespace SkillEditor
         {
             // 订阅技能配置变更事件
             SkillEditorEvent.OnSkillConfigChanged += UpdateTipsDisplay;
+
+            // 初始化动画预览管理器
+            animationPreviewer = new SkillAnimationPreviewer();
+
+            // 订阅当前帧变更事件，用于同步动画预览
+            SkillEditorEvent.OnCurrentFrameChanged += OnCurrentFrameChanged;
+            SkillEditorEvent.OnPlayStateChanged += OnPlayStateChanged;
         }
 
         #endregion
@@ -72,6 +85,15 @@ namespace SkillEditor
         public void SetTrackContent(VisualElement trackContentElement)
         {
             trackContent = trackContentElement;
+        }
+
+        /// <summary>
+        /// 获取动画预览管理器
+        /// </summary>
+        /// <returns>动画预览管理器实例</returns>
+        public SkillAnimationPreviewer GetAnimationPreviewer()
+        {
+            return animationPreviewer;
         }
 
         /// <summary>
@@ -155,7 +177,7 @@ namespace SkillEditor
 
         /// <summary>
         /// 更新提示区域显示
-        /// 根据当前技能配置更新提示区域的配置显示
+        /// 根据当前技能配置更新提示区域的配置显示，并更新特效预览器
         /// </summary>
         /// <param name="newConfig">新的技能配置</param>
         public void UpdateTipsDisplay(SkillConfig newConfig)
@@ -169,6 +191,9 @@ namespace SkillEditor
                 string durationText = newConfig != null ? newConfig.Duration.ToString() : "未加载技能配置";
                 durationLable.text = durationText;
             }
+
+            // 更新特效预览器配置
+            UpdateEffectPreviewerConfig(newConfig);
         }
 
         /// <summary>
@@ -199,6 +224,159 @@ namespace SkillEditor
             SkillEditorData.TrackViewContentOffsetX = offsetX;
             DrawTimelineScale();
             UpdateFrameIndicatorPosition();
+        }
+
+        /// <summary>
+        /// 清理资源
+        /// </summary>
+        public void Dispose()
+        {
+            animationPreviewer?.Dispose();
+            effectPreviewer?.Dispose();
+            SkillEditorEvent.OnSkillConfigChanged -= UpdateTipsDisplay;
+            SkillEditorEvent.OnCurrentFrameChanged -= OnCurrentFrameChanged;
+            SkillEditorEvent.OnPlayStateChanged -= OnPlayStateChanged;
+        }
+
+        #endregion
+
+        #region 动画预览事件处理
+
+        /// <summary>
+        /// 当前帧变更事件处理
+        /// 当当前帧变化时，根据播放状态智能驱动动画预览和特效预览
+        /// </summary>
+        /// <param name="frame">新的当前帧</param>
+        private void OnCurrentFrameChanged(int frame)
+        {
+            // 处理动画预览
+            if (animationPreviewer != null && SkillEditorData.CurrentSkillConfig != null)
+            {
+                // 如果没有在预览状态，则启动预览
+                if (!animationPreviewer.IsPreviewing)
+                {
+                    animationPreviewer.StartPreview(SkillEditorData.CurrentSkillConfig);
+                }
+
+                // 驱动动画到指定帧（UpdateEditModePreview会检查播放状态）
+                animationPreviewer.PreviewFrame(frame);
+            }
+
+            // 处理特效预览
+            if (SkillEditorData.CurrentSkillConfig != null)
+            {
+                // 如果特效预览器不存在，尝试初始化
+                if (effectPreviewer == null && SkillEditorData.CurrentSkillConfig.owner != null)
+                {
+                    InitializeEffectPreviewer(SkillEditorData.CurrentSkillConfig.owner);
+                    Debug.Log($"自动初始化特效预览器 - 技能所有者: {SkillEditorData.CurrentSkillConfig.owner.name}");
+                }
+
+                if (effectPreviewer != null)
+                {
+                    // 如果没有在预览状态，则启动预览
+                    if (!effectPreviewer.IsPreviewActive)
+                    {
+                        effectPreviewer.StartPreview();
+                        Debug.Log($"启动特效预览 - 帧: {frame}");
+                    }
+
+                    // 驱动特效到指定帧
+                    effectPreviewer.PreviewFrame(frame);
+                    Debug.Log($"特效预览帧: {frame} - 状态: {effectPreviewer.GetDebugInfo()}");
+                }
+                else
+                {
+                    Debug.LogWarning($"特效预览器为空 - 帧: {frame}, 技能配置: {SkillEditorData.CurrentSkillConfig?.skillName}, 技能所有者: {SkillEditorData.CurrentSkillConfig?.owner?.name}");
+                }
+            }
+        }
+
+        /// <summary>
+        /// 播放状态变更事件处理
+        /// 处理动画预览和特效预览的播放状态变化
+        /// </summary>
+        /// <param name="isPlaying">是否正在播放</param>
+        private void OnPlayStateChanged(bool isPlaying)
+        {
+            // 处理动画预览
+            if (animationPreviewer != null)
+            {
+                if (isPlaying)
+                {
+                    // 开始播放或恢复播放
+                    if (SkillEditorData.CurrentSkillConfig != null && animationPreviewer.PreviewTarget != null)
+                    {
+                        // 如果动画预览器正在预览状态，只需要恢复播放速度
+                        if (animationPreviewer.IsPreviewing)
+                        {
+                            animationPreviewer.SetPreviewSpeed(1.0f);
+                        }
+                        else
+                        {
+                            // 如果没有在预览状态，启动预览并跳转到当前帧
+                            animationPreviewer.StartPreview(SkillEditorData.CurrentSkillConfig);
+                            animationPreviewer.PreviewFrame(SkillEditorData.CurrentFrame);
+                        }
+                    }
+                }
+                else
+                {
+                    // 暂停时只设置播放速度为0，保持当前帧位置
+                    animationPreviewer.SetPreviewSpeed(0.0f);
+                }
+            }
+
+            // 处理特效预览
+            if (effectPreviewer != null)
+            {
+                if (isPlaying)
+                {
+                    // 开始播放或恢复播放特效
+                    if (SkillEditorData.CurrentSkillConfig != null)
+                    {
+                        if (!effectPreviewer.IsPreviewActive)
+                        {
+                            effectPreviewer.StartPreview();
+                        }
+                        effectPreviewer.PreviewFrame(SkillEditorData.CurrentFrame);
+                    }
+                }
+                else
+                {
+                    // 暂停时保持当前特效状态
+                    // 特效预览器没有播放速度概念，只是显示当前帧的状态
+                }
+            }
+        }
+
+        /// <summary>
+        /// 更新技能所属对象
+        /// </summary>
+        /// <param name="selectedGameObject">选择的游戏对象</param>
+        private void UpdateSkillOwner(GameObject selectedGameObject)
+        {
+            // 更新技能配置中的owner字段
+            if (SkillEditorData.CurrentSkillConfig != null)
+            {
+                SkillEditorData.CurrentSkillConfig.owner = selectedGameObject;
+
+#if UNITY_EDITOR
+                UnityEditor.EditorUtility.SetDirty(SkillEditorData.CurrentSkillConfig);
+#endif
+            }
+
+            // 设置动画预览目标
+            if (animationPreviewer != null)
+            {
+                if (animationPreviewer.SetPreviewTarget(selectedGameObject))
+                {
+                    Debug.Log($"设置动画预览目标: {selectedGameObject?.name}");
+                }
+            }
+
+            // 重新初始化特效预览器
+            InitializeEffectPreviewer(selectedGameObject);
         }
 
         #endregion
@@ -280,8 +458,9 @@ namespace SkillEditor
             tipsContent.Add(configTip);
 
             // 当前技能使用者  
-            var ownerTip = TipsContent("技能所属对象:");
-            skillOwnerField = TipsObjectField(typeof(GameObject), "技能所属对象可点击层级/选择按钮选择", false);
+            var ownerTip = TipsContent("技能使用者:");
+            skillOwnerField = TipsObjectField(typeof(GameObject), "技能使用者");
+            skillOwnerField.RegisterValueChangedCallback(evt => UpdateSkillOwner(evt.newValue as GameObject));
             ownerTip.Add(skillOwnerField);
             tipsContent.Add(ownerTip);
 
@@ -535,7 +714,7 @@ namespace SkillEditor
             int nearestFrame = Mathf.RoundToInt(exactFrame);
             nearestFrame = Mathf.Clamp(nearestFrame, 0, SkillEditorData.MaxFrame);
 
-            SkillEditorEvent.TriggerCurrentFrameChanged(nearestFrame);
+            SkillEditorData.SetCurrentFrame(nearestFrame);
         }
 
         #endregion
@@ -586,6 +765,71 @@ namespace SkillEditor
             // 更新位置和可见性
             indicator.style.left = adjustedPosition;
             indicator.style.display = isVisible ? DisplayStyle.Flex : DisplayStyle.None;
+        }
+
+        #endregion
+
+        #region 特效预览管理
+
+        /// <summary>
+        /// 初始化特效预览器
+        /// </summary>
+        /// <param name="selectedGameObject">选择的游戏对象作为技能所有者</param>
+        private void InitializeEffectPreviewer(GameObject selectedGameObject)
+        {
+            // 清理现有的特效预览器
+            if (effectPreviewer != null)
+            {
+                effectPreviewer.Dispose();
+                effectPreviewer = null;
+            }
+
+            // 如果有技能所有者和技能配置，创建新的特效预览器
+            if (selectedGameObject != null && SkillEditorData.CurrentSkillConfig != null)
+            {
+                effectPreviewer = new SkillEffectPreviewer(selectedGameObject, SkillEditorData.CurrentSkillConfig);
+                Debug.Log($"初始化特效预览器 - 技能所有者: {selectedGameObject.name}");
+            }
+        }
+
+        /// <summary>
+        /// 更新特效预览器的配置
+        /// </summary>
+        /// <param name="newConfig">新的技能配置</param>
+        private void UpdateEffectPreviewerConfig(SkillConfig newConfig)
+        {
+            if (newConfig == null) return;
+
+            // 如果特效预览器不存在，尝试使用技能配置中的owner初始化
+            if (effectPreviewer == null)
+            {
+                if (newConfig.owner != null)
+                {
+                    InitializeEffectPreviewer(newConfig.owner);
+                }
+                return;
+            }
+
+            // 重新初始化特效预览器以使用新配置
+            GameObject currentOwner = effectPreviewer.SkillOwner;
+            if (currentOwner != null)
+            {
+                effectPreviewer.Dispose();
+                effectPreviewer = new SkillEffectPreviewer(currentOwner, newConfig);
+                Debug.Log($"更新特效预览器配置: {newConfig.skillName}");
+            }
+        }
+
+        /// <summary>
+        /// 刷新特效预览器数据 - 当轨道项发生变化时调用
+        /// </summary>
+        public void RefreshEffectPreviewerData()
+        {
+            if (effectPreviewer != null && effectPreviewer.IsPreviewActive)
+            {
+                effectPreviewer.RefreshEffectData();
+                Debug.Log("SkillEditorTimeline: 刷新特效预览器数据");
+            }
         }
 
         #endregion

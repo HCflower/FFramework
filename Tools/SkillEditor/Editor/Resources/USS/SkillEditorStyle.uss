@@ -442,7 +442,7 @@
     width: auto;
     justify-content: center;
     flex-direction: row; 
-    opacity: 0.65;
+    opacity: 0.75;
 }
 
 .TipTitle{

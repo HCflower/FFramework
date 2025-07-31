@@ -48,11 +48,18 @@ namespace SkillEditor
         /// <summary>
         /// 设置当前帧数
         /// 自动限制在有效范围内（0到MaxFrame之间）
+        /// 当当前帧变化时，自动触发帧变化事件，用于驱动动画
         /// </summary>
         /// <param name="frame">要设置的帧数</param>
         public static void SetCurrentFrame(int frame)
         {
-            CurrentFrame = Mathf.Clamp(frame, 0, MaxFrame);
+            int clampedFrame = Mathf.Clamp(frame, 0, MaxFrame);
+            if (CurrentFrame != clampedFrame)
+            {
+                CurrentFrame = clampedFrame;
+                // 当前帧变化时自动触发事件，用于驱动动画预览
+                SkillEditorEvent.TriggerCurrentFrameChanged(CurrentFrame);
+            }
         }
 
         /// <summary>

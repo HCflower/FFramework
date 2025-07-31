@@ -25,6 +25,9 @@ namespace SkillEditor
         /// <summary>轨道控制区域内容容器</summary>
         private VisualElement trackControlContent;
 
+        /// <summary>动画预览管理器引用</summary>
+        private SkillAnimationPreviewer animationPreviewer;
+
         #endregion
 
         #region 构造函数
@@ -39,6 +42,15 @@ namespace SkillEditor
 
             // 订阅刷新事件
             SkillEditorEvent.OnRefreshRequested += OnRefreshRequested;
+        }
+
+        /// <summary>
+        /// 设置动画预览管理器引用
+        /// </summary>
+        /// <param name="previewer">动画预览管理器实例</param>
+        public void SetAnimationPreviewer(SkillAnimationPreviewer previewer)
+        {
+            this.animationPreviewer = previewer;
         }
 
         #endregion
@@ -384,33 +396,81 @@ namespace SkillEditor
         /// <summary>
         /// 创建播放控制按钮组
         /// 包含上一帧、播放/暂停、下一帧、循环播放等控制按钮
+        /// 集成动画预览功能
         /// </summary>
         /// <param name="parent">父容器</param>
         private void CreatePlaybackControls(VisualElement parent)
         {
             // 上一帧按钮
-            CreateIconButton(parent, "d_Animation.PrevKey", "上一帧", () =>
+            CreateUnityIconButton(parent, "d_Animation.PrevKey", "上一帧", () =>
             {
-                SkillEditorEvent.TriggerCurrentFrameChanged(SkillEditorData.CurrentFrame - 1);
+                int newFrame = Mathf.Max(0, SkillEditorData.CurrentFrame - 1);
+                SkillEditorData.SetCurrentFrame(newFrame);
             });
 
-            // 播放/暂停按钮
-            CreateIconButton(parent, SkillEditorData.IsPlaying ? "d_PauseButton@2x" : "d_Animation.Play", "播放", () =>
+            // 播放/暂停按钮 - 集成动画预览
+            var playButton = CreateUnityIconButton(parent, SkillEditorData.IsPlaying ? "d_PauseButton@2x" : "d_Animation.Play", "播放/暂停", null);
+            playButton.clicked += () =>
             {
+                // 切换播放状态
                 SkillEditorData.IsPlaying = !SkillEditorData.IsPlaying;
+
+                if (animationPreviewer != null)
+                {
+                    if (SkillEditorData.IsPlaying)
+                    {
+                        // 开始播放或恢复播放
+                        if (SkillEditorData.CurrentSkillConfig != null)
+                        {
+                            // 如果动画预览器正在预览状态，只需要恢复播放速度
+                            if (animationPreviewer.IsPreviewing)
+                            {
+                                animationPreviewer.SetPreviewSpeed(1.0f);
+                            }
+                            else
+                            {
+                                // 如果没有在预览状态，启动预览并跳转到当前帧
+                                animationPreviewer.StartPreview(SkillEditorData.CurrentSkillConfig);
+                                animationPreviewer.PreviewFrame(SkillEditorData.CurrentFrame);
+                            }
+                        }
+                    }
+                    else
+                    {
+                        // 暂停：无论当前是什么状态，都暂停播放
+                        animationPreviewer.SetPreviewSpeed(0.0f);
+                    }
+                }
+
                 SkillEditorEvent.TriggerPlayStateChanged(SkillEditorData.IsPlaying);
-            });
+
+                // 更新按钮图标和提示
+                string iconName = SkillEditorData.IsPlaying ? "d_PauseButton@2x" : "d_Animation.Play";
+                string tooltip = SkillEditorData.IsPlaying ? "暂停" : "播放";
+                playButton.style.backgroundImage = UnityEditor.EditorGUIUtility.IconContent(iconName).image as Texture2D;
+                playButton.tooltip = tooltip;
+            };
 
             // 下一帧按钮
-            CreateIconButton(parent, "d_Animation.NextKey", "下一帧", () =>
+            CreateUnityIconButton(parent, "d_Animation.NextKey", "下一帧", () =>
             {
-                SkillEditorEvent.TriggerCurrentFrameChanged(SkillEditorData.CurrentFrame + 1);
+                int maxFrame = SkillEditorData.CurrentSkillConfig?.maxFrames ?? SkillEditorData.MaxFrame;
+                int newFrame = Mathf.Min(maxFrame, SkillEditorData.CurrentFrame + 1);
+                SkillEditorData.SetCurrentFrame(newFrame);
             });
 
-            // 循环播放按钮
-            CreateIconButton(parent, "d_preAudioLoopOff@2x", "循环播放", () =>
+            // 停止/重置按钮 - 替代原来的循环按钮
+            CreateUnityIconButton(parent, "d_preAudioLoopOff@2x", "停止并重置", () =>
             {
-                SkillEditorData.IsLoop = !SkillEditorData.IsLoop;
+                SkillEditorData.IsPlaying = false;
+                playButton.style.backgroundImage = UnityEditor.EditorGUIUtility.IconContent("d_Animation.Play").image as Texture2D;
+                if (animationPreviewer != null)
+                {
+                    animationPreviewer.StopPreview();
+                    animationPreviewer.ResetPreview();
+                }
+                SkillEditorData.SetCurrentFrame(0);
+                SkillEditorEvent.TriggerPlayStateChanged(false);
             });
         }
 
@@ -428,7 +488,7 @@ namespace SkillEditor
             // 当前帧输入
             var currentFrameInput = CreateIntegerField("当前帧", SkillEditorData.CurrentFrame, (value) =>
             {
-                SkillEditorEvent.TriggerCurrentFrameChanged(value);
+                SkillEditorData.SetCurrentFrame(value);
             });
             currentFrameInput.name = "current-frame-input";
             frameInputContent.Add(currentFrameInput);
@@ -678,6 +738,27 @@ namespace SkillEditor
             button.AddToClassList("TrackItemControlButton");
             button.tooltip = tooltip;
             button.style.backgroundImage = Resources.Load<Texture2D>($"Icon/{iconPath}");
+            if (onClick != null) button.clicked += onClick;
+
+            parent.Add(button);
+            return button;
+        }
+
+        /// <summary>
+        /// 创建Unity内置图标按钮
+        /// 使用Unity内置图标创建按钮
+        /// </summary>
+        /// <param name="parent">父容器</param>
+        /// <param name="iconName">Unity内置图标名称</param>
+        /// <param name="tooltip">按钮提示文本</param>
+        /// <param name="onClick">点击事件处理</param>
+        /// <returns>创建的图标按钮</returns>
+        public Button CreateUnityIconButton(VisualElement parent, string iconName, string tooltip = "", Action onClick = null)
+        {
+            var button = new Button();
+            button.AddToClassList("TrackItemControlButton");
+            button.tooltip = tooltip;
+            button.style.backgroundImage = UnityEditor.EditorGUIUtility.IconContent(iconName).image as Texture2D;
             if (onClick != null) button.clicked += onClick;
 
             parent.Add(button);

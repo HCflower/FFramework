@@ -1,55 +1,5 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
---- !u!114 &-8888030563978131163
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 421ca7b01eadcc24cb6d54a0a88e934e, type: 3}
-  m_Name: CameraTrack
-  m_EditorClassIdentifier: 
-  trackName: "\u6444\u50CF\u673A\u8F68\u9053"
-  trackIndex: 0
-  isEnabled: 1
-  cameraClips:
-  - clipName: Camera Main Camera
-    startFrame: 0
-    durationFrame: 20
-    enablePosition: 1
-    enableRotation: 0
-    enableFieldOfView: 0
-    positionOffset: {x: 0, y: 0, z: 0}
-    targetRotation: {x: 0, y: 0, z: 0}
-    targetFieldOfView: 60
-    curveType: 0
-    customCurve:
-      serializedVersion: 2
-      m_Curve:
-      - serializedVersion: 3
-        time: 0
-        value: 0
-        inSlope: 0
-        outSlope: 1
-        tangentMode: 0
-        weightedMode: 0
-        inWeight: 0
-        outWeight: 0
-      - serializedVersion: 3
-        time: 1
-        value: 1
-        inSlope: 1
-        outSlope: 0
-        tangentMode: 0
-        weightedMode: 0
-        inWeight: 0
-        outWeight: 0
-      m_PreInfinity: 2
-      m_PostInfinity: 2
-      m_RotationOrder: 4
 --- !u!114 &-5395276449008929806
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -67,12 +17,12 @@ MonoBehaviour:
   isEnabled: 1
   transformClips:
   - clipName: Transform
-    startFrame: 12
+    startFrame: 2
     durationFrame: 30
     enablePosition: 1
     enableRotation: 0
     enableScale: 0
-    positionOffset: {x: 0, y: 0, z: 0}
+    positionOffset: {x: 0, y: 0, z: -3}
     targetRotation: {x: 0, y: 0, z: 0}
     targetScale: {x: 1, y: 1, z: 1}
     curveType: 0
@@ -118,12 +68,12 @@ MonoBehaviour:
     isEnabled: 1
     effectClips:
     - clipName: basicslash
-      startFrame: 6
-      durationFrame: 48
+      startFrame: 20
+      durationFrame: 12
       effectPrefab: {fileID: 6389406066330802589, guid: 5ef8d476ac4025a4e85cc5e7c5004889, type: 3}
-      position: {x: 0, y: 0, z: 0}
-      rotation: {x: 0, y: 0, z: 0}
-      scale: {x: 1, y: 1, z: 1}
+      position: {x: -0.4, y: 2, z: 0.22}
+      rotation: {x: -90, y: 0, z: 1}
+      scale: {x: 0.5, y: 0.5, z: 0.5}
 --- !u!114 &11400000
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -137,7 +87,7 @@ MonoBehaviour:
   m_Name: SkillConfig
   m_EditorClassIdentifier: 
   frameRate: 24
-  maxFrames: 54
+  maxFrames: 32
   owner: {fileID: 0}
   skillIcon: {fileID: 21300000, guid: 48e7bec8a4f0e3049a6c34938bf5a7ca, type: 3}
   skillName: "\u6D66\u4E1C\u516C\u9E21"
@@ -147,7 +97,7 @@ MonoBehaviour:
   trackContainer:
     animationTrack: {fileID: 297339559337665363}
     transformTrack: {fileID: -5395276449008929806}
-    cameraTrack: {fileID: -8888030563978131163}
+    cameraTrack: {fileID: 0}
     audioTrack: {fileID: 4144422302740679402}
     effectTrack: {fileID: -3162120677461194959}
     injuryDetectionTrack: {fileID: 776813478751267645}
@@ -172,7 +122,7 @@ MonoBehaviour:
   - clipName: Jump_Idle
     startFrame: 0
     durationFrame: 32
-    clip: {fileID: 7400000, guid: 3815f3daf7d9638429e1dd2ffc3866e9, type: 2}
+    clip: {fileID: 7400000, guid: 3a91922c9630cdc4e94e060121e72b00, type: 2}
     playSpeed: 1
     normalizedTransitionTime: 0
     isLoop: 0
@@ -228,20 +178,7 @@ MonoBehaviour:
     isEnabled: 1
     audioClips:
     - clipName: 032-033_hit
-      startFrame: 10
-      durationFrame: 24
-      clip: {fileID: 8300000, guid: a2fb213c8a76ee641b91674426aea94a, type: 3}
-      volume: 1
-      pitch: 1
-      spatialBlend: 0
-      reverbZoneMix: 1
-      isLoop: 0
-  - trackName: "\u97F3\u9891\u8F68\u9053 2"
-    trackIndex: 1
-    isEnabled: 1
-    audioClips:
-    - clipName: 032-033_hit
-      startFrame: 14
+      startFrame: 6
       durationFrame: 24
       clip: {fileID: 8300000, guid: a2fb213c8a76ee641b91674426aea94a, type: 3}
       volume: 1
