@@ -344,6 +344,15 @@ namespace SkillEditor
             skillEditorTimeline?.RefreshEffectPreviewerData();
         }
 
+        /// <summary>
+        /// 刷新Transform预览器数据
+        /// 当轨道项发生变化时调用，确保Transform预览与最新的配置数据同步
+        /// </summary>
+        public void RefreshTransformPreviewerData()
+        {
+            skillEditorTimeline?.RefreshTransformPreviewerData();
+        }
+
         #endregion
     }
 }

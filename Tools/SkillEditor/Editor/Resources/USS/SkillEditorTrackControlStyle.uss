@@ -78,7 +78,7 @@
 
 /* 轨道标题 */
 .TrackControlAreaTitle{
-    width: 125px;
+    width: 148px;
     height: 20px;
 
     padding: 0px;

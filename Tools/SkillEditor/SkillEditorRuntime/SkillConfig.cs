@@ -15,7 +15,7 @@ namespace FFramework.Kit
         [Tooltip("技能最大帧数"), Min(1)] public int maxFrames = 60;
 
         [Header("技能基础信息")]
-        [Tooltip("技能拥有者")] public GameObject owner;
+        [Tooltip("技能拥有者")] public SkillRuntimeController owner;
         [Tooltip("技能图标")] public Sprite skillIcon;
         [Tooltip("技能名称")] public string skillName;
         [Tooltip("技能ID")] public int skillId;

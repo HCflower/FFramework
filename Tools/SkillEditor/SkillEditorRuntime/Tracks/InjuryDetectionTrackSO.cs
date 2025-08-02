@@ -132,22 +132,12 @@ namespace FFramework.Kit
         [Serializable]
         public class InjuryDetectionClip : ClipBase
         {
+            [Header("攻击检测设置")]
             [Tooltip("目标层级")] public LayerMask targetLayers = -1;
             [Tooltip("是否是多段伤害检测")] public bool isMultiInjuryDetection = false;
-            [Tooltip("多段伤害检测间隔"), Min(0)] public float multiInjuryDetectionInterval = 0.1f;
-
-            [Tooltip("碰撞体类型")] public ColliderType colliderType = ColliderType.Box;
-            [Header("Sector collider setting")]
-            [Tooltip("扇形内圆半径"), Min(0)] public float innerCircleRadius = 0;
-            [Tooltip("扇形外圆半径"), Min(1)] public float outerCircleRadius = 1;
-            [Tooltip("扇形角度"), Range(0, 360)] public float sectorAngle = 0;
-            [Tooltip("扇形厚度"), Min(0.1f)] public float sectorThickness = 0.1f;
-
-            [Header("Transform")]
-            [Tooltip("碰撞体位置")] public Vector3 position = Vector3.zero;
-            [Tooltip("碰撞体旋转")] public Vector3 rotation = Vector3.zero;
-            [Tooltip("碰撞体缩放")] public Vector3 scale = Vector3.one;
-
+            [Tooltip("多段伤害检测间隔"), Min(1)] public int multiInjuryDetectionInterval = 1;
+            [Tooltip("启用所有碰撞体")] public bool enableAllCollider = false;
+            [Tooltip("碰撞体索引值")] public int injuryDetectionIndex = 0;
             public override int EndFrame => startFrame + Mathf.Max(1, durationFrame);
 
             /// <summary>
@@ -159,14 +149,4 @@ namespace FFramework.Kit
             }
         }
     }
-
-    // 碰撞体类型
-    public enum ColliderType
-    {
-        Box = 0,        // 立方体
-        Sphere = 1,     // 球体
-        Capsule = 2,    // 胶囊体   
-        sector = 3,     // 扇形
-    }
-
 }

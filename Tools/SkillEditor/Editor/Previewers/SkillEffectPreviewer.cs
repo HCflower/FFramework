@@ -15,7 +15,7 @@ namespace SkillEditor
     {
         #region 私有字段
 
-        private GameObject skillOwner;
+        private SkillRuntimeController skillOwner;
         private SkillConfig skillConfig;
         private Transform effectContainer;
         private bool isPreviewActive = false;
@@ -64,7 +64,7 @@ namespace SkillEditor
         /// <summary>
         /// 技能所有者对象
         /// </summary>
-        public GameObject SkillOwner => skillOwner;
+        public SkillRuntimeController SkillOwner => skillOwner;
 
         #endregion
 
@@ -75,7 +75,7 @@ namespace SkillEditor
         /// </summary>
         /// <param name="owner">技能所有者</param>
         /// <param name="config">技能配置</param>
-        public SkillEffectPreviewer(GameObject owner, SkillConfig config)
+        public SkillEffectPreviewer(SkillRuntimeController owner, SkillConfig config)
         {
             skillOwner = owner;
             skillConfig = config;
@@ -223,8 +223,6 @@ namespace SkillEditor
         {
             if (!isPreviewActive) return;
 
-            Debug.Log("SkillEffectPreviewer: 刷新特效数据");
-
             // 重新预加载所有特效（这会清理旧数据并重新构建）
             PreloadAllEffects();
 
@@ -329,55 +327,24 @@ namespace SkillEditor
         /// <param name="frameData">帧数据</param>
         private void UpdateEffectVisibility(FrameTrackData frameData)
         {
-            Debug.Log($"SkillEffectPreviewer.UpdateEffectVisibility: 当前帧={currentFrame}, frameData中特效片段数={frameData.effectClips.Count}");
-
-            // 首先隐藏所有特效
-            foreach (var instance in activeEffectInstances.Values)
-            {
-                instance.isActive = false;
-                SetEffectActive(instance.effectObject, false);
-            }
-            // 先更新所有实例的片段数据为最新配置
+            // 先隐藏所有特效，然后更新配置数据
+            HideAllEffects();
             UpdateEffectInstancesData();
 
             foreach (var instance in activeEffectInstances.Values)
             {
                 var effectClip = instance.clipData;
 
-                // 检查当前帧是否在特效开始播放的范围内
-                if (currentFrame >= effectClip.startFrame)
+                // 检查当前帧是否在特效播放范围内
+                if (IsEffectActiveAtFrame(effectClip, currentFrame))
                 {
-                    // 计算特效从开始播放到现在的时间
-                    float timeFromStart = CalculateEffectAbsoluteTime(effectClip, currentFrame);
+                    instance.isActive = true;
 
-                    // 获取特效的实际持续时间
-                    float effectDuration = GetEffectActualDuration(instance.effectObject);
-
-                    Debug.Log($"  检查特效: {effectClip.clipName}, 起始帧={effectClip.startFrame}, 当前时间={timeFromStart:F3}s, 特效时长={effectDuration:F3}s");
-
-                    // 只要特效还没播放完成，就保持激活
-                    if (timeFromStart <= effectDuration)
-                    {
-                        Debug.Log($"    特效在播放范围内，激活 (播放进度: {timeFromStart / effectDuration * 100:F1}%)");
-
-                        instance.isActive = true;
-
-                        // 使用基于绝对时间的播放方法，让特效按其本身的时间尺度播放
-                        SetEffectActiveWithTime(instance.effectObject, true, timeFromStart);
-                    }
-                    else
-                    {
-                        Debug.Log($"    特效已播放完成，隐藏");
-                    }
-                }
-                else
-                {
-                    Debug.Log($"  特效尚未开始: {effectClip.clipName}, 起始帧={effectClip.startFrame}, 当前帧={currentFrame}");
+                    // 计算播放时间并激活特效
+                    float playTime = CalculateEffectPlayTime(effectClip, currentFrame);
+                    PlayEffectAtTime(instance.effectObject, playTime);
                 }
             }
-
-            // 统计最终激活的特效数量
-            int activeCount = activeEffectInstances.Values.Count(i => i.isActive);
         }
 
         /// <summary>
@@ -434,9 +401,9 @@ namespace SkillEditor
 
             Transform effectTransform = effectObject.transform;
 
-            // 应用位置、旋转、缩放
-            effectTransform.position = effectClip.position;
-            effectTransform.rotation = Quaternion.Euler(effectClip.rotation);
+            // 使用本地坐标系，使特效能跟随父物体移动
+            effectTransform.localPosition = effectClip.position;
+            effectTransform.localRotation = Quaternion.Euler(effectClip.rotation);
             effectTransform.localScale = effectClip.scale;
         }
 
@@ -451,329 +418,60 @@ namespace SkillEditor
 
             effectObject.SetActive(active);
 
-            // 如果有粒子系统，控制播放状态
+            // 简单控制粒子系统播放状态
             var particleSystems = effectObject.GetComponentsInChildren<ParticleSystem>();
             foreach (var ps in particleSystems)
             {
-                if (active)
-                {
-                    if (!ps.isPlaying)
-                        ps.Play();
-                }
-                else
-                {
-                    if (ps.isPlaying)
-                        ps.Stop();
-                }
+                if (active && !ps.isPlaying)
+                    ps.Play();
+                else if (!active && ps.isPlaying)
+                    ps.Stop();
             }
         }
 
         /// <summary>
-        /// 设置特效激活状态并控制播放进度
+        /// 检查特效在指定帧是否应该激活
         /// </summary>
-        /// <param name="effectObject">特效对象</param>
-        /// <param name="active">是否激活</param>
-        /// <param name="progress">播放进度 (0.0 - 1.0)</param>
-        private void SetEffectActiveWithProgress(GameObject effectObject, bool active, float progress)
+        /// <param name="effectClip">特效片段</param>
+        /// <param name="frame">当前帧</param>
+        /// <returns>是否应该激活</returns>
+        private bool IsEffectActiveAtFrame(EffectTrack.EffectClip effectClip, int frame)
         {
-            if (effectObject == null) return;
-
-            effectObject.SetActive(active);
-
-            if (!active) return;
-
-            // 控制粒子系统的播放进度
-            var particleSystems = effectObject.GetComponentsInChildren<ParticleSystem>();
-
-            foreach (var ps in particleSystems)
-            {
-                if (ps == null) continue;
-
-                // 停止当前播放
-                if (ps.isPlaying)
-                    ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
-
-                // 获取特效实例数据
-                var effectInstance = activeEffectInstances.Values.FirstOrDefault(inst => inst.effectObject == effectObject);
-
-                // 使用粒子系统自身的持续时间而不是强制压缩到片段时长
-                float particleDuration = GetParticleSystemDuration(ps);
-
-                if (effectInstance?.clipData != null)
-                {
-                    float frameRate = GetFrameRate();
-                    float clipDurationInSeconds = effectInstance.clipData.durationFrame / frameRate;
-
-                    // 计算当前帧在片段中的实际时间位置
-                    float timeInClip = progress * clipDurationInSeconds;
-
-                    Debug.Log($"特效播放时间计算 - {ps.name}: 片段时长={clipDurationInSeconds:F2}s, 粒子时长={particleDuration:F2}s, 进度={progress:F3}, 时间位置={timeInClip:F3}s");
-
-                    // 播放特效并模拟到指定时间
-                    ps.Play();
-                    if (timeInClip > 0)
-                    {
-                        // 考虑粒子系统的模拟速度
-                        var main = ps.main;
-                        float simulationSpeed = main.simulationSpeed;
-                        float adjustedTime = timeInClip / simulationSpeed;
-
-                        // 限制模拟时间不超过粒子系统的总持续时间
-                        adjustedTime = Mathf.Min(adjustedTime, particleDuration / simulationSpeed);
-
-                        ps.Simulate(adjustedTime, true, false, true);
-                    }
-                }
-                else
-                {
-                    // 回退方案：直接使用粒子系统持续时间
-                    float targetTime = progress * particleDuration;
-
-                    ps.Play();
-                    if (targetTime > 0)
-                    {
-                        var main = ps.main;
-                        float simulationSpeed = main.simulationSpeed;
-                        float adjustedTime = targetTime / simulationSpeed;
-
-                        ps.Simulate(adjustedTime, true, false, true);
-                    }
-                }
-            }
+            return frame >= effectClip.startFrame && frame < effectClip.startFrame + effectClip.durationFrame;
         }
 
         /// <summary>
-        /// 设置特效激活状态并控制播放时间（基于绝对时间而不是压缩进度）
+        /// 计算特效播放时间
+        /// </summary>
+        /// <param name="effectClip">特效片段</param>
+        /// <param name="currentFrame">当前帧</param>
+        /// <returns>播放时间（秒）</returns>
+        private float CalculateEffectPlayTime(EffectTrack.EffectClip effectClip, int currentFrame)
+        {
+            int relativeFrame = currentFrame - effectClip.startFrame;
+            return Mathf.Max(0, relativeFrame) / GetFrameRate();
+        }
+
+        /// <summary>
+        /// 在指定时间播放特效
         /// </summary>
         /// <param name="effectObject">特效对象</param>
-        /// <param name="active">是否激活</param>
-        /// <param name="timeInSeconds">播放时间（秒）</param>
-        private void SetEffectActiveWithTime(GameObject effectObject, bool active, float timeInSeconds)
+        /// <param name="timeInSeconds">播放时间</param>
+        private void PlayEffectAtTime(GameObject effectObject, float timeInSeconds)
         {
             if (effectObject == null) return;
 
-            effectObject.SetActive(active);
+            effectObject.SetActive(true);
 
-            if (!active) return;
-
-            // 控制粒子系统的播放时间
             var particleSystems = effectObject.GetComponentsInChildren<ParticleSystem>();
-
             foreach (var ps in particleSystems)
             {
-                if (ps == null) continue;
+                if (ps.isPlaying) ps.Stop(true);
 
-                // 停止当前播放
-                if (ps.isPlaying)
-                    ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
-
-                // 播放特效
                 ps.Play();
-
                 if (timeInSeconds > 0)
-                {
-                    // 考虑粒子系统的模拟速度
-                    var main = ps.main;
-                    float simulationSpeed = main.simulationSpeed;
-                    float adjustedTime = timeInSeconds / simulationSpeed;
-
-                    // 模拟到指定时间
-                    ps.Simulate(adjustedTime, true, false, true);
-                }
+                    ps.Simulate(timeInSeconds, true, false, true);
             }
-        }
-
-        /// <summary>
-        /// 获取帧率（从技能配置或使用默认值）
-        /// </summary>
-        /// <returns>帧率</returns>
-        private float GetFrameRate()
-        {
-            // 尝试从技能配置获取帧率
-            if (skillConfig != null)
-            {
-                return skillConfig.frameRate;
-            }
-
-            // 尝试从当前技能编辑器配置获取帧率
-            if (SkillEditorData.CurrentSkillConfig != null)
-            {
-                return SkillEditorData.CurrentSkillConfig.frameRate;
-            }
-
-            // 默认30fps
-            return 30f;
-        }
-
-        /// <summary>
-        /// 计算特效播放进度
-        /// </summary>
-        /// <param name="effectClip">特效片段</param>
-        /// <param name="currentFrame">当前帧</param>
-        /// <returns>播放进度 (0.0 - 1.0)</returns>
-        private float CalculateEffectProgress(EffectTrack.EffectClip effectClip, int currentFrame)
-        {
-            if (effectClip.durationFrame <= 0)
-            {
-                Debug.LogWarning($"特效 {effectClip.clipName} 持续帧数无效: {effectClip.durationFrame}");
-                return 0f;
-            }
-
-            // 计算当前帧相对于特效开始的偏移
-            int relativeFrame = currentFrame - effectClip.startFrame;
-
-            // 确保在有效范围内
-            relativeFrame = Mathf.Max(0, relativeFrame);
-
-            // 计算进度百分比
-            float progress = (float)relativeFrame / effectClip.durationFrame;
-
-            // 限制在 0-1 范围内
-            progress = Mathf.Clamp01(progress);
-
-            return progress;
-        }
-
-        /// <summary>
-        /// 计算特效在片段中的实际播放时间（秒）
-        /// </summary>
-        /// <param name="effectClip">特效片段</param>
-        /// <param name="currentFrame">当前帧</param>
-        /// <returns>在片段中的时间位置（秒）</returns>
-        private float CalculateEffectTimeInClip(EffectTrack.EffectClip effectClip, int currentFrame)
-        {
-            if (effectClip.durationFrame <= 0) return 0f;
-
-            // 计算当前帧相对于特效开始的偏移
-            int relativeFrame = currentFrame - effectClip.startFrame;
-            relativeFrame = Mathf.Max(0, relativeFrame);
-
-            // 转换为时间（秒）
-            float frameRate = GetFrameRate();
-            float timeInClip = relativeFrame / frameRate;
-
-            return timeInClip;
-        }
-
-        /// <summary>
-        /// 计算特效从开始播放到当前的绝对时间（不受轨道片段长度限制）
-        /// </summary>
-        /// <param name="effectClip">特效片段</param>
-        /// <param name="currentFrame">当前帧</param>
-        /// <returns>从特效开始播放的绝对时间（秒）</returns>
-        private float CalculateEffectAbsoluteTime(EffectTrack.EffectClip effectClip, int currentFrame)
-        {
-            // 计算当前帧相对于特效开始的偏移
-            int relativeFrame = currentFrame - effectClip.startFrame;
-            relativeFrame = Mathf.Max(0, relativeFrame);
-
-            // 转换为绝对时间（秒），不受轨道片段长度限制
-            float frameRate = GetFrameRate();
-            float timeFromStart = relativeFrame / frameRate;
-
-            return timeFromStart;
-        }
-
-        /// <summary>
-        /// 获取粒子系统的持续时间
-        /// </summary>
-        /// <param name="ps">粒子系统</param>
-        /// <returns>持续时间（秒）</returns>
-        private float GetParticleSystemDuration(ParticleSystem ps)
-        {
-            if (ps == null) return 0f;
-
-            // 考虑粒子的生命周期和发射持续时间
-            var main = ps.main;
-            var emission = ps.emission;
-
-            float emissionDuration = 0f;
-            float particleLifetime = 0f;
-
-            // 获取发射持续时间
-            if (emission.enabled)
-            {
-                if (main.loop)
-                {
-                    // 如果是循环的，使用一个循环的持续时间
-                    emissionDuration = main.duration;
-                }
-                else
-                {
-                    // 非循环时，使用完整的持续时间
-                    emissionDuration = main.duration;
-                }
-            }
-
-            // 获取粒子生命时间
-            if (main.startLifetime.mode == ParticleSystemCurveMode.Constant)
-            {
-                particleLifetime = main.startLifetime.constant;
-            }
-            else if (main.startLifetime.mode == ParticleSystemCurveMode.TwoConstants)
-            {
-                // 使用最大生命时间
-                particleLifetime = main.startLifetime.constantMax;
-            }
-            else
-            {
-                // 对于曲线模式，使用最大值作为估算
-                particleLifetime = main.startLifetime.constantMax;
-            }
-
-            // 特效的总持续时间 = 发射时间 + 粒子最大生命时间
-            // 但如果特效设计为瞬间效果（比如爆炸），主要持续时间应该是粒子生命时间
-            float totalDuration;
-
-            if (emissionDuration <= 0.1f) // 瞬间发射的特效
-            {
-                totalDuration = particleLifetime;
-            }
-            else // 持续发射的特效
-            {
-                totalDuration = emissionDuration + particleLifetime;
-            }
-
-            return totalDuration;
-        }
-
-        /// <summary>
-        /// 获取特效的实际持续时间
-        /// </summary>
-        /// <param name="effectObject">特效对象</param>
-        /// <returns>特效的实际持续时间（秒）</returns>
-        private float GetEffectActualDuration(GameObject effectObject)
-        {
-            if (effectObject == null) return 0f;
-
-            // 简单缓存：检查是否已经计算过这个对象的持续时间
-            string cacheKey = effectObject.GetInstanceID().ToString();
-
-            float maxDuration = 0f;
-
-            // 获取所有粒子系统并找出最长的持续时间
-            var particleSystems = effectObject.GetComponentsInChildren<ParticleSystem>();
-
-            foreach (var ps in particleSystems)
-            {
-                if (ps == null) continue;
-
-                float psDuration = GetParticleSystemDuration(ps);
-                maxDuration = Mathf.Max(maxDuration, psDuration);
-            }
-
-            // 如果没有粒子系统，返回默认值
-            if (maxDuration <= 0f)
-            {
-                maxDuration = 1f; // 默认1秒
-                Debug.Log($"特效 {effectObject.name} 没有粒子系统，使用默认时长: {maxDuration}s");
-            }
-            else
-            {
-                Debug.Log($"特效 {effectObject.name} 实际持续时间: {maxDuration:F2}s");
-            }
-
-            return maxDuration;
         }
 
         /// <summary>
@@ -783,9 +481,20 @@ namespace SkillEditor
         {
             foreach (var instance in activeEffectInstances.Values)
             {
-                SetEffectActive(instance.effectObject, false);
                 instance.isActive = false;
+                SetEffectActive(instance.effectObject, false);
             }
+        }
+
+        /// <summary>
+        /// 获取帧率（从技能配置或使用默认值）
+        /// </summary>
+        /// <returns>帧率</returns>
+        private float GetFrameRate()
+        {
+            if (skillConfig != null) return skillConfig.frameRate;
+            if (SkillEditorData.CurrentSkillConfig != null) return SkillEditorData.CurrentSkillConfig.frameRate;
+            return 30f; // 默认30fps
         }
 
         /// <summary>

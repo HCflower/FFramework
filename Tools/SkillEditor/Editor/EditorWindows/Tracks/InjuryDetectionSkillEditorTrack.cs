@@ -145,15 +145,9 @@ namespace SkillEditor
                 durationFrame = frameCount,
                 targetLayers = -1,
                 isMultiInjuryDetection = false,
-                multiInjuryDetectionInterval = 0.1f,
-                colliderType = FFramework.Kit.ColliderType.Box,
-                innerCircleRadius = 0f,
-                outerCircleRadius = 1f,
-                sectorAngle = 0f,
-                sectorThickness = 0.1f,
-                position = Vector3.zero,
-                rotation = Vector3.zero,
-                scale = Vector3.one
+                multiInjuryDetectionInterval = 1,
+                injuryDetectionIndex = 0,
+                enableAllCollider = false
             };
 
             // 添加到对应索引的伤害检测轨道
@@ -206,15 +200,8 @@ namespace SkillEditor
                     attackData.targetLayers = clip.targetLayers;
                     attackData.isMultiInjuryDetection = clip.isMultiInjuryDetection;
                     attackData.multiInjuryDetectionInterval = clip.multiInjuryDetectionInterval;
-                    attackData.colliderType = clip.colliderType;
-                    attackData.innerCircleRadius = clip.innerCircleRadius;
-                    attackData.outerCircleRadius = clip.outerCircleRadius;
-                    attackData.sectorAngle = clip.sectorAngle;
-                    attackData.sectorThickness = clip.sectorThickness;
-                    attackData.position = clip.position;
-                    attackData.rotation = clip.rotation;
-                    attackData.scale = clip.scale;
-
+                    attackData.injuryDetectionIndex = clip.injuryDetectionIndex;
+                    attackData.enableAllCollider = clip.enableAllCollider;
 #if UNITY_EDITOR
                     // 标记数据已修改
                     UnityEditor.EditorUtility.SetDirty(attackData);

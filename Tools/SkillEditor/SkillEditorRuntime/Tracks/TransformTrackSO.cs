@@ -5,7 +5,7 @@ using System;
 namespace FFramework.Kit
 {
     /// <summary>
-    /// 变换轨道ScriptableObject
+    /// 变换轨道Script(bleObject
     /// 独立的变换轨道数据文件
     /// </summary>
     // [CreateAssetMenu(fileName = "TransformTrack", menuName = "FFramework/Tracks/Transform Track", order = 4)]
@@ -102,6 +102,36 @@ namespace FFramework.Kit
         }
 
         /// <summary>
+        /// 获取所有片段在最后一帧的累积变换结果（用于循环累加）
+        /// </summary>
+        /// <param name="maxFrame">最大帧数</param>
+        /// <param name="currentTransform">当前Transform状态</param>
+        /// <returns>累积后的Transform状态</returns>
+        public (Vector3 position, Vector3 rotation, Vector3 scale) GetAccumulatedTransformAtEnd(int maxFrame, Transform currentTransform)
+        {
+            Vector3 accumulatedPosition = currentTransform.position;
+            Vector3 accumulatedRotation = currentTransform.rotation.eulerAngles;
+            Vector3 accumulatedScale = currentTransform.localScale;
+
+            // 计算最后一帧时所有启用片段的累积效果
+            foreach (var clip in transformClips)
+            {
+                if (clip.IsFrameInRange(maxFrame - 1))
+                {
+                    Vector3 clipPos, clipRot, clipScale;
+                    if (clip.GetTransformAtFrame(maxFrame - 1, out clipPos, out clipRot, out clipScale))
+                    {
+                        if (clip.enablePosition) accumulatedPosition = clipPos;
+                        if (clip.enableRotation) accumulatedRotation = clipRot;
+                        if (clip.enableScale) accumulatedScale = clipScale;
+                    }
+                }
+            }
+
+            return (accumulatedPosition, accumulatedRotation, accumulatedScale);
+        }
+
+        /// <summary>
         /// 转换为运行时轨道数据
         /// </summary>
         public TransformTrack ToRuntimeTrack()
@@ -161,11 +191,6 @@ namespace FFramework.Kit
         [Serializable]
         public class TransformClip : ClipBase
         {
-            [Header("变换类型")]
-            [Tooltip("是否启用位置变换")] public bool enablePosition = true;
-            [Tooltip("是否启用旋转变换")] public bool enableRotation = false;
-            [Tooltip("是否启用缩放变换")] public bool enableScale = false;
-
             [Header("目标变换")]
             [Tooltip("位置偏移量（相对于初始位置）")] public Vector3 positionOffset = Vector3.zero;
             [Tooltip("目标旋转（绝对值）")] public Vector3 targetRotation = Vector3.zero;
@@ -174,6 +199,10 @@ namespace FFramework.Kit
             [Header("动画设置")]
             [Tooltip("动画曲线类型")] public AnimationCurveType curveType = AnimationCurveType.Linear;
             [Tooltip("自定义动画曲线")] public AnimationCurve customCurve = AnimationCurve.Linear(0, 0, 1, 1);
+            [Header("变换类型")]
+            [Tooltip("是否启用位置变换")] public bool enablePosition = true;
+            [Tooltip("是否启用旋转变换")] public bool enableRotation = false;
+            [Tooltip("是否启用缩放变换")] public bool enableScale = false;
 
             // 运行时初始变换值（不序列化，每次播放时设置）
             [System.NonSerialized] private Vector3 runtimeStartPosition;

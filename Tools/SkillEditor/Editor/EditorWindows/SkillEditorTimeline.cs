@@ -38,6 +38,9 @@ namespace SkillEditor
         /// <summary>特效预览管理器</summary>
         private SkillEffectPreviewer effectPreviewer;
 
+        /// <summary>Transform预览管理器</summary>
+        private SkillTransformPreviewer transformPreviewer;
+
         #endregion
 
         #region 构造函数
@@ -94,6 +97,15 @@ namespace SkillEditor
         public SkillAnimationPreviewer GetAnimationPreviewer()
         {
             return animationPreviewer;
+        }
+
+        /// <summary>
+        /// 获取Transform预览管理器
+        /// </summary>
+        /// <returns>Transform预览管理器实例</returns>
+        public SkillTransformPreviewer GetTransformPreviewer()
+        {
+            return transformPreviewer;
         }
 
         /// <summary>
@@ -194,6 +206,9 @@ namespace SkillEditor
 
             // 更新特效预览器配置
             UpdateEffectPreviewerConfig(newConfig);
+
+            // 更新Transform预览器配置
+            UpdateTransformPreviewerConfig(newConfig);
         }
 
         /// <summary>
@@ -233,6 +248,7 @@ namespace SkillEditor
         {
             animationPreviewer?.Dispose();
             effectPreviewer?.Dispose();
+            transformPreviewer?.Dispose();
             SkillEditorEvent.OnSkillConfigChanged -= UpdateTipsDisplay;
             SkillEditorEvent.OnCurrentFrameChanged -= OnCurrentFrameChanged;
             SkillEditorEvent.OnPlayStateChanged -= OnPlayStateChanged;
@@ -278,16 +294,41 @@ namespace SkillEditor
                     if (!effectPreviewer.IsPreviewActive)
                     {
                         effectPreviewer.StartPreview();
-                        Debug.Log($"启动特效预览 - 帧: {frame}");
                     }
 
                     // 驱动特效到指定帧
                     effectPreviewer.PreviewFrame(frame);
-                    Debug.Log($"特效预览帧: {frame} - 状态: {effectPreviewer.GetDebugInfo()}");
                 }
                 else
                 {
                     Debug.LogWarning($"特效预览器为空 - 帧: {frame}, 技能配置: {SkillEditorData.CurrentSkillConfig?.skillName}, 技能所有者: {SkillEditorData.CurrentSkillConfig?.owner?.name}");
+                }
+            }
+
+            // 处理Transform预览
+            if (SkillEditorData.CurrentSkillConfig != null)
+            {
+                // 如果Transform预览器不存在，尝试初始化
+                if (transformPreviewer == null && SkillEditorData.CurrentSkillConfig.owner != null)
+                {
+                    InitializeTransformPreviewer(SkillEditorData.CurrentSkillConfig.owner);
+                    Debug.Log($"自动初始化Transform预览器 - 技能所有者: {SkillEditorData.CurrentSkillConfig.owner.name}");
+                }
+
+                if (transformPreviewer != null)
+                {
+                    // 如果没有在预览状态，则启动预览
+                    if (!transformPreviewer.IsPreviewActive)
+                    {
+                        transformPreviewer.StartPreview();
+                    }
+
+                    // 驱动Transform到指定帧
+                    transformPreviewer.PreviewFrame(frame);
+                }
+                else
+                {
+                    Debug.LogWarning($"Transform预览器为空 - 帧: {frame}, 技能配置: {SkillEditorData.CurrentSkillConfig?.skillName}, 技能所有者: {SkillEditorData.CurrentSkillConfig?.owner?.name}");
                 }
             }
         }
@@ -348,13 +389,35 @@ namespace SkillEditor
                     // 特效预览器没有播放速度概念，只是显示当前帧的状态
                 }
             }
+
+            // 处理Transform预览
+            if (transformPreviewer != null)
+            {
+                if (isPlaying)
+                {
+                    // 开始播放或恢复播放Transform
+                    if (SkillEditorData.CurrentSkillConfig != null)
+                    {
+                        if (!transformPreviewer.IsPreviewActive)
+                        {
+                            transformPreviewer.StartPreview();
+                        }
+                        transformPreviewer.PreviewFrame(SkillEditorData.CurrentFrame);
+                    }
+                }
+                else
+                {
+                    // 暂停时保持当前Transform状态
+                    // Transform预览器没有播放速度概念，只是显示当前帧的状态
+                }
+            }
         }
 
         /// <summary>
         /// 更新技能所属对象
         /// </summary>
         /// <param name="selectedGameObject">选择的游戏对象</param>
-        private void UpdateSkillOwner(GameObject selectedGameObject)
+        private void UpdateSkillOwner(SkillRuntimeController selectedGameObject)
         {
             // 更新技能配置中的owner字段
             if (SkillEditorData.CurrentSkillConfig != null)
@@ -377,6 +440,9 @@ namespace SkillEditor
 
             // 重新初始化特效预览器
             InitializeEffectPreviewer(selectedGameObject);
+
+            // 重新初始化Transform预览器
+            InitializeTransformPreviewer(selectedGameObject);
         }
 
         #endregion
@@ -459,8 +525,8 @@ namespace SkillEditor
 
             // 当前技能使用者  
             var ownerTip = TipsContent("技能使用者:");
-            skillOwnerField = TipsObjectField(typeof(GameObject), "技能使用者");
-            skillOwnerField.RegisterValueChangedCallback(evt => UpdateSkillOwner(evt.newValue as GameObject));
+            skillOwnerField = TipsObjectField(typeof(SkillRuntimeController), "技能使用者");
+            skillOwnerField.RegisterValueChangedCallback(evt => UpdateSkillOwner(evt.newValue as SkillRuntimeController));
             ownerTip.Add(skillOwnerField);
             tipsContent.Add(ownerTip);
 
@@ -775,7 +841,7 @@ namespace SkillEditor
         /// 初始化特效预览器
         /// </summary>
         /// <param name="selectedGameObject">选择的游戏对象作为技能所有者</param>
-        private void InitializeEffectPreviewer(GameObject selectedGameObject)
+        private void InitializeEffectPreviewer(SkillRuntimeController selectedGameObject)
         {
             // 清理现有的特效预览器
             if (effectPreviewer != null)
@@ -811,12 +877,11 @@ namespace SkillEditor
             }
 
             // 重新初始化特效预览器以使用新配置
-            GameObject currentOwner = effectPreviewer.SkillOwner;
+            SkillRuntimeController currentOwner = effectPreviewer.SkillOwner;
             if (currentOwner != null)
             {
                 effectPreviewer.Dispose();
                 effectPreviewer = new SkillEffectPreviewer(currentOwner, newConfig);
-                Debug.Log($"更新特效预览器配置: {newConfig.skillName}");
             }
         }
 
@@ -828,7 +893,69 @@ namespace SkillEditor
             if (effectPreviewer != null && effectPreviewer.IsPreviewActive)
             {
                 effectPreviewer.RefreshEffectData();
-                Debug.Log("SkillEditorTimeline: 刷新特效预览器数据");
+            }
+        }
+
+        #endregion
+
+        #region Transform预览管理
+
+        /// <summary>
+        /// 初始化Transform预览器
+        /// </summary>
+        /// <param name="selectedGameObject">选择的游戏对象作为技能所有者</param>
+        private void InitializeTransformPreviewer(SkillRuntimeController selectedGameObject)
+        {
+            // 清理现有的Transform预览器
+            if (transformPreviewer != null)
+            {
+                transformPreviewer.Dispose();
+                transformPreviewer = null;
+            }
+
+            // 如果有技能所有者和技能配置，创建新的Transform预览器
+            if (selectedGameObject != null && SkillEditorData.CurrentSkillConfig != null)
+            {
+                transformPreviewer = new SkillTransformPreviewer(selectedGameObject, SkillEditorData.CurrentSkillConfig);
+                Debug.Log($"初始化Transform预览器 - 技能所有者: {selectedGameObject.name}");
+            }
+        }
+
+        /// <summary>
+        /// 更新Transform预览器的配置
+        /// </summary>
+        /// <param name="newConfig">新的技能配置</param>
+        private void UpdateTransformPreviewerConfig(SkillConfig newConfig)
+        {
+            if (newConfig == null) return;
+
+            // 如果Transform预览器不存在，尝试使用技能配置中的owner初始化
+            if (transformPreviewer == null)
+            {
+                if (newConfig.owner != null)
+                {
+                    InitializeTransformPreviewer(newConfig.owner);
+                }
+                return;
+            }
+
+            // 重新初始化Transform预览器以使用新配置
+            SkillRuntimeController currentOwner = transformPreviewer.SkillOwner;
+            if (currentOwner != null)
+            {
+                transformPreviewer.Dispose();
+                transformPreviewer = new SkillTransformPreviewer(currentOwner, newConfig);
+            }
+        }
+
+        /// <summary>
+        /// 刷新Transform预览器数据 - 当轨道项发生变化时调用
+        /// </summary>
+        public void RefreshTransformPreviewerData()
+        {
+            if (transformPreviewer != null && transformPreviewer.IsPreviewActive)
+            {
+                transformPreviewer.RefreshTransformData();
             }
         }
 

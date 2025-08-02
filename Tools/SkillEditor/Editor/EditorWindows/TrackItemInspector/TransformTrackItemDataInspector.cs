@@ -196,6 +196,13 @@ namespace SkillEditor
             {
                 updateAction(targetConfigClip);
                 MarkSkillConfigDirty();
+
+                // 刷新Transform预览器数据
+                var skillEditorWindow = EditorWindow.GetWindow<SkillEditor>(false, null, false);
+                if (skillEditorWindow != null)
+                {
+                    skillEditorWindow.RefreshTransformPreviewerData();
+                }
             }
             else
             {

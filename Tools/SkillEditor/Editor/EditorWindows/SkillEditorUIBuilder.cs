@@ -401,6 +401,21 @@ namespace SkillEditor
         /// <param name="parent">父容器</param>
         private void CreatePlaybackControls(VisualElement parent)
         {
+            // 停止/重置按钮
+            CreateUnityIconButton(parent, "d_Animation.FirstKey", "停止并重置到第0帧", () =>
+            {
+                SkillEditorData.IsPlaying = false;
+
+                if (animationPreviewer != null)
+                {
+                    animationPreviewer.StopPreview();
+                    animationPreviewer.ResetPreview();
+                }
+
+                SkillEditorData.SetCurrentFrame(0);
+                SkillEditorEvent.TriggerPlayStateChanged(false);
+            });
+
             // 上一帧按钮
             CreateUnityIconButton(parent, "d_Animation.PrevKey", "上一帧", () =>
             {
@@ -410,6 +425,19 @@ namespace SkillEditor
 
             // 播放/暂停按钮 - 集成动画预览
             var playButton = CreateUnityIconButton(parent, SkillEditorData.IsPlaying ? "d_PauseButton@2x" : "d_Animation.Play", "播放/暂停", null);
+
+            // 订阅播放状态变更事件来更新按钮外观
+            SkillEditorEvent.OnPlayStateChanged += (isPlaying) =>
+            {
+                if (playButton != null)
+                {
+                    string iconName = isPlaying ? "d_PauseButton@2x" : "d_Animation.Play";
+                    string tooltip = isPlaying ? "暂停" : "播放";
+                    playButton.style.backgroundImage = UnityEditor.EditorGUIUtility.IconContent(iconName).image as Texture2D;
+                    playButton.tooltip = tooltip;
+                }
+            };
+
             playButton.clicked += () =>
             {
                 // 切换播放状态
@@ -443,12 +471,6 @@ namespace SkillEditor
                 }
 
                 SkillEditorEvent.TriggerPlayStateChanged(SkillEditorData.IsPlaying);
-
-                // 更新按钮图标和提示
-                string iconName = SkillEditorData.IsPlaying ? "d_PauseButton@2x" : "d_Animation.Play";
-                string tooltip = SkillEditorData.IsPlaying ? "暂停" : "播放";
-                playButton.style.backgroundImage = UnityEditor.EditorGUIUtility.IconContent(iconName).image as Texture2D;
-                playButton.tooltip = tooltip;
             };
 
             // 下一帧按钮
@@ -459,19 +481,24 @@ namespace SkillEditor
                 SkillEditorData.SetCurrentFrame(newFrame);
             });
 
-            // 停止/重置按钮 - 替代原来的循环按钮
-            CreateUnityIconButton(parent, "d_preAudioLoopOff@2x", "停止并重置", () =>
+            // 循环播放按钮 - 使用颜色变化代替图标
+            var loopButton = new Button();
+            loopButton.AddToClassList("TrackItemControlButton");
+            loopButton.style.backgroundImage = UnityEditor.EditorGUIUtility.IconContent("d_preAudioLoopOff@2x").image as Texture2D;
+            loopButton.tooltip = "循环播放";
+
+            // 设置初始颜色状态
+            loopButton.style.unityBackgroundImageTintColor = SkillEditorData.IsLoop ? Color.yellow : Color.white;
+
+            loopButton.clicked += () =>
             {
-                SkillEditorData.IsPlaying = false;
-                playButton.style.backgroundImage = UnityEditor.EditorGUIUtility.IconContent("d_Animation.Play").image as Texture2D;
-                if (animationPreviewer != null)
-                {
-                    animationPreviewer.StopPreview();
-                    animationPreviewer.ResetPreview();
-                }
-                SkillEditorData.SetCurrentFrame(0);
-                SkillEditorEvent.TriggerPlayStateChanged(false);
-            });
+                SkillEditorData.IsLoop = !SkillEditorData.IsLoop;
+
+                // 更新按钮颜色
+                loopButton.style.unityBackgroundImageTintColor = SkillEditorData.IsLoop ? Color.yellow : Color.white;
+            };
+
+            parent.Add(loopButton);
         }
 
         /// <summary>

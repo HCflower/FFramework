@@ -176,9 +176,6 @@ namespace SkillEditor
             SafeExecute(() =>
             {
                 UpdateEffectTrackConfig(configClip => configClip.startFrame = newValue, "起始帧更新");
-
-                // 刷新特效预览器数据以反映起始帧的变化
-                RefreshEffectPreviewer();
             }, "起始帧更新");
         }
 
@@ -191,26 +188,7 @@ namespace SkillEditor
             SafeExecute(() =>
             {
                 UpdateEffectTrackConfig(configClip => configClip.durationFrame = newValue, "持续帧数更新");
-
-                // 刷新特效预览器数据以反映持续帧数的变化
-                RefreshEffectPreviewer();
             }, "持续帧数更新");
-        }
-
-        /// <summary>
-        /// 刷新特效预览器数据
-        /// </summary>
-        private void RefreshEffectPreviewer()
-        {
-            try
-            {
-                var window = UnityEditor.EditorWindow.GetWindow<SkillEditor>();
-                window?.RefreshEffectPreviewerData();
-            }
-            catch (System.Exception ex)
-            {
-                Debug.LogWarning($"刷新特效预览器失败: {ex.Message}");
-            }
         }
 
         #endregion

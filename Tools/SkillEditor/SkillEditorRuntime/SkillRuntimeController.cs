@@ -11,11 +11,16 @@ namespace FFramework.Kit
     [DisallowMultipleComponent]
     public class SkillRuntimeController : MonoBehaviour
     {
+        [Header("设置")]
         [Tooltip("技能配置文件")] public SkillConfig skillConfig;
-        [Tooltip("技能控制的摄像机")] public Camera skillCamera;
         [Tooltip("技能动画状态机")] public Animator skillAnimator;
         [Tooltip("技能动画状态名")] public string animationStateName;
+        [Tooltip("技能控制的摄像机")] public Camera skillCamera;
         // 自动获取
         public ISkillEvent skillEvent => GetComponent<ISkillEvent>();
+
+        [Header("伤害检测")]
+        [Tooltip("伤害检测碰撞器")] public List<CustomCollider> injuryDetectionColliders = new List<CustomCollider>();
+
     }
 }

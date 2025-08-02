@@ -3,6 +3,7 @@ using UnityEditor.UIElements;
 using UnityEditor;
 using UnityEngine;
 using System.Linq;
+using System;
 
 namespace SkillEditor
 {
@@ -24,24 +25,13 @@ namespace SkillEditor
         protected override void CreateSpecificFields()
         {
             // 检测设置
-            CreateLayerMaskField();
             CreateToggleField("多段伤害检测:", "isMultiInjuryDetection", OnMultiInjuryDetectionChanged);
-            CreateFloatField("检测间隔:", "multiInjuryDetectionInterval", OnMultiInjuryDetectionIntervalChanged);
-
-            // Transform设置
-            CreateSeparatorTitle("Transform设置");
-            CreateVector3Field("碰撞体位置:", "position", OnPositionChanged);
-            CreateVector3Field("碰撞体旋转:", "rotation", OnRotationChanged);
-            CreateVector3Field("碰撞体缩放:", "scale", OnScaleChanged);
-
+            CreateIntegerField("总检测次数:", "multiInjuryDetectionInterval", OnMultiInjuryDetectionIntervalChanged);
             // 碰撞体设置
             CreateSeparatorTitle("碰撞体设置");
-            CreateColliderTypeField();
-            // 扇形碰撞体设置
-            CreateFloatField("扇形内圆半径:", "innerCircleRadius", OnInnerCircleRadiusChanged);
-            CreateFloatField("扇形外圆半径:", "outerCircleRadius", OnOuterCircleRadiusChanged);
-            CreateFloatField("扇形角度:", "sectorAngle", OnSectorAngleChanged);
-            CreateFloatField("扇形厚度:", "sectorThickness", OnSectorThicknessChanged);
+            CreateToggleField("启用所有碰撞体:", "enableAllCollider", OnEnableAllColliderChanged);
+            CreateIntegerField("碰撞体索引值:", "injuryDetectionIndex", OnInjuryDetectionIndexChanged);
+            CreateLayerMaskField();
         }
 
         /// <summary>
@@ -58,20 +48,6 @@ namespace SkillEditor
             root.Add(layerMaskContent);
         }
 
-        /// <summary>
-        /// 创建碰撞体类型选择字段
-        /// </summary>
-        private void CreateColliderTypeField()
-        {
-            var colliderTypeContent = CreateContentContainer("碰撞体类型:");
-            var colliderTypeField = new EnumField(attackTargetData.colliderType);
-            colliderTypeField.AddToClassList("EnumField");
-            colliderTypeField.BindProperty(serializedObject.FindProperty("colliderType"));
-            colliderTypeField.RegisterValueChangedCallback(evt => OnColliderTypeChanged((FFramework.Kit.ColliderType)evt.newValue));
-            colliderTypeContent.Add(colliderTypeField);
-            root.Add(colliderTypeContent);
-        }
-
         protected override void PerformDelete()
         {
             if (EditorUtility.DisplayDialog("删除确认",
@@ -83,127 +59,6 @@ namespace SkillEditor
         }
 
         #region 事件处理方法
-
-        private void OnTargetLayersChanged(LayerMask newValue)
-        {
-            SafeExecute(() =>
-            {
-                UpdateAttackTrackConfig(configClip =>
-                {
-                    configClip.targetLayers = newValue;
-                }, "目标层级更新");
-            }, "目标层级更新");
-        }
-
-        private void OnMultiInjuryDetectionChanged(bool newValue)
-        {
-            SafeExecute(() =>
-            {
-                UpdateAttackTrackConfig(configClip =>
-                {
-                    configClip.isMultiInjuryDetection = newValue;
-                }, "多段伤害检测更新");
-            }, "多段伤害检测更新");
-        }
-
-        private void OnMultiInjuryDetectionIntervalChanged(float newValue)
-        {
-            SafeExecute(() =>
-            {
-                UpdateAttackTrackConfig(configClip =>
-                {
-                    configClip.multiInjuryDetectionInterval = newValue;
-                }, "检测间隔更新");
-            }, "检测间隔更新");
-        }
-
-        private void OnColliderTypeChanged(FFramework.Kit.ColliderType newValue)
-        {
-            SafeExecute(() =>
-            {
-                UpdateAttackTrackConfig(configClip =>
-                {
-                    configClip.colliderType = newValue;
-                }, "碰撞体类型更新");
-            }, "碰撞体类型更新");
-        }
-
-        private void OnInnerCircleRadiusChanged(float newValue)
-        {
-            SafeExecute(() =>
-            {
-                UpdateAttackTrackConfig(configClip =>
-                {
-                    configClip.innerCircleRadius = newValue;
-                }, "扇形内圆半径更新");
-            }, "扇形内圆半径更新");
-        }
-
-        private void OnOuterCircleRadiusChanged(float newValue)
-        {
-            SafeExecute(() =>
-            {
-                UpdateAttackTrackConfig(configClip =>
-                {
-                    configClip.outerCircleRadius = newValue;
-                }, "扇形外圆半径更新");
-            }, "扇形外圆半径更新");
-        }
-
-        private void OnSectorAngleChanged(float newValue)
-        {
-            SafeExecute(() =>
-            {
-                UpdateAttackTrackConfig(configClip =>
-                {
-                    configClip.sectorAngle = newValue;
-                }, "扇形角度更新");
-            }, "扇形角度更新");
-        }
-
-        private void OnSectorThicknessChanged(float newValue)
-        {
-            SafeExecute(() =>
-            {
-                UpdateAttackTrackConfig(configClip =>
-                {
-                    configClip.sectorThickness = newValue;
-                }, "扇形厚度更新");
-            }, "扇形厚度更新");
-        }
-
-        private void OnPositionChanged(Vector3 newValue)
-        {
-            SafeExecute(() =>
-            {
-                UpdateAttackTrackConfig(configClip =>
-                {
-                    configClip.position = newValue;
-                }, "碰撞体位置更新");
-            }, "碰撞体位置更新");
-        }
-
-        private void OnRotationChanged(Vector3 newValue)
-        {
-            SafeExecute(() =>
-            {
-                UpdateAttackTrackConfig(configClip =>
-                {
-                    configClip.rotation = newValue;
-                }, "碰撞体旋转更新");
-            }, "碰撞体旋转更新");
-        }
-
-        private void OnScaleChanged(Vector3 newValue)
-        {
-            SafeExecute(() =>
-            {
-                UpdateAttackTrackConfig(configClip =>
-                {
-                    configClip.scale = newValue;
-                }, "碰撞体缩放更新");
-            }, "碰撞体缩放更新");
-        }
 
         /// <summary>
         /// 起始帧变化事件处理
@@ -227,6 +82,61 @@ namespace SkillEditor
             {
                 UpdateAttackTrackConfig(configClip => configClip.durationFrame = newValue, "持续帧数更新");
             }, "持续帧数更新");
+        }
+
+        private void OnTargetLayersChanged(LayerMask newValue)
+        {
+            SafeExecute(() =>
+            {
+                UpdateAttackTrackConfig(configClip =>
+                {
+                    configClip.targetLayers = newValue;
+                }, "目标层级更新");
+            }, "目标层级更新");
+        }
+
+        private void OnMultiInjuryDetectionChanged(bool newValue)
+        {
+            SafeExecute(() =>
+            {
+                UpdateAttackTrackConfig(configClip =>
+                {
+                    configClip.isMultiInjuryDetection = newValue;
+                }, "多段伤害检测更新");
+            }, "多段伤害检测更新");
+        }
+
+        private void OnMultiInjuryDetectionIntervalChanged(int newValue)
+        {
+            SafeExecute(() =>
+            {
+                UpdateAttackTrackConfig(configClip =>
+                {
+                    configClip.multiInjuryDetectionInterval = newValue;
+                }, "检测间隔更新");
+            }, "检测间隔更新");
+        }
+
+        private void OnEnableAllColliderChanged(bool newValue)
+        {
+            SafeExecute(() =>
+           {
+               UpdateAttackTrackConfig(configClip =>
+               {
+                   configClip.enableAllCollider = newValue;
+               }, "是否启用所有碰撞检测更新");
+           }, "是否启用所有碰撞检测更新");
+        }
+
+        private void OnInjuryDetectionIndexChanged(int newValue)
+        {
+            SafeExecute(() =>
+            {
+                UpdateAttackTrackConfig(configClip =>
+                {
+                    configClip.injuryDetectionIndex = newValue;
+                }, "碰撞检测索引更新");
+            }, "碰撞检测索引更新");
         }
 
         #endregion
@@ -286,7 +196,6 @@ namespace SkillEditor
             {
                 updateAction(targetConfigClip);
                 MarkSkillConfigDirty();
-                // Debug.Log($"{operationName} 成功同步到配置文件 (轨道索引: {attackTargetData.trackIndex})");
             }
             else
             {

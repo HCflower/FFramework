@@ -202,9 +202,9 @@
 
 /* 轨道项控制区域 */
 .TrackItemControlContent{
-    width: 175px;
+    width: 200px;
     height: 100%;
-    min-width: 175px;   /* 设置最小宽度 */
+    min-width: 200px;   /* 设置最小宽度 */
     min-height: 300px;  /* 设置最小高度 */
 
     border-right-width: 1px;
@@ -253,13 +253,17 @@
     background-color: #585858;
 }
 
+.TrackItemControlButton-Loop{
+      border-width: 1px;
+      border-color: #303030;
+}
 /* 帧输入显示区域 */
 .FrameInputContent{
-    width: 120px;
+    width: 90px;
     height: 100%;
 
     margin: 0px;
-    margin-left: 2px;
+    margin-left: 3px;
     padding: 0px;
     align-items: center;
     flex-direction: row;
@@ -378,6 +382,8 @@
     flex-direction: row;   
     align-items: center;
 
+    border-top-width: 1px;
+    border-top-color: #303030;
     border-bottom-width: 1px;
     border-bottom-color: #303030;
 
@@ -400,7 +406,7 @@
 
 /* 搜索轨道输入 */
 .SearchTrackInput{
-    width:148px;
+    width:170px;
     height:18px;
 
     margin: 0px;
@@ -434,6 +440,8 @@
     flex-direction: row;   
     align-items: center;
 
+    border-top-width: 1px;
+    border-top-color: #303030;
     border-bottom-width: 1px;
     border-bottom-color: #303030;
 }
