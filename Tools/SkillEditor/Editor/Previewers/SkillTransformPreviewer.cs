@@ -10,7 +10,7 @@ namespace SkillEditor
     /// 负责在编辑器模式下预览Transform变换，包括位置、旋转和缩放动画
     /// 不影响其他轨道的预览效果，独立管理Transform状态
     /// </summary>
-    public class SkillTransformPreviewer
+    public class SkillTransformPreviewer : System.IDisposable
     {
         #region 私有字段
 

@@ -163,7 +163,7 @@ namespace SkillEditor
         /// <summary>特效轨道 - 显示视觉特效</summary>
         EffectTrack,
         /// <summary>攻击轨道 - 处理伤害检测和攻击判定</summary>
-        AttackTrack,
+        InjuryDetectionTrack,
         /// <summary>事件轨道 - 触发自定义事件</summary>
         EventTrack,
         /// <summary>Transform轨道 - 处理物体的位移、旋转和缩放</summary>

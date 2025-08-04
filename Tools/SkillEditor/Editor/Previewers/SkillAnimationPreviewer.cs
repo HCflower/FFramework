@@ -8,7 +8,7 @@ namespace SkillEditor
     /// 技能动画预览管理器
     /// 负责在编辑模式下预览技能动画
     /// </summary>
-    public class SkillAnimationPreviewer
+    public class SkillAnimationPreviewer : System.IDisposable
     {
         #region 私有字段
 

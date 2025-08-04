@@ -32,14 +32,8 @@ namespace SkillEditor
         /// <summary>技能持续时间显示标签</summary>
         private Label durationLable;
 
-        /// <summary>动画预览管理器</summary>
-        private SkillAnimationPreviewer animationPreviewer;
-
-        /// <summary>特效预览管理器</summary>
-        private SkillEffectPreviewer effectPreviewer;
-
-        /// <summary>Transform预览管理器</summary>
-        private SkillTransformPreviewer transformPreviewer;
+        /// <summary>预览器处理器</summary>
+        private SkillEditorPreviewerHandler previewerHandler;
 
         #endregion
 
@@ -53,12 +47,8 @@ namespace SkillEditor
             // 订阅技能配置变更事件
             SkillEditorEvent.OnSkillConfigChanged += UpdateTipsDisplay;
 
-            // 初始化动画预览管理器
-            animationPreviewer = new SkillAnimationPreviewer();
-
-            // 订阅当前帧变更事件，用于同步动画预览
-            SkillEditorEvent.OnCurrentFrameChanged += OnCurrentFrameChanged;
-            SkillEditorEvent.OnPlayStateChanged += OnPlayStateChanged;
+            // 初始化预览器处理器
+            previewerHandler = new SkillEditorPreviewerHandler();
         }
 
         #endregion
@@ -91,12 +81,21 @@ namespace SkillEditor
         }
 
         /// <summary>
+        /// 获取预览器处理器
+        /// </summary>
+        /// <returns>预览器处理器实例</returns>
+        public SkillEditorPreviewerHandler GetPreviewerHandler()
+        {
+            return previewerHandler;
+        }
+
+        /// <summary>
         /// 获取动画预览管理器
         /// </summary>
         /// <returns>动画预览管理器实例</returns>
         public SkillAnimationPreviewer GetAnimationPreviewer()
         {
-            return animationPreviewer;
+            return previewerHandler?.AnimationPreviewer;
         }
 
         /// <summary>
@@ -105,7 +104,7 @@ namespace SkillEditor
         /// <returns>Transform预览管理器实例</returns>
         public SkillTransformPreviewer GetTransformPreviewer()
         {
-            return transformPreviewer;
+            return previewerHandler?.TransformPreviewer;
         }
 
         /// <summary>
@@ -204,11 +203,8 @@ namespace SkillEditor
                 durationLable.text = durationText;
             }
 
-            // 更新特效预览器配置
-            UpdateEffectPreviewerConfig(newConfig);
-
-            // 更新Transform预览器配置
-            UpdateTransformPreviewerConfig(newConfig);
+            // 更新预览器配置
+            previewerHandler?.UpdateSkillConfig(newConfig);
         }
 
         /// <summary>
@@ -246,172 +242,13 @@ namespace SkillEditor
         /// </summary>
         public void Dispose()
         {
-            animationPreviewer?.Dispose();
-            effectPreviewer?.Dispose();
-            transformPreviewer?.Dispose();
+            previewerHandler?.Dispose();
             SkillEditorEvent.OnSkillConfigChanged -= UpdateTipsDisplay;
-            SkillEditorEvent.OnCurrentFrameChanged -= OnCurrentFrameChanged;
-            SkillEditorEvent.OnPlayStateChanged -= OnPlayStateChanged;
         }
 
         #endregion
 
-        #region 动画预览事件处理
-
-        /// <summary>
-        /// 当前帧变更事件处理
-        /// 当当前帧变化时，根据播放状态智能驱动动画预览和特效预览
-        /// </summary>
-        /// <param name="frame">新的当前帧</param>
-        private void OnCurrentFrameChanged(int frame)
-        {
-            // 处理动画预览
-            if (animationPreviewer != null && SkillEditorData.CurrentSkillConfig != null)
-            {
-                // 如果没有在预览状态，则启动预览
-                if (!animationPreviewer.IsPreviewing)
-                {
-                    animationPreviewer.StartPreview(SkillEditorData.CurrentSkillConfig);
-                }
-
-                // 驱动动画到指定帧（UpdateEditModePreview会检查播放状态）
-                animationPreviewer.PreviewFrame(frame);
-            }
-
-            // 处理特效预览
-            if (SkillEditorData.CurrentSkillConfig != null)
-            {
-                // 如果特效预览器不存在，尝试初始化
-                if (effectPreviewer == null && SkillEditorData.CurrentSkillConfig.owner != null)
-                {
-                    InitializeEffectPreviewer(SkillEditorData.CurrentSkillConfig.owner);
-                    Debug.Log($"自动初始化特效预览器 - 技能所有者: {SkillEditorData.CurrentSkillConfig.owner.name}");
-                }
-
-                if (effectPreviewer != null)
-                {
-                    // 如果没有在预览状态，则启动预览
-                    if (!effectPreviewer.IsPreviewActive)
-                    {
-                        effectPreviewer.StartPreview();
-                    }
-
-                    // 驱动特效到指定帧
-                    effectPreviewer.PreviewFrame(frame);
-                }
-                else
-                {
-                    Debug.LogWarning($"特效预览器为空 - 帧: {frame}, 技能配置: {SkillEditorData.CurrentSkillConfig?.skillName}, 技能所有者: {SkillEditorData.CurrentSkillConfig?.owner?.name}");
-                }
-            }
-
-            // 处理Transform预览
-            if (SkillEditorData.CurrentSkillConfig != null)
-            {
-                // 如果Transform预览器不存在，尝试初始化
-                if (transformPreviewer == null && SkillEditorData.CurrentSkillConfig.owner != null)
-                {
-                    InitializeTransformPreviewer(SkillEditorData.CurrentSkillConfig.owner);
-                    Debug.Log($"自动初始化Transform预览器 - 技能所有者: {SkillEditorData.CurrentSkillConfig.owner.name}");
-                }
-
-                if (transformPreviewer != null)
-                {
-                    // 如果没有在预览状态，则启动预览
-                    if (!transformPreviewer.IsPreviewActive)
-                    {
-                        transformPreviewer.StartPreview();
-                    }
-
-                    // 驱动Transform到指定帧
-                    transformPreviewer.PreviewFrame(frame);
-                }
-                else
-                {
-                    Debug.LogWarning($"Transform预览器为空 - 帧: {frame}, 技能配置: {SkillEditorData.CurrentSkillConfig?.skillName}, 技能所有者: {SkillEditorData.CurrentSkillConfig?.owner?.name}");
-                }
-            }
-        }
-
-        /// <summary>
-        /// 播放状态变更事件处理
-        /// 处理动画预览和特效预览的播放状态变化
-        /// </summary>
-        /// <param name="isPlaying">是否正在播放</param>
-        private void OnPlayStateChanged(bool isPlaying)
-        {
-            // 处理动画预览
-            if (animationPreviewer != null)
-            {
-                if (isPlaying)
-                {
-                    // 开始播放或恢复播放
-                    if (SkillEditorData.CurrentSkillConfig != null && animationPreviewer.PreviewTarget != null)
-                    {
-                        // 如果动画预览器正在预览状态，只需要恢复播放速度
-                        if (animationPreviewer.IsPreviewing)
-                        {
-                            animationPreviewer.SetPreviewSpeed(1.0f);
-                        }
-                        else
-                        {
-                            // 如果没有在预览状态，启动预览并跳转到当前帧
-                            animationPreviewer.StartPreview(SkillEditorData.CurrentSkillConfig);
-                            animationPreviewer.PreviewFrame(SkillEditorData.CurrentFrame);
-                        }
-                    }
-                }
-                else
-                {
-                    // 暂停时只设置播放速度为0，保持当前帧位置
-                    animationPreviewer.SetPreviewSpeed(0.0f);
-                }
-            }
-
-            // 处理特效预览
-            if (effectPreviewer != null)
-            {
-                if (isPlaying)
-                {
-                    // 开始播放或恢复播放特效
-                    if (SkillEditorData.CurrentSkillConfig != null)
-                    {
-                        if (!effectPreviewer.IsPreviewActive)
-                        {
-                            effectPreviewer.StartPreview();
-                        }
-                        effectPreviewer.PreviewFrame(SkillEditorData.CurrentFrame);
-                    }
-                }
-                else
-                {
-                    // 暂停时保持当前特效状态
-                    // 特效预览器没有播放速度概念，只是显示当前帧的状态
-                }
-            }
-
-            // 处理Transform预览
-            if (transformPreviewer != null)
-            {
-                if (isPlaying)
-                {
-                    // 开始播放或恢复播放Transform
-                    if (SkillEditorData.CurrentSkillConfig != null)
-                    {
-                        if (!transformPreviewer.IsPreviewActive)
-                        {
-                            transformPreviewer.StartPreview();
-                        }
-                        transformPreviewer.PreviewFrame(SkillEditorData.CurrentFrame);
-                    }
-                }
-                else
-                {
-                    // 暂停时保持当前Transform状态
-                    // Transform预览器没有播放速度概念，只是显示当前帧的状态
-                }
-            }
-        }
+        #region 私有方法
 
         /// <summary>
         /// 更新技能所属对象
@@ -419,30 +256,8 @@ namespace SkillEditor
         /// <param name="selectedGameObject">选择的游戏对象</param>
         private void UpdateSkillOwner(SkillRuntimeController selectedGameObject)
         {
-            // 更新技能配置中的owner字段
-            if (SkillEditorData.CurrentSkillConfig != null)
-            {
-                SkillEditorData.CurrentSkillConfig.owner = selectedGameObject;
-
-#if UNITY_EDITOR
-                UnityEditor.EditorUtility.SetDirty(SkillEditorData.CurrentSkillConfig);
-#endif
-            }
-
-            // 设置动画预览目标
-            if (animationPreviewer != null)
-            {
-                if (animationPreviewer.SetPreviewTarget(selectedGameObject))
-                {
-                    Debug.Log($"设置动画预览目标: {selectedGameObject?.name}");
-                }
-            }
-
-            // 重新初始化特效预览器
-            InitializeEffectPreviewer(selectedGameObject);
-
-            // 重新初始化Transform预览器
-            InitializeTransformPreviewer(selectedGameObject);
+            // 通过预览器处理器更新技能所有者
+            previewerHandler?.UpdateSkillOwner(selectedGameObject);
         }
 
         #endregion
@@ -475,10 +290,6 @@ namespace SkillEditor
             }
         }
 
-        /// <summary>
-        /// 应用滚动偏移到时间轴显示
-        /// 根据当前滚动偏移调整时间轴的显示位置
-        /// </summary>
         /// <summary>
         /// 应用滚动偏移到时间轴显示
         /// 根据当前滚动偏移调整时间轴的显示位置
@@ -835,117 +646,14 @@ namespace SkillEditor
 
         #endregion
 
-        #region 特效预览管理
-
-        /// <summary>
-        /// 初始化特效预览器
-        /// </summary>
-        /// <param name="selectedGameObject">选择的游戏对象作为技能所有者</param>
-        private void InitializeEffectPreviewer(SkillRuntimeController selectedGameObject)
-        {
-            // 清理现有的特效预览器
-            if (effectPreviewer != null)
-            {
-                effectPreviewer.Dispose();
-                effectPreviewer = null;
-            }
-
-            // 如果有技能所有者和技能配置，创建新的特效预览器
-            if (selectedGameObject != null && SkillEditorData.CurrentSkillConfig != null)
-            {
-                effectPreviewer = new SkillEffectPreviewer(selectedGameObject, SkillEditorData.CurrentSkillConfig);
-                Debug.Log($"初始化特效预览器 - 技能所有者: {selectedGameObject.name}");
-            }
-        }
-
-        /// <summary>
-        /// 更新特效预览器的配置
-        /// </summary>
-        /// <param name="newConfig">新的技能配置</param>
-        private void UpdateEffectPreviewerConfig(SkillConfig newConfig)
-        {
-            if (newConfig == null) return;
-
-            // 如果特效预览器不存在，尝试使用技能配置中的owner初始化
-            if (effectPreviewer == null)
-            {
-                if (newConfig.owner != null)
-                {
-                    InitializeEffectPreviewer(newConfig.owner);
-                }
-                return;
-            }
-
-            // 重新初始化特效预览器以使用新配置
-            SkillRuntimeController currentOwner = effectPreviewer.SkillOwner;
-            if (currentOwner != null)
-            {
-                effectPreviewer.Dispose();
-                effectPreviewer = new SkillEffectPreviewer(currentOwner, newConfig);
-            }
-        }
+        #region 预览器管理
 
         /// <summary>
         /// 刷新特效预览器数据 - 当轨道项发生变化时调用
         /// </summary>
         public void RefreshEffectPreviewerData()
         {
-            if (effectPreviewer != null && effectPreviewer.IsPreviewActive)
-            {
-                effectPreviewer.RefreshEffectData();
-            }
-        }
-
-        #endregion
-
-        #region Transform预览管理
-
-        /// <summary>
-        /// 初始化Transform预览器
-        /// </summary>
-        /// <param name="selectedGameObject">选择的游戏对象作为技能所有者</param>
-        private void InitializeTransformPreviewer(SkillRuntimeController selectedGameObject)
-        {
-            // 清理现有的Transform预览器
-            if (transformPreviewer != null)
-            {
-                transformPreviewer.Dispose();
-                transformPreviewer = null;
-            }
-
-            // 如果有技能所有者和技能配置，创建新的Transform预览器
-            if (selectedGameObject != null && SkillEditorData.CurrentSkillConfig != null)
-            {
-                transformPreviewer = new SkillTransformPreviewer(selectedGameObject, SkillEditorData.CurrentSkillConfig);
-                Debug.Log($"初始化Transform预览器 - 技能所有者: {selectedGameObject.name}");
-            }
-        }
-
-        /// <summary>
-        /// 更新Transform预览器的配置
-        /// </summary>
-        /// <param name="newConfig">新的技能配置</param>
-        private void UpdateTransformPreviewerConfig(SkillConfig newConfig)
-        {
-            if (newConfig == null) return;
-
-            // 如果Transform预览器不存在，尝试使用技能配置中的owner初始化
-            if (transformPreviewer == null)
-            {
-                if (newConfig.owner != null)
-                {
-                    InitializeTransformPreviewer(newConfig.owner);
-                }
-                return;
-            }
-
-            // 重新初始化Transform预览器以使用新配置
-            SkillRuntimeController currentOwner = transformPreviewer.SkillOwner;
-            if (currentOwner != null)
-            {
-                transformPreviewer.Dispose();
-                transformPreviewer = new SkillTransformPreviewer(currentOwner, newConfig);
-            }
+            previewerHandler?.RefreshEffectPreviewerData();
         }
 
         /// <summary>
@@ -953,10 +661,7 @@ namespace SkillEditor
         /// </summary>
         public void RefreshTransformPreviewerData()
         {
-            if (transformPreviewer != null && transformPreviewer.IsPreviewActive)
-            {
-                transformPreviewer.RefreshTransformData();
-            }
+            previewerHandler?.RefreshTransformPreviewerData();
         }
 
         #endregion

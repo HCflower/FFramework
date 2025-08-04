@@ -3,7 +3,6 @@ using UnityEditor.UIElements;
 using UnityEditor;
 using UnityEngine;
 using System.Linq;
-using System;
 
 namespace SkillEditor
 {
@@ -25,13 +24,10 @@ namespace SkillEditor
         protected override void CreateSpecificFields()
         {
             // 检测设置
-            CreateToggleField("多段伤害检测:", "isMultiInjuryDetection", OnMultiInjuryDetectionChanged);
-            CreateIntegerField("总检测次数:", "multiInjuryDetectionInterval", OnMultiInjuryDetectionIntervalChanged);
-            // 碰撞体设置
-            CreateSeparatorTitle("碰撞体设置");
-            CreateToggleField("启用所有碰撞体:", "enableAllCollider", OnEnableAllColliderChanged);
-            CreateIntegerField("碰撞体索引值:", "injuryDetectionIndex", OnInjuryDetectionIndexChanged);
+            CreateSeparatorTitle("碰撞检测设置");
             CreateLayerMaskField();
+            CreateToggleField("启用所有检测组:", "enableAllCollisionGroups", OnEnableAllColliderChanged);
+            CreateIntegerField("碰撞检测组ID:", "collisionGroupId", OnCollisionGroupIdChanged);
         }
 
         /// <summary>
@@ -95,48 +91,21 @@ namespace SkillEditor
             }, "目标层级更新");
         }
 
-        private void OnMultiInjuryDetectionChanged(bool newValue)
-        {
-            SafeExecute(() =>
-            {
-                UpdateAttackTrackConfig(configClip =>
-                {
-                    configClip.isMultiInjuryDetection = newValue;
-                }, "多段伤害检测更新");
-            }, "多段伤害检测更新");
-        }
-
-        private void OnMultiInjuryDetectionIntervalChanged(int newValue)
-        {
-            SafeExecute(() =>
-            {
-                UpdateAttackTrackConfig(configClip =>
-                {
-                    configClip.multiInjuryDetectionInterval = newValue;
-                }, "检测间隔更新");
-            }, "检测间隔更新");
-        }
-
         private void OnEnableAllColliderChanged(bool newValue)
         {
             SafeExecute(() =>
-           {
-               UpdateAttackTrackConfig(configClip =>
-               {
-                   configClip.enableAllCollider = newValue;
-               }, "是否启用所有碰撞检测更新");
-           }, "是否启用所有碰撞检测更新");
+            {
+                UpdateAttackTrackConfig(configClip => configClip.enableAllCollisionGroups = newValue, "启用所有碰撞体更新");
+            }, "启用所有碰撞体更新");
         }
 
-        private void OnInjuryDetectionIndexChanged(int newValue)
+
+        private void OnCollisionGroupIdChanged(int newValue)
         {
             SafeExecute(() =>
             {
-                UpdateAttackTrackConfig(configClip =>
-                {
-                    configClip.injuryDetectionIndex = newValue;
-                }, "碰撞检测索引更新");
-            }, "碰撞检测索引更新");
+                UpdateAttackTrackConfig(configClip => configClip.collisionGroupId = newValue, "碰撞检测组ID更新");
+            }, "碰撞检测组ID更新");
         }
 
         #endregion

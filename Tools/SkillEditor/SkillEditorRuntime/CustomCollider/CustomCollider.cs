@@ -8,11 +8,9 @@ using UnityEngine;
 public abstract class CustomCollider : MonoBehaviour
 {
     [Header("碰撞检测")]
-    [Tooltip("检测的图层")] public LayerMask targetLayers = -1;
     [Tooltip("是否启用碰撞检测")] public bool enableCollisionDetection = true;
-    [Tooltip("碰撞检测索引")] public int injuryDetectionIndex = 0;
-
-    [Header("空间变换")]
+    [Tooltip("检测的图层")] public LayerMask targetLayers = -1;
+    [Tooltip("检测频率(帧数间隔)"), Min(1)] public int frameInterval = 1;
     [Tooltip("自定义中心点偏移")] public Vector3 centerOffset = Vector3.zero;
     [Tooltip("自定义旋转偏移")] public Vector3 rotationOffset = Vector3.zero;
 
@@ -23,6 +21,14 @@ public abstract class CustomCollider : MonoBehaviour
     // 缓存的碰撞对象列表
     protected HashSet<Collider> collidersInRange = new HashSet<Collider>();
     protected List<Collider> tempColliderList = new List<Collider>();
+
+    // 性能优化相关
+    private int frameCounter = 0;
+    private Vector3[] cachedCorners = new Vector3[8]; // 预分配角点数组
+    private Vector3 lastDetectionPosition;
+    private Quaternion lastDetectionRotation;
+    private float positionThreshold = 0.1f;
+    private float rotationThreshold = 5f;
 
     #region 通用属性
 
@@ -238,13 +244,45 @@ public abstract class CustomCollider : MonoBehaviour
     {
         if (!enableCollisionDetection) return;
 
-        collidersInRange.Clear();
-        var currentColliders = GetCollidersInRange();
-
-        foreach (var collider in currentColliders)
+        // 性能优化：检测频率控制
+        if (frameInterval > 1)
         {
-            collidersInRange.Add(collider);
+            frameCounter++;
+            if (frameCounter < frameInterval)
+                return;
+            frameCounter = 0;
         }
+
+        // 性能优化：位置变化检测
+        if (HasSignificantTransformChange())
+        {
+            collidersInRange.Clear();
+            var currentColliders = GetCollidersInRange();
+
+            // 添加所有检测到的碰撞体
+            foreach (var collider in currentColliders)
+            {
+                collidersInRange.Add(collider);
+            }
+
+            // 更新缓存的变换信息
+            lastDetectionPosition = ColliderCenter;
+            lastDetectionRotation = Quaternion.LookRotation(ColliderForward, ColliderUp);
+        }
+    }
+
+    /// <summary>
+    /// 检查变换是否有显著变化
+    /// </summary>
+    private bool HasSignificantTransformChange()
+    {
+        Vector3 currentPosition = ColliderCenter;
+        Quaternion currentRotation = Quaternion.LookRotation(ColliderForward, ColliderUp);
+
+        bool positionChanged = Vector3.Distance(currentPosition, lastDetectionPosition) > positionThreshold;
+        bool rotationChanged = Quaternion.Angle(currentRotation, lastDetectionRotation) > rotationThreshold;
+
+        return positionChanged || rotationChanged;
     }
 
     /// <summary>
@@ -256,12 +294,12 @@ public abstract class CustomCollider : MonoBehaviour
     }
 
     /// <summary>
-    /// 获取当前缓存的碰撞体列表
+    /// 获取当前缓存的碰撞体列表（性能优化版本）
     /// </summary>
-    /// <returns>碰撞体HashSet</returns>
+    /// <returns>碰撞体HashSet（只读）</returns>
     public virtual HashSet<Collider> GetCachedColliders()
     {
-        return new HashSet<Collider>(collidersInRange);
+        return collidersInRange; // 直接返回引用，避免创建新对象
     }
 
     /// <summary>
@@ -287,7 +325,7 @@ public abstract class CustomCollider : MonoBehaviour
     #region 通用工具方法
 
     /// <summary>
-    /// 检查碰撞体边界框的所有角点是否有任何一个在范围内
+    /// 检查碰撞体边界框的所有角点是否有任何一个在范围内（性能优化版本）
     /// </summary>
     /// <param name="collider">目标碰撞体</param>
     /// <returns>是否有角点在范围内</returns>
@@ -295,27 +333,33 @@ public abstract class CustomCollider : MonoBehaviour
     {
         if (collider == null) return false;
 
-        // 检查碰撞体的中心点
+        // 先检查碰撞体的中心点（最快的检测）
         if (IsPointInRange(collider.bounds.center))
             return true;
 
-        // 检查碰撞体边界的8个角点
+        // 获取边界框信息
         Bounds bounds = collider.bounds;
-        Vector3[] corners = new Vector3[8];
 
-        corners[0] = new Vector3(bounds.min.x, bounds.min.y, bounds.min.z);
-        corners[1] = new Vector3(bounds.max.x, bounds.min.y, bounds.min.z);
-        corners[2] = new Vector3(bounds.min.x, bounds.max.y, bounds.min.z);
-        corners[3] = new Vector3(bounds.max.x, bounds.max.y, bounds.min.z);
-        corners[4] = new Vector3(bounds.min.x, bounds.min.y, bounds.max.z);
-        corners[5] = new Vector3(bounds.max.x, bounds.min.y, bounds.max.z);
-        corners[6] = new Vector3(bounds.min.x, bounds.max.y, bounds.max.z);
-        corners[7] = new Vector3(bounds.max.x, bounds.max.y, bounds.max.z);
+        // 快速边界检查：如果碰撞体边界与检测区域完全不相交，直接返回false
+        float detectionRadius = GetDetectionRadius();
+        Vector3 center = ColliderCenter;
+        if (Vector3.Distance(bounds.center, center) > detectionRadius + bounds.size.magnitude * 0.5f)
+            return false;
 
-        // 检查任意一个角点是否在范围内
-        foreach (var corner in corners)
+        // 使用预分配的数组存储8个角点
+        cachedCorners[0] = new Vector3(bounds.min.x, bounds.min.y, bounds.min.z);
+        cachedCorners[1] = new Vector3(bounds.max.x, bounds.min.y, bounds.min.z);
+        cachedCorners[2] = new Vector3(bounds.min.x, bounds.max.y, bounds.min.z);
+        cachedCorners[3] = new Vector3(bounds.max.x, bounds.max.y, bounds.min.z);
+        cachedCorners[4] = new Vector3(bounds.min.x, bounds.min.y, bounds.max.z);
+        cachedCorners[5] = new Vector3(bounds.max.x, bounds.min.y, bounds.max.z);
+        cachedCorners[6] = new Vector3(bounds.min.x, bounds.max.y, bounds.max.z);
+        cachedCorners[7] = new Vector3(bounds.max.x, bounds.max.y, bounds.max.z);
+
+        // 检查角点（如果有任意一个在范围内就早期返回）
+        for (int i = 0; i < 8; i++)
         {
-            if (IsPointInRange(corner))
+            if (IsPointInRange(cachedCorners[i]))
                 return true;
         }
 
@@ -366,6 +410,42 @@ public abstract class CustomCollider : MonoBehaviour
         ResetColliderRotationToTransform();
         UnityEditor.EditorUtility.SetDirty(this);
     }
+
+    /// <summary>
+    /// 编辑器菜单：设置旋转为对象本地旋转
+    /// </summary>
+    [UnityEngine.ContextMenu("设置旋转为对象本地旋转")]
+    protected virtual void EditorSetRotationToLocalRotation()
+    {
+        // 将旋转偏移设置为对象的本地旋转（相对于父物体的旋转）
+        if (transform.parent != null)
+        {
+            // 如果有父物体，计算相对于父物体的旋转
+            Quaternion localRotation = transform.localRotation;
+            Vector3 eulerAngles = localRotation.eulerAngles;
+
+            // 处理浮点数精度问题，将接近0的值设置为0
+            eulerAngles.x = Mathf.Abs(eulerAngles.x) < 0.001f ? 0f : eulerAngles.x;
+            eulerAngles.y = Mathf.Abs(eulerAngles.y) < 0.001f ? 0f : eulerAngles.y;
+            eulerAngles.z = Mathf.Abs(eulerAngles.z) < 0.001f ? 0f : eulerAngles.z;
+
+            rotationOffset = eulerAngles;
+        }
+        else
+        {
+            // 如果没有父物体，本地旋转就是世界旋转
+            Vector3 eulerAngles = transform.rotation.eulerAngles;
+
+            // 处理浮点数精度问题，将接近0的值设置为0
+            eulerAngles.x = Mathf.Abs(eulerAngles.x) < 0.001f ? 0f : eulerAngles.x;
+            eulerAngles.y = Mathf.Abs(eulerAngles.y) < 0.001f ? 0f : eulerAngles.y;
+            eulerAngles.z = Mathf.Abs(eulerAngles.z) < 0.001f ? 0f : eulerAngles.z;
+
+            rotationOffset = eulerAngles;
+        }
+        UnityEditor.EditorUtility.SetDirty(this);
+    }
+
 #endif
 
     #endregion
@@ -376,6 +456,10 @@ public abstract class CustomCollider : MonoBehaviour
     {
         // 子类可以重写此方法进行初始化
         ValidateParameters();
+
+        // 初始化缓存的变换信息
+        lastDetectionPosition = ColliderCenter;
+        lastDetectionRotation = Quaternion.LookRotation(ColliderForward, ColliderUp);
     }
 
     protected virtual void Update()
@@ -412,18 +496,21 @@ public abstract class CustomCollider : MonoBehaviour
 #if UNITY_EDITOR
     protected virtual void OnDrawGizmos()
     {
-        if (!showGizmosInScene) return;
+        // 如果组件是未激活状态就不需要绘制
+        if (!showGizmosInScene || !enabled) return;
         DrawColliderGizmos();
     }
 
     protected virtual void OnDrawGizmosSelected()
     {
-        if (showGizmosInScene) return; // 避免重复绘制
+        // 避免重复绘制，如果组件是未激活状态就不需要绘制
+        if (showGizmosInScene || !enabled) return;
         DrawColliderGizmos();
     }
 
     /// <summary>
     /// 绘制碰撞体区域（子类必须实现）
+    /// 子类应在方法开始时检查组件是否激活：if (!enabled) return;
     /// </summary>
     protected abstract void DrawColliderGizmos();
 
@@ -432,6 +519,9 @@ public abstract class CustomCollider : MonoBehaviour
     /// </summary>
     protected virtual void DrawCommonGizmos()
     {
+        // 如果组件是未激活状态就不需要绘制
+        if (!enabled) return;
+
         Vector3 center = ColliderCenter;
         Vector3 forward = ColliderForward;
 

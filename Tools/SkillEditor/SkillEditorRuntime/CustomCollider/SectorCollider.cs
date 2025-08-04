@@ -5,6 +5,7 @@ using UnityEngine;
 /// 扇形碰撞体
 /// 用于检测扇形区域内的碰撞，支持内外圆半径、角度和厚度设置
 /// </summary>
+[AddComponentMenu("CustomColliders/3D/Sector Collider")]
 public class SectorCollider : CustomCollider
 {
     [Header("扇形参数")]
@@ -111,26 +112,27 @@ public class SectorCollider : CustomCollider
     {
         Vector3 localPosition = worldPosition - sectorCenter;
 
+        // 快速距离检查（使用平方距离避免开方计算）
+        float sqrDistance = localPosition.sqrMagnitude;
+        if (sqrDistance < innerCircleRadius * innerCircleRadius || sqrDistance > outerCircleRadius * outerCircleRadius)
+            return false;
+
         // 检查高度范围（厚度）
         float heightOffset = Vector3.Dot(localPosition, sectorUp);
         if (Mathf.Abs(heightOffset) > sectorThickness * 0.5f)
             return false;
 
-        // 投影到扇形平面
-        Vector3 projectedPos = localPosition - heightOffset * sectorUp;
-        float distance = projectedPos.magnitude;
-
-        // 检查距离范围
-        if (distance < innerCircleRadius || distance > outerCircleRadius)
-            return false;
-
-        // 如果角度为360度，直接返回true
+        // 如果角度为360度，跳过角度检查
         if (sectorAngle >= 360f)
             return true;
 
-        // 检查角度范围
-        float angle = Vector3.Angle(sectorForward, projectedPos);
-        return angle <= sectorAngle * 0.5f;
+        // 投影到扇形平面
+        Vector3 projectedPos = localPosition - heightOffset * sectorUp;
+
+        // 检查角度范围（使用点积比较，避免Vector3.Angle的反三角函数计算）
+        float dot = Vector3.Dot(sectorForward.normalized, projectedPos.normalized);
+        float halfAngleCos = Mathf.Cos(sectorAngle * 0.5f * Mathf.Deg2Rad);
+        return dot >= halfAngleCos;
     }
 
     /// <summary>

@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Collections;
 using UnityEngine;
 using System;
 
@@ -20,7 +19,14 @@ namespace FFramework.Kit
         public ISkillEvent skillEvent => GetComponent<ISkillEvent>();
 
         [Header("伤害检测")]
-        [Tooltip("伤害检测碰撞器")] public List<CustomCollider> injuryDetectionColliders = new List<CustomCollider>();
+        [Tooltip("伤害检测碰撞器")] public List<CollisionGroup> collisionGroup = new List<CollisionGroup>();
 
+    }
+
+    [Serializable]
+    public class CollisionGroup
+    {
+        [Min(0)][Tooltip("碰撞组ID")] public int collisionGroupId;
+        public List<CustomCollider> colliders = new List<CustomCollider>();
     }
 }

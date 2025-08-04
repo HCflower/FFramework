@@ -11,7 +11,7 @@ namespace SkillEditor
     /// 参考动画预览系统实现的特效预览功能
     /// 支持在编辑器模式下预览特效，检查技能所有者子对象是否存在特效资源，如果不存在就创建，如果存在则驱动预览
     /// </summary>
-    public class SkillEffectPreviewer
+    public class SkillEffectPreviewer : System.IDisposable
     {
         #region 私有字段
 

@@ -1,4 +1,3 @@
-using FFramework.Kit;
 using UnityEngine;
 
 namespace SkillEditor
@@ -11,9 +10,7 @@ namespace SkillEditor
     {
         [Header("检测设置")]
         [Tooltip("目标层级")] public LayerMask targetLayers = -1;
-        [Tooltip("是否是多段伤害检测")] public bool isMultiInjuryDetection = false;
-        [Tooltip("多段伤害检测间隔"), Min(1)] public int multiInjuryDetectionInterval = 1;
-        [Tooltip("启用所有碰撞体")] public bool enableAllCollider = false;
-        [Tooltip("碰撞体索引值")] public int injuryDetectionIndex = 0;
+        [Tooltip("启用所有碰撞体")] public bool enableAllCollisionGroups = false;
+        [Tooltip("碰撞检测组ID")] public int collisionGroupId = 0;
     }
 }

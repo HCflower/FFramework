@@ -22,7 +22,7 @@ namespace SkillEditor
         /// <param name="skillConfig">技能配置对象</param>
         /// <param name="trackIndex">轨道索引</param>
         public InjuryDetectionSkillEditorTrack(VisualElement visual, float width, FFramework.Kit.SkillConfig skillConfig, int trackIndex = 0)
-            : base(visual, TrackType.AttackTrack, width, skillConfig, trackIndex)
+            : base(visual, TrackType.InjuryDetectionTrack, width, skillConfig, trackIndex)
         { }
 
         #region 抽象方法实现
@@ -144,10 +144,8 @@ namespace SkillEditor
                 startFrame = startFrame,
                 durationFrame = frameCount,
                 targetLayers = -1,
-                isMultiInjuryDetection = false,
-                multiInjuryDetectionInterval = 1,
-                injuryDetectionIndex = 0,
-                enableAllCollider = false
+                enableAllCollisionGroups = false,
+                collisionGroupId = 0,
             };
 
             // 添加到对应索引的伤害检测轨道
@@ -198,10 +196,8 @@ namespace SkillEditor
                     attackData.durationFrame = clip.durationFrame;
                     // 从配置中恢复完整的攻击属性
                     attackData.targetLayers = clip.targetLayers;
-                    attackData.isMultiInjuryDetection = clip.isMultiInjuryDetection;
-                    attackData.multiInjuryDetectionInterval = clip.multiInjuryDetectionInterval;
-                    attackData.injuryDetectionIndex = clip.injuryDetectionIndex;
-                    attackData.enableAllCollider = clip.enableAllCollider;
+                    attackData.enableAllCollisionGroups = clip.enableAllCollisionGroups;
+                    attackData.collisionGroupId = clip.collisionGroupId;
 #if UNITY_EDITOR
                     // 标记数据已修改
                     UnityEditor.EditorUtility.SetDirty(attackData);

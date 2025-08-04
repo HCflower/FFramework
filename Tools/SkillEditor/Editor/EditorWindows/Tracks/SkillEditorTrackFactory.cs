@@ -34,7 +34,7 @@ namespace SkillEditor
                 case TrackType.EventTrack:
                     return new EventSkillEditorTrack(visual, width, skillConfig, trackIndex);
 
-                case TrackType.AttackTrack:
+                case TrackType.InjuryDetectionTrack:
                     return new InjuryDetectionSkillEditorTrack(visual, width, skillConfig, trackIndex);
 
                 case TrackType.TransformTrack:
@@ -73,7 +73,7 @@ namespace SkillEditor
                 case TrackType.EventTrack:
                     return "事件轨道";
 
-                case TrackType.AttackTrack:
+                case TrackType.InjuryDetectionTrack:
                     return "伤害检测轨道";
 
                 case TrackType.TransformTrack:
@@ -107,7 +107,7 @@ namespace SkillEditor
                 case TrackType.AudioTrack:
                 case TrackType.EffectTrack:
                 case TrackType.EventTrack:
-                case TrackType.AttackTrack:
+                case TrackType.InjuryDetectionTrack:
                 case TrackType.GameObjectTrack:
                     return true; // 这些轨道支持多个
 

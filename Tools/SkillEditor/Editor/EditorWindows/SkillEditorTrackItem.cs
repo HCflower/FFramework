@@ -254,7 +254,7 @@ namespace SkillEditor
                 TrackType.AudioTrack => "TrackItem-Audio",
                 TrackType.EffectTrack => "TrackItem-Effect",
                 TrackType.EventTrack => "TrackItem-Event",
-                TrackType.AttackTrack => "TrackItem-Attack",
+                TrackType.InjuryDetectionTrack => "TrackItem-Attack",
                 TrackType.TransformTrack => "TrackItem-Transform",
                 TrackType.CameraTrack => "TrackItem-Camera",
                 TrackType.GameObjectTrack => "TrackItem-GameObject",
@@ -424,7 +424,7 @@ namespace SkillEditor
                     return CreateEffectTrackItemData(itemName);
                 case TrackType.EventTrack:
                     return CreateEventTrackItemData(itemName);
-                case TrackType.AttackTrack:
+                case TrackType.InjuryDetectionTrack:
                     return CreateAttackTrackItemData(itemName);
                 case TrackType.TransformTrack:
                     return CreateTransformTrackItemData(itemName);

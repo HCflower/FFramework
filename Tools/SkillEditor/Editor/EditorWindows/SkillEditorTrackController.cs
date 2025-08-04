@@ -103,7 +103,7 @@ namespace SkillEditor
                 case TrackType.EventTrack:
                     trackControlArea.AddToClassList("TrackControlArea-Event");
                     break;
-                case TrackType.AttackTrack:
+                case TrackType.InjuryDetectionTrack:
                     trackControlArea.AddToClassList("TrackControlArea-Attack");
                     break;
                 case TrackType.TransformTrack:
@@ -232,7 +232,7 @@ namespace SkillEditor
                     return ("d_VisualEffectAsset Icon", "特效轨道", true);
                 case TrackType.EventTrack:
                     return ("SignalAsset Icon", "事件轨道", true);
-                case TrackType.AttackTrack:
+                case TrackType.InjuryDetectionTrack:
                     return ("d_BoxCollider Icon", "攻击轨道", true);
                 case TrackType.TransformTrack:
                     return ("d_Transform Icon", "变化轨道", true);
@@ -285,7 +285,7 @@ namespace SkillEditor
             });
 
             //TODO: 子轨道管理选项（仅特定轨道类型支持）
-            if (TrackType == TrackType.AttackTrack || TrackType == TrackType.EventTrack || TrackType == TrackType.TransformTrack)
+            if (TrackType == TrackType.InjuryDetectionTrack || TrackType == TrackType.EventTrack || TrackType == TrackType.TransformTrack)
             {
                 menu.AddItem(new GUIContent("添加轨道项"), false, () =>
                 {

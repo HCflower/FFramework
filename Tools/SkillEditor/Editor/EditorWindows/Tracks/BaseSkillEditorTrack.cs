@@ -133,7 +133,7 @@ namespace SkillEditor
                 case TrackType.EventTrack:
                     trackArea.AddToClassList("TrackArea-Event");
                     break;
-                case TrackType.AttackTrack:
+                case TrackType.InjuryDetectionTrack:
                     trackArea.AddToClassList("TrackArea-Attack");
                     break;
                 case TrackType.TransformTrack:

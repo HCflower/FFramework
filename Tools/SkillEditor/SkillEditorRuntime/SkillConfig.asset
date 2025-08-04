@@ -147,14 +147,24 @@ MonoBehaviour:
     injuryDetectionClips:
     - clipName: InjuryDetection
       startFrame: 19
-      durationFrame: 12
+      durationFrame: 5
       targetLayers:
         serializedVersion: 2
         m_Bits: 4294967295
-      isMultiInjuryDetection: 0
-      multiInjuryDetectionInterval: 1
-      enableAllCollider: 0
-      injuryDetectionIndex: 1
+      enableAllCollisionGroups: 0
+      collisionGroupId: 0
+  - trackName: "\u4F24\u5BB3\u68C0\u6D4B\u8F68\u9053 2"
+    trackIndex: 1
+    isEnabled: 1
+    injuryDetectionClips:
+    - clipName: InjuryDetection
+      startFrame: 20
+      durationFrame: 5
+      targetLayers:
+        serializedVersion: 2
+        m_Bits: 4294967295
+      enableAllCollisionGroups: 0
+      collisionGroupId: 1
 --- !u!114 &4144422302740679402
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -172,10 +182,10 @@ MonoBehaviour:
     trackIndex: 0
     isEnabled: 1
     audioClips:
-    - clipName: 032-033_hit
-      startFrame: 18
-      durationFrame: 12
-      clip: {fileID: 8300000, guid: a2fb213c8a76ee641b91674426aea94a, type: 3}
+    - clipName: 074_knife
+      startFrame: 15
+      durationFrame: 17
+      clip: {fileID: 8300000, guid: b50e386b9f25be147934ef2cf68d432e, type: 3}
       volume: 1
       pitch: 1
       spatialBlend: 0

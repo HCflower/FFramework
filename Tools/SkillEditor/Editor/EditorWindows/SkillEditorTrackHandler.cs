@@ -117,7 +117,7 @@ namespace SkillEditor
             // 添加多轨道类型菜单项
             AddMultiTrackMenuItem(menu, "创建 Audio Track", TrackType.AudioTrack);
             AddMultiTrackMenuItem(menu, "创建 Effect Track", TrackType.EffectTrack);
-            AddMultiTrackMenuItem(menu, "创建 Attack Track", TrackType.AttackTrack);
+            AddMultiTrackMenuItem(menu, "创建 InjuryDetection Track", TrackType.InjuryDetectionTrack);
             AddMultiTrackMenuItem(menu, "创建 Event Track", TrackType.EventTrack);
             AddMultiTrackMenuItem(menu, "创建 GameObject Track", TrackType.GameObjectTrack);
 
@@ -160,7 +160,7 @@ namespace SkillEditor
                 TrackType.TransformTrack => "变换",
                 TrackType.AudioTrack => "音频",
                 TrackType.EffectTrack => "特效",
-                TrackType.AttackTrack => "攻击",
+                TrackType.InjuryDetectionTrack => "攻击",
                 TrackType.EventTrack => "事件",
                 TrackType.GameObjectTrack => "游戏物体",
                 _ => "未知"
@@ -336,12 +336,12 @@ namespace SkillEditor
             {
                 for (int i = 0; i < injuryTracks.Count; i++)
                 {
-                    CreateTrackWithIndex(TrackType.AttackTrack, injuryTracks[i].trackIndex);
+                    CreateTrackWithIndex(TrackType.InjuryDetectionTrack, injuryTracks[i].trackIndex);
                 }
             }
             else
             {
-                CreateTrackWithIndex(TrackType.AttackTrack, 0);
+                CreateTrackWithIndex(TrackType.InjuryDetectionTrack, 0);
             }
         }
 
@@ -494,7 +494,7 @@ namespace SkillEditor
                     );
                     break;
 
-                case TrackType.AttackTrack:
+                case TrackType.InjuryDetectionTrack:
                     CreateMultiTrackData<FFramework.Kit.InjuryDetectionTrackSO, FFramework.Kit.InjuryDetectionTrack>(
                         () => skillConfig.trackContainer.injuryDetectionTrack,
                         (so) => skillConfig.trackContainer.injuryDetectionTrack = so,
@@ -679,7 +679,7 @@ namespace SkillEditor
             {
                 "AudioTrackSO" => TrackType.AudioTrack,
                 "EffectTrackSO" => TrackType.EffectTrack,
-                "InjuryDetectionTrackSO" => TrackType.AttackTrack,
+                "InjuryDetectionTrackSO" => TrackType.InjuryDetectionTrack,
                 "EventTrackSO" => TrackType.EventTrack,
                 "GameObjectTrackSO" => TrackType.GameObjectTrack,
                 _ => TrackType.AudioTrack // 默认值
@@ -718,7 +718,7 @@ namespace SkillEditor
                     );
                     break;
 
-                case TrackType.AttackTrack:
+                case TrackType.InjuryDetectionTrack:
                     RemoveMultiTrackData(
                         skillConfig.trackContainer.injuryDetectionTrack?.injuryDetectionTracks,
                         trackIndex,
@@ -1018,7 +1018,7 @@ namespace SkillEditor
                         }
                         break;
 
-                    case TrackType.AttackTrack:
+                    case TrackType.InjuryDetectionTrack:
                         if (skillConfig.trackContainer.injuryDetectionTrack?.injuryDetectionTracks != null)
                         {
                             var attackTrack = skillConfig.trackContainer.injuryDetectionTrack.injuryDetectionTracks
@@ -1118,7 +1118,7 @@ namespace SkillEditor
                         }
                         break;
 
-                    case TrackType.AttackTrack:
+                    case TrackType.InjuryDetectionTrack:
                         if (skillConfig.trackContainer.injuryDetectionTrack?.injuryDetectionTracks != null)
                         {
                             var attackTrack = skillConfig.trackContainer.injuryDetectionTrack.injuryDetectionTracks
@@ -1172,7 +1172,7 @@ namespace SkillEditor
                 {
                     info.Track.AddTrackItem("Event");
                 }
-                else if (info.TrackType == TrackType.AttackTrack)
+                else if (info.TrackType == TrackType.InjuryDetectionTrack)
                 {
                     info.Track.AddTrackItem("InjuryDetection");
                 }
@@ -1221,7 +1221,7 @@ namespace SkillEditor
                     EffectSkillEditorTrack.CreateTrackItemsFromConfig(effectTrack, skillConfig, trackIndex);
                     break;
 
-                case TrackType.AttackTrack when track is InjuryDetectionSkillEditorTrack attackTrack:
+                case TrackType.InjuryDetectionTrack when track is InjuryDetectionSkillEditorTrack attackTrack:
                     InjuryDetectionSkillEditorTrack.CreateTrackItemsFromConfig(attackTrack, skillConfig, trackIndex);
                     break;
 
