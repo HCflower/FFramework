@@ -66,8 +66,8 @@ namespace SkillEditor
                 return null;
             }
 
-            // 变换轨道项默认30帧长度（1秒）
-            int frameCount = 30;
+            // 变换轨道项默认5帧长度
+            int frameCount = 5;
             var newItem = new SkillEditorTrackItem(trackArea, itemName, trackType, frameCount, startFrame, trackIndex);
 
             // 添加到技能配置

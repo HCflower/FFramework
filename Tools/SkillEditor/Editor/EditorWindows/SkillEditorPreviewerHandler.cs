@@ -1,9 +1,5 @@
-using UnityEngine;
 using FFramework.Kit;
-#if UNITY_EDITOR
-using UnityEditor;
-using System.Reflection;
-#endif
+using UnityEngine;
 
 namespace SkillEditor
 {
@@ -11,7 +7,7 @@ namespace SkillEditor
     /// 技能编辑器预览器处理器
     /// 负责管理所有类型的预览器（动画、特效、Transform等）
     /// </summary>
-    public class SkillEditorPreviewerHandler
+    public class SkillEditorPreviewerHandler : System.IDisposable
     {
         #region 私有字段
 
@@ -42,12 +38,7 @@ namespace SkillEditor
         /// </summary>
         public SkillEditorPreviewerHandler()
         {
-            // 初始化各种预览管理器
-            animationPreviewer = new SkillAnimationPreviewer();
-            audioPreviewer = new SkillAudioPreviewer();
-
-            // 注意：effectPreviewer、transformPreviewer 和 injuryDetectionPreviewer 需要技能所有者参数
-            // 它们会在 UpdateSkillOwner 方法中进行初始化
+            // 注意：所有预览器都需要技能所有者参数，它们会在 UpdateSkillOwner 方法中进行初始化
 
             // 订阅事件
             SkillEditorEvent.OnCurrentFrameChanged += OnCurrentFrameChanged;
@@ -126,14 +117,11 @@ namespace SkillEditor
 #endif
             }
 
-            // 设置动画预览目标
-            if (animationPreviewer != null)
-            {
-                if (animationPreviewer.SetPreviewTarget(selectedGameObject))
-                {
-                    Debug.Log($"设置动画预览目标: {selectedGameObject?.name}");
-                }
-            }
+            // 重新初始化动画预览器
+            InitializeAnimationPreviewer(selectedGameObject);
+
+            // 重新初始化音频预览器
+            InitializeAudioPreviewer(selectedGameObject);
 
             // 重新初始化特效预览器
             InitializeEffectPreviewer(selectedGameObject);
@@ -422,6 +410,16 @@ namespace SkillEditor
                     effectPreviewer.StartPreview();
                 }
 
+                // 根据播放状态使用不同的预览方法
+                if (SkillEditorData.IsPlaying)
+                {
+                    effectPreviewer.TickView(frame);
+                }
+                else
+                {
+                    effectPreviewer.OnPlay(frame);
+                }
+
                 // 驱动特效到指定帧
                 effectPreviewer.PreviewFrame(frame);
             }
@@ -448,13 +446,18 @@ namespace SkillEditor
                     {
                         effectPreviewer.StartPreview();
                     }
+                    // 使用TickView方法处理播放状态下的特效更新
+                    effectPreviewer.TickView(SkillEditorData.CurrentFrame);
                     effectPreviewer.PreviewFrame(SkillEditorData.CurrentFrame);
                 }
             }
             else
             {
-                // 暂停时保持当前特效状态
-                // 特效预览器没有播放速度概念，只是显示当前帧的状态
+                // 暂停时使用OnPlay方法显示当前帧状态
+                if (SkillEditorData.CurrentSkillConfig != null)
+                {
+                    effectPreviewer.OnPlay(SkillEditorData.CurrentFrame);
+                }
             }
         }
 
@@ -504,6 +507,50 @@ namespace SkillEditor
                 effectPreviewer.Dispose();
                 effectPreviewer = new SkillEffectPreviewer(currentOwner, newConfig);
             }
+        }
+
+        /// <summary>
+        /// 初始化动画预览器
+        /// </summary>
+        /// <param name="selectedGameObject">选择的游戏对象作为技能所有者</param>
+        private void InitializeAnimationPreviewer(SkillRuntimeController selectedGameObject)
+        {
+            // 清理现有的动画预览器
+            if (animationPreviewer != null)
+            {
+                animationPreviewer.Dispose();
+                animationPreviewer = null;
+            }
+
+            // 创建新的动画预览器
+            animationPreviewer = new SkillAnimationPreviewer();
+
+            // 如果有技能所有者，设置预览目标
+            if (selectedGameObject != null)
+            {
+                if (animationPreviewer.SetPreviewTarget(selectedGameObject))
+                {
+                    Debug.Log($"初始化动画预览器 - 技能所有者: {selectedGameObject.name}");
+                }
+            }
+        }
+
+        /// <summary>
+        /// 初始化音频预览器
+        /// </summary>
+        /// <param name="selectedGameObject">选择的游戏对象作为技能所有者</param>
+        private void InitializeAudioPreviewer(SkillRuntimeController selectedGameObject)
+        {
+            // 清理现有的音频预览器
+            if (audioPreviewer != null)
+            {
+                audioPreviewer.Dispose();
+                audioPreviewer = null;
+            }
+
+            // 创建新的音频预览器
+            audioPreviewer = new SkillAudioPreviewer();
+            Debug.Log($"初始化音频预览器 - 技能所有者: {selectedGameObject?.name}");
         }
 
         #endregion

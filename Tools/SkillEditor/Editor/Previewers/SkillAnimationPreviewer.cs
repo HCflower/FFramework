@@ -1,6 +1,6 @@
+using FFramework.Kit;
 using UnityEngine;
 using UnityEditor;
-using FFramework.Kit;
 
 namespace SkillEditor
 {
@@ -167,15 +167,27 @@ namespace SkillEditor
                 return;
 
             currentPreviewFrame = Mathf.Clamp(frame, 0, currentSkillConfig.maxFrames);
-            var frameData = currentSkillConfig.GetTrackDataAtFrame(currentPreviewFrame);
 
-            if (frameData.animationClips.Count > 0)
+            // 检查动画轨道是否为激活状态
+            var animationTrack = currentSkillConfig.trackContainer?.animationTrack;
+            if (animationTrack == null || !animationTrack.isEnabled)
+                return;
+
+            // 检查轨道中的动画片段
+            if (animationTrack.animationClips != null)
             {
-                var animClip = frameData.animationClips[0];
-                if (animClip.clip != null)
+                foreach (var animClip in animationTrack.animationClips)
                 {
-                    float playTime = CalculateClipTime(animClip);
-                    PlayAnimationAtTime(animClip.clip, playTime);
+                    if (animClip.clip == null) continue;
+
+                    // 检查当前帧是否在动画片段的播放范围内
+                    int clipEndFrame = animClip.startFrame + Mathf.RoundToInt(animClip.clip.length * currentSkillConfig.frameRate);
+                    if (currentPreviewFrame >= animClip.startFrame && currentPreviewFrame < clipEndFrame)
+                    {
+                        float playTime = CalculateClipTime(animClip);
+                        PlayAnimationAtTime(animClip.clip, playTime);
+                        return; // 找到第一个匹配的动画片段后返回
+                    }
                 }
             }
         }

@@ -202,6 +202,10 @@ namespace SkillEditor
 
             var transformTrack = skillConfig.trackContainer.transformTrack;
 
+            // 检查轨道是否激活
+            if (!transformTrack.isEnabled)
+                return;
+
             // 更新轨道中所有clips的初始状态为当前Transform状态
             transformTrack.InitializeTransforms(targetTransform);
         }
@@ -228,6 +232,10 @@ namespace SkillEditor
                 return;
 
             var transformTrack = skillConfig.trackContainer.transformTrack;
+
+            // 检查轨道是否激活
+            if (!transformTrack.isEnabled)
+                return;
 
             // 使用累加方式应用Transform变换，不重置到原始状态
             // 这样可以保持循环播放时的状态连续性

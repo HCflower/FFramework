@@ -245,6 +245,9 @@ namespace SkillEditor
             {
                 foreach (var audioTrack in SkillEditorData.CurrentSkillConfig.trackContainer.audioTrack.audioTracks)
                 {
+                    // 检查轨道是否启用
+                    if (!audioTrack.isEnabled) continue;
+
                     if (audioTrack?.audioClips != null)
                     {
                         foreach (var skillAudioEvent in audioTrack.audioClips)
@@ -287,6 +290,9 @@ namespace SkillEditor
                 {
                     foreach (var audioTrack in SkillEditorData.CurrentSkillConfig.trackContainer.audioTrack.audioTracks)
                     {
+                        // 检查轨道是否启用
+                        if (!audioTrack.isEnabled) continue;
+
                         if (audioTrack?.audioClips != null)
                         {
                             foreach (var skillAudioEvent in audioTrack.audioClips)

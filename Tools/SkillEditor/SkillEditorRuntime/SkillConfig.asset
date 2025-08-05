@@ -98,7 +98,7 @@ MonoBehaviour:
   trackContainer:
     animationTrack: {fileID: 297339559337665363}
     transformTrack: {fileID: -5395276449008929806}
-    cameraTrack: {fileID: 0}
+    cameraTrack: {fileID: 700837781105194505}
     audioTrack: {fileID: 4144422302740679402}
     effectTrack: {fileID: -3162120677461194959}
     injuryDetectionTrack: {fileID: 776813478751267645}
@@ -128,6 +128,56 @@ MonoBehaviour:
     normalizedTransitionTime: 0
     isLoop: 0
     applyRootMotion: 0
+--- !u!114 &700837781105194505
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 421ca7b01eadcc24cb6d54a0a88e934e, type: 3}
+  m_Name: CameraTrack
+  m_EditorClassIdentifier: 
+  trackName: "\u6444\u50CF\u673A\u8F68\u9053"
+  trackIndex: 0
+  isEnabled: 1
+  cameraClips:
+  - clipName: Camera Main Camera
+    startFrame: 12
+    durationFrame: 5
+    enablePosition: 1
+    enableRotation: 1
+    enableFieldOfView: 0
+    positionOffset: {x: 0, y: 0, z: 0}
+    targetRotation: {x: 0, y: 0, z: 0}
+    targetFieldOfView: 60
+    curveType: 0
+    customCurve:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: 0
+        inSlope: 0
+        outSlope: 1
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      - serializedVersion: 3
+        time: 1
+        value: 1
+        inSlope: 1
+        outSlope: 0
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
 --- !u!114 &776813478751267645
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -158,7 +208,7 @@ MonoBehaviour:
     isEnabled: 1
     injuryDetectionClips:
     - clipName: InjuryDetection
-      startFrame: 20
+      startFrame: 25
       durationFrame: 5
       targetLayers:
         serializedVersion: 2
@@ -183,8 +233,8 @@ MonoBehaviour:
     isEnabled: 1
     audioClips:
     - clipName: 074_knife
-      startFrame: 15
-      durationFrame: 17
+      startFrame: 21
+      durationFrame: 10
       clip: {fileID: 8300000, guid: b50e386b9f25be147934ef2cf68d432e, type: 3}
       volume: 1
       pitch: 1
@@ -209,7 +259,7 @@ MonoBehaviour:
     isEnabled: 1
     eventClips:
     - clipName: Event
-      startFrame: 25
+      startFrame: 21
       durationFrame: 1
       eventType: Event
       eventParameters: 

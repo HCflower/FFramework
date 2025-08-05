@@ -146,19 +146,117 @@ namespace SkillEditor
 
             currentFrame = frame;
 
-            // 获取当前帧的轨道数据
+            // 先隐藏所有特效，然后更新配置数据
+            HideAllEffects();
+            UpdateEffectInstancesData();
+
+            // 激活当前帧应该显示的特效
+            ActivateEffectsAtFrame(frame, true);
+
+            // 获取当前帧的轨道数据并应用特效变换
             var frameData = skillConfig.GetTrackDataAtFrame(frame);
-
-            // 更新特效显示状态
-            UpdateEffectVisibility(frameData);
-
-            // 应用特效变换
             ApplyEffectTransforms(frameData);
+        }
+
+        /// <summary>
+        /// 播放指定帧的特效（不隐藏其他特效）
+        /// </summary>
+        /// <param name="startFrameIndex">开始帧索引</param>
+        public void OnPlay(int startFrameIndex)
+        {
+            if (!isPreviewActive) return;
+
+            // 激活当前帧应该显示的特效，但不隐藏其他特效
+            ActivateEffectsAtFrame(startFrameIndex, false);
+        }
+
+        /// <summary>
+        /// 播放时的帧更新
+        /// </summary>
+        /// <param name="frameIndex">当前帧索引</param>
+        public void TickView(int frameIndex)
+        {
+            if (!isPreviewActive) return;
+
+            // 如果是运行模式直接在经过起始帧时播放特效即可
+            if (SkillEditorData.IsPlaying)
+            {
+                if (skillConfig?.trackContainer?.effectTrack?.effectTracks != null)
+                {
+                    foreach (var effectTrack in skillConfig.trackContainer.effectTrack.effectTracks)
+                    {
+                        if (!effectTrack.isEnabled) continue;
+
+                        if (effectTrack?.effectClips != null)
+                        {
+                            foreach (var effectClip in effectTrack.effectClips)
+                            {
+                                if (effectClip.effectPrefab != null && effectClip.startFrame == frameIndex)
+                                {
+                                    // 特效开始播放，从头开始
+                                    string effectKey = GenerateEffectKey(effectClip);
+                                    if (activeEffectInstances.TryGetValue(effectKey, out var instance))
+                                    {
+                                        PlayEffectAtTime(instance.effectObject, 0f);
+                                        instance.isActive = true;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         #endregion
 
         #region 特效管理方法
+
+        /// <summary>
+        /// 激活指定帧的特效
+        /// </summary>
+        /// <param name="frameIndex">帧索引</param>
+        /// <param name="hideOthersFirst">是否先隐藏其他特效</param>
+        private void ActivateEffectsAtFrame(int frameIndex, bool hideOthersFirst = true)
+        {
+            if (skillConfig?.trackContainer?.effectTrack?.effectTracks == null) return;
+
+            foreach (var effectTrack in skillConfig.trackContainer.effectTrack.effectTracks)
+            {
+                if (!effectTrack.isEnabled) continue;
+
+                if (effectTrack?.effectClips != null)
+                {
+                    foreach (var effectClip in effectTrack.effectClips)
+                    {
+                        if (effectClip.effectPrefab == null) continue;
+
+                        string effectKey = GenerateEffectKey(effectClip);
+                        if (!activeEffectInstances.TryGetValue(effectKey, out var instance)) continue;
+
+                        int effectLastFrameIndex = effectClip.startFrame + effectClip.durationFrame;
+
+                        // 检查特效是否应该在当前帧激活
+                        if (frameIndex >= effectClip.startFrame && frameIndex < effectLastFrameIndex)
+                        {
+                            // 计算播放时间
+                            int offsetFrame = frameIndex - effectClip.startFrame;
+                            float playTime = offsetFrame / GetFrameRate();
+
+                            // 激活特效并设置到正确的播放时间
+                            PlayEffectAtTime(instance.effectObject, playTime);
+                            instance.isActive = true;
+                        }
+                        else if (hideOthersFirst)
+                        {
+                            // 如果需要隐藏其他特效，则停用不在范围内的特效
+                            instance.isActive = false;
+                            SetEffectActive(instance.effectObject, false);
+                        }
+                    }
+                }
+            }
+        }
 
         /// <summary>
         /// 预加载所有特效资源
@@ -318,32 +416,6 @@ namespace SkillEditor
 
                 effectContainer = containerObj.transform;
                 Debug.Log("SkillEffectPreviewer: 创建新特效容器");
-            }
-        }
-
-        /// <summary>
-        /// 更新特效可见性和播放进度
-        /// </summary>
-        /// <param name="frameData">帧数据</param>
-        private void UpdateEffectVisibility(FrameTrackData frameData)
-        {
-            // 先隐藏所有特效，然后更新配置数据
-            HideAllEffects();
-            UpdateEffectInstancesData();
-
-            foreach (var instance in activeEffectInstances.Values)
-            {
-                var effectClip = instance.clipData;
-
-                // 检查当前帧是否在特效播放范围内
-                if (IsEffectActiveAtFrame(effectClip, currentFrame))
-                {
-                    instance.isActive = true;
-
-                    // 计算播放时间并激活特效
-                    float playTime = CalculateEffectPlayTime(effectClip, currentFrame);
-                    PlayEffectAtTime(instance.effectObject, playTime);
-                }
             }
         }
 

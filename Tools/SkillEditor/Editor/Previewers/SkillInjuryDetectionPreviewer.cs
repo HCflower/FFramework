@@ -95,7 +95,11 @@ namespace SkillEditor
             // 遍历所有伤害检测轨道
             foreach (var injuryTrack in skillConfig.trackContainer.injuryDetectionTrack.injuryDetectionTracks)
             {
-                if (injuryTrack?.injuryDetectionClips != null)
+                // 检查轨道是否激活
+                if (injuryTrack == null || !injuryTrack.isEnabled)
+                    continue;
+
+                if (injuryTrack.injuryDetectionClips != null)
                 {
                     // 遍历轨道中的伤害检测片段
                     foreach (var injuryClip in injuryTrack.injuryDetectionClips)

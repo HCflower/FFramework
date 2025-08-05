@@ -35,7 +35,7 @@ namespace SkillEditor
             CreateFloatField("目标视野角度:", "targetFieldOfView", OnTargetFieldOfViewChanged);
 
             // 动画设置
-            CreateSeparatorTitle("动画设置");
+            CreateSeparatorTitle("摄像机动画设置");
             CreateCurveTypeField();
             CreateCurveField("自定义曲线:", "customCurve", OnCustomCurveChanged);
         }
