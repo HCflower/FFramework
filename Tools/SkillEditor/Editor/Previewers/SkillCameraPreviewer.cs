@@ -172,8 +172,11 @@ namespace SkillEditor
             // 重新初始化摄像机轨道
             InitializeCameraTrack();
 
-            // 重新预览当前帧
-            PreviewFrame(currentFrame);
+            // 重置帧数
+            currentFrame = 0;
+
+            // 重新预览第0帧
+            PreviewFrame(0);
         }
 
         #endregion
@@ -303,8 +306,6 @@ namespace SkillEditor
 
                 // 移除已恢复的状态记录
                 cameraOriginalStates.Remove(camera);
-
-                Debug.Log($"已还原摄像机状态 - 摄像机: {camera.name}, 片段: {clipName}");
             }
         }
 
@@ -323,8 +324,6 @@ namespace SkillEditor
                     camera.transform.position = originalState.position;
                     camera.transform.rotation = Quaternion.Euler(originalState.rotation);
                     camera.fieldOfView = originalState.fieldOfView;
-
-                    Debug.Log($"已还原摄像机状态 - 摄像机: {camera.name}");
                 }
             }
 

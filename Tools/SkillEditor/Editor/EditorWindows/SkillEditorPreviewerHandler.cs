@@ -41,11 +41,10 @@ namespace SkillEditor
         /// </summary>
         public SkillEditorPreviewerHandler()
         {
-            // 注意：所有预览器都需要技能所有者参数，它们会在 UpdateSkillOwner 方法中进行初始化
-
             // 订阅事件
             SkillEditorEvent.OnCurrentFrameChanged += OnCurrentFrameChanged;
             SkillEditorEvent.OnPlayStateChanged += OnPlayStateChanged;
+            SkillEditorEvent.OnRefreshPreviewDataRequested += OnRefreshPreviewDataRequested;
         }
 
         /// <summary>
@@ -63,6 +62,7 @@ namespace SkillEditor
             // 取消事件订阅
             SkillEditorEvent.OnCurrentFrameChanged -= OnCurrentFrameChanged;
             SkillEditorEvent.OnPlayStateChanged -= OnPlayStateChanged;
+            SkillEditorEvent.OnRefreshPreviewDataRequested -= OnRefreshPreviewDataRequested;
         }
 
         #endregion
@@ -195,6 +195,32 @@ namespace SkillEditor
             {
                 cameraPreviewer.RefreshCameraData();
             }
+        }
+
+        /// <summary>
+        /// 刷新所有预览器数据 - 重新加载所有预览器的数据，重置预览状态
+        /// </summary>
+        public void RefreshAllPreviewersData()
+        {
+            // 停止当前播放状态
+            SkillEditorData.IsPlaying = false;
+            SkillEditorEvent.TriggerPlayStateChanged(false);
+
+            // 重置到第0帧
+            SkillEditorData.SetCurrentFrame(0);
+
+            // 刷新所有预览器数据
+            RefreshEffectPreviewerData();
+            RefreshTransformPreviewerData();
+            RefreshCameraPreviewerData();
+
+            // 重新初始化所有预览器（如果有技能所有者的话）
+            if (currentSkillOwner != null)
+            {
+                UpdateSkillOwner(currentSkillOwner);
+            }
+
+            Debug.Log("所有预览器数据已重新加载");
         }
 
         /// <summary>
@@ -371,6 +397,15 @@ namespace SkillEditor
             HandleAudioPlayState(isPlaying);
             HandleInjuryDetectionPlayState(isPlaying);
             HandleCameraPlayState(isPlaying);
+        }
+
+        /// <summary>
+        /// 预览数据刷新请求事件处理
+        /// 重新加载所有预览器的数据，重置预览状态
+        /// </summary>
+        private void OnRefreshPreviewDataRequested()
+        {
+            RefreshAllPreviewersData();
         }
 
         #endregion

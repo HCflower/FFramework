@@ -32,7 +32,7 @@ namespace SkillEditor
         /// <summary>技能持续时间显示标签</summary>
         private Label durationLable;
 
-        /// <summary>预览器处理器</summary>
+        /// <summary>预览器处理器引用</summary>
         private SkillEditorPreviewerHandler previewerHandler;
 
         #endregion
@@ -46,9 +46,6 @@ namespace SkillEditor
         {
             // 订阅技能配置变更事件
             SkillEditorEvent.OnSkillConfigChanged += UpdateTipsDisplay;
-
-            // 初始化预览器处理器
-            previewerHandler = new SkillEditorPreviewerHandler();
         }
 
         #endregion
@@ -78,6 +75,15 @@ namespace SkillEditor
         public void SetTrackContent(VisualElement trackContentElement)
         {
             trackContent = trackContentElement;
+        }
+
+        /// <summary>
+        /// 设置预览器处理器引用
+        /// </summary>
+        /// <param name="handler">预览器处理器实例</param>
+        public void SetPreviewerHandler(SkillEditorPreviewerHandler handler)
+        {
+            previewerHandler = handler;
         }
 
         /// <summary>
@@ -242,7 +248,6 @@ namespace SkillEditor
         /// </summary>
         public void Dispose()
         {
-            previewerHandler?.Dispose();
             SkillEditorEvent.OnSkillConfigChanged -= UpdateTipsDisplay;
         }
 
@@ -287,18 +292,6 @@ namespace SkillEditor
             {
                 scrollView.RemoveFromHierarchy();
                 timelineContainer.Add(scrollView);
-            }
-        }
-
-        /// <summary>
-        /// 应用滚动偏移到时间轴显示
-        /// 根据当前滚动偏移调整时间轴的显示位置
-        /// </summary>
-        private void ApplyScrollOffset()
-        {
-            if (timelineIMGUI != null)
-            {
-                timelineIMGUI.style.left = -SkillEditorData.TrackViewContentOffsetX;
             }
         }
 

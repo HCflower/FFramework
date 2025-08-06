@@ -25,9 +25,6 @@ namespace SkillEditor
         /// <summary>轨道控制区域内容容器</summary>
         private VisualElement trackControlContent;
 
-        /// <summary>动画预览管理器引用</summary>
-        private SkillAnimationPreviewer animationPreviewer;
-
         #endregion
 
         #region 构造函数
@@ -42,15 +39,6 @@ namespace SkillEditor
 
             // 订阅刷新事件
             SkillEditorEvent.OnRefreshRequested += OnRefreshRequested;
-        }
-
-        /// <summary>
-        /// 设置动画预览管理器引用
-        /// </summary>
-        /// <param name="previewer">动画预览管理器实例</param>
-        public void SetAnimationPreviewer(SkillAnimationPreviewer previewer)
-        {
-            this.animationPreviewer = previewer;
         }
 
         #endregion
@@ -318,17 +306,24 @@ namespace SkillEditor
                 SkillEditorEvent.TriggerGlobalControlToggled(false);
             });
 
-            // 保存配置文件按钮
-            CreateButton(parent, "保存配置文件", "", () =>
+            // 重置预览数据
+            CreateButton(parent, "重置预览数据", "", () =>
             {
-                AssetDatabase.SaveAssetIfDirty(SkillEditorData.CurrentSkillConfig);
-                Debug.Log($"已保存技能配置: {SkillEditorData.CurrentSkillConfig?.skillName}");
+                // 触发预览数据刷新事件，让预览器处理器重新加载所有预览数据
+                SkillEditorEvent.TriggerRefreshPreviewDataRequested();
             });
 
             // 刷新视图按钮
             CreateButton(parent, "刷新视图", "", () =>
             {
                 SkillEditorEvent.TriggerRefreshRequested();
+            });
+
+            // 保存配置文件按钮
+            CreateButton(parent, "保存配置文件", "", () =>
+            {
+                AssetDatabase.SaveAssetIfDirty(SkillEditorData.CurrentSkillConfig);
+                Debug.Log($"已保存技能配置: {SkillEditorData.CurrentSkillConfig?.skillName}");
             });
 
             // 添加配置按钮
@@ -405,13 +400,6 @@ namespace SkillEditor
             CreateUnityIconButton(parent, "d_Animation.FirstKey", "停止并重置到第0帧", () =>
             {
                 SkillEditorData.IsPlaying = false;
-
-                if (animationPreviewer != null)
-                {
-                    animationPreviewer.StopPreview();
-                    animationPreviewer.ResetPreview();
-                }
-
                 SkillEditorData.SetCurrentFrame(0);
                 SkillEditorEvent.TriggerPlayStateChanged(false);
             });
@@ -423,7 +411,7 @@ namespace SkillEditor
                 SkillEditorData.SetCurrentFrame(newFrame);
             });
 
-            // 播放/暂停按钮 - 集成动画预览
+            // 播放/暂停按钮 - 通过事件系统通信
             var playButton = CreateUnityIconButton(parent, SkillEditorData.IsPlaying ? "d_PauseButton@2x" : "d_Animation.Play", "播放/暂停", null);
 
             // 订阅播放状态变更事件来更新按钮外观
@@ -443,33 +431,7 @@ namespace SkillEditor
                 // 切换播放状态
                 SkillEditorData.IsPlaying = !SkillEditorData.IsPlaying;
 
-                if (animationPreviewer != null)
-                {
-                    if (SkillEditorData.IsPlaying)
-                    {
-                        // 开始播放或恢复播放
-                        if (SkillEditorData.CurrentSkillConfig != null)
-                        {
-                            // 如果动画预览器正在预览状态，只需要恢复播放速度
-                            if (animationPreviewer.IsPreviewing)
-                            {
-                                animationPreviewer.SetPreviewSpeed(1.0f);
-                            }
-                            else
-                            {
-                                // 如果没有在预览状态，启动预览并跳转到当前帧
-                                animationPreviewer.StartPreview(SkillEditorData.CurrentSkillConfig);
-                                animationPreviewer.PreviewFrame(SkillEditorData.CurrentFrame);
-                            }
-                        }
-                    }
-                    else
-                    {
-                        // 暂停：无论当前是什么状态，都暂停播放
-                        animationPreviewer.SetPreviewSpeed(0.0f);
-                    }
-                }
-
+                // 通过事件系统通知预览器管理器处理播放状态变化
                 SkillEditorEvent.TriggerPlayStateChanged(SkillEditorData.IsPlaying);
             };
 
@@ -739,36 +701,15 @@ namespace SkillEditor
         /// <returns>创建的按钮</returns>
         public Button CreateButton(VisualElement parent, string text, string tooltip = "", Action onClick = null)
         {
-            var controlContent = new VisualElement();
-            controlContent.AddToClassList("ControlButtonContent");
-
-            var button = CreateButton(text, tooltip, onClick);
-            button.AddToClassList("Field");
-            controlContent.Add(button);
-
-            parent.Add(controlContent);
-            return button;
-        }
-
-        /// <summary>
-        /// 创建图标按钮
-        /// 使用指定图标路径创建带图标的按钮
-        /// </summary>
-        /// <param name="parent">父容器</param>
-        /// <param name="iconPath">图标资源路径</param>
-        /// <param name="tooltip">按钮提示文本</param>
-        /// <param name="onClick">点击事件处理</param>
-        /// <returns>创建的图标按钮</returns>
-        public Button CreateIconButton(VisualElement parent, string iconPath, string tooltip = "", Action onClick = null)
-        {
-            var button = new Button();
-            button.AddToClassList("TrackItemControlButton");
-            button.tooltip = tooltip;
-            button.style.backgroundImage = Resources.Load<Texture2D>($"Icon/{iconPath}");
-            if (onClick != null) button.clicked += onClick;
-
-            parent.Add(button);
-            return button;
+            var buttonContent = CreateButton(text, tooltip, onClick);
+            buttonContent.AddToClassList("ControlButton");
+            parent.Add(buttonContent);
+            // Icon
+            Label icon = new Label();
+            icon.AddToClassList("ControlButtonButtonIcon");
+            buttonContent.Add(icon);
+            // name
+            return buttonContent;
         }
 
         /// <summary>
@@ -1036,17 +977,17 @@ namespace SkillEditor
         /// <param name="parent">父容器</param>
         private void CreateAddConfigButton(VisualElement parent)
         {
-            var controlContent = new VisualElement();
-            controlContent.AddToClassList("ControlButtonContent");
-
             var addButton = new Button();
-            addButton.AddToClassList("Field");
+            addButton.AddToClassList("ControlButton");
             addButton.style.flexDirection = FlexDirection.Row;
             addButton.text = "创建配置文件";
             addButton.clicked += () => HandleAddConfigClick(addButton);
+            // Icon
+            Label icon = new Label();
+            icon.AddToClassList("ControlButtonButtonIcon");
+            addButton.Add(icon);
 
-            controlContent.Add(addButton);
-            parent.Add(controlContent);
+            parent.Add(addButton);
         }
 
         /// <summary>
@@ -1062,38 +1003,25 @@ namespace SkillEditor
             // 创建配置名称输入框
             var configName = new TextField();
             configName.AddToClassList("AddConfigInput");
-            configName.tooltip = "请输入SkillConfig名称";
+            configName.tooltip = "请输入SkillConfig名称,回车确认,ESC取消";
             configName.value = "";
             addButton.Add(configName);
-
-            // 创建确认按钮
-            var confirmButton = new Button();
-            confirmButton.text = "+";
-            confirmButton.style.fontSize = 20;
-            confirmButton.AddToClassList("AddConfigButton");
-            addButton.Add(confirmButton);
-
-            // 创建取消按钮
-            var cancelButton = new Button();
-            cancelButton.text = "X";
-            cancelButton.AddToClassList("AddConfigButton");
-            addButton.Add(cancelButton);
 
             // 定义确认和取消的处理方法
             System.Action confirmAction = () =>
             {
-                Debug.Log($"创建配置文件: {configName.value}");
-                ResetAddConfigButton(addButton, configName, confirmButton, cancelButton);
+                if (!string.IsNullOrWhiteSpace(configName.value))
+                {
+                    Debug.Log($"创建配置文件: {configName.value}");
+                    // TODO: 实现实际的配置文件创建逻辑
+                }
+                ResetAddConfigButton(addButton, configName);
             };
 
             System.Action cancelAction = () =>
             {
-                ResetAddConfigButton(addButton, configName, confirmButton, cancelButton);
+                ResetAddConfigButton(addButton, configName);
             };
-
-            // 绑定按钮事件
-            confirmButton.clicked += confirmAction;
-            cancelButton.clicked += cancelAction;
 
             // 键盘事件处理
             configName.RegisterCallback<KeyDownEvent>(evt =>
@@ -1119,13 +1047,9 @@ namespace SkillEditor
         /// </summary>
         /// <param name="addButton">添加配置按钮</param>
         /// <param name="configName">配置名称输入框</param>
-        /// <param name="confirmButton">确认按钮</param>
-        /// <param name="cancelButton">取消按钮</param>
-        private void ResetAddConfigButton(Button addButton, TextField configName, Button confirmButton, Button cancelButton)
+        private void ResetAddConfigButton(Button addButton, TextField configName)
         {
             addButton.Remove(configName);
-            addButton.Remove(confirmButton);
-            addButton.Remove(cancelButton);
             addButton.text = "创建配置文件";
         }
 

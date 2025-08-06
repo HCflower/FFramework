@@ -212,7 +212,6 @@ namespace SkillEditor
                 {
                     collider.enabled = true;
                     activeCollisionGroups[groupId].Add(collider);
-                    Debug.Log($"激活碰撞器: {collider.name} (组ID: {groupId})");
                 }
             }
         }
@@ -231,7 +230,6 @@ namespace SkillEditor
                 if (collider != null && collider.enabled)
                 {
                     collider.enabled = false;
-                    Debug.Log($"停用碰撞器: {collider.name} (组ID: {groupId})");
                 }
             }
 

@@ -120,15 +120,29 @@
 }
 
 /* 控制按钮区域 */
-.ControlButtonContent{
+.ControlButton{
     width: 146px;
     height: auto;
 
     margin: 0px;
-    margin-top: 2px;  
+    margin-top: 1px;  
     padding: 0px;
     align-self: center;
-    flex-direction: column;  
+    flex-direction: row;  
+    -unity-font-style: bold;
+}
+
+.ControlButtonButtonIcon{
+    width: 18px;
+    height: 18px;
+
+    margin: 0px;
+    margin-left: 1px;
+    padding: 2px;
+
+    border-width: 0px;
+    background-size: 75% 75%;
+    background-image: resource("Icon/SkillEditorSetting");
 }
 
 /* 控制区域容器 */
@@ -163,26 +177,17 @@
 
 /* AddConfig文本输入框 */
 .AddConfigInput{
-    width: 106px;
-    height: 20px;
-
+    width: auto;
+    height: 16px;
+    align-self: center;
     margin: 0px;
     padding: 0px;
-}
-
-/* AddConfig控制按钮 */
-.AddConfigButton{
-    width: 18px;
-    height: 18px;
-
-    margin: 0px;
-    margin-left: 1px;
-    padding: 0px;
-
     border-width: 0px;
-    font-size: 13px;
-    -unity-font-style: bold;
-    background-color: #383838;
+    right: 1px;
+
+    flex-grow: 1;      /* 输入框占据剩余空间 */
+    flex-shrink: 0;    /* 防止收缩 */
+    flex-basis: 0%;    /* 基础大小为0，完全依赖flex-grow */ 
 }
 
 /* 轨道区域 */

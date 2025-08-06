@@ -55,7 +55,7 @@
 /* 轨道项区域 */
 .TrackItemContent{
     width: auto;
-    height: 28px;
+    height: 100%;
 
     margin: 0px;
     border: 0px;

@@ -108,8 +108,6 @@ namespace SkillEditor
             isPreviewActive = true;
             currentFrame = 0;
 
-            Debug.Log($"SkillEffectPreviewer: 开始特效预览 - 技能所有者: {skillOwner.name}");
-
             // 预加载所有特效资源
             PreloadAllEffects();
 
@@ -310,8 +308,6 @@ namespace SkillEditor
                     }
                 }
             }
-
-            Debug.Log($"SkillEffectPreviewer: 预加载完成，共管理 {activeEffectInstances.Count} 个特效实例");
         }
 
         /// <summary>
@@ -324,8 +320,11 @@ namespace SkillEditor
             // 重新预加载所有特效（这会清理旧数据并重新构建）
             PreloadAllEffects();
 
-            // 重新预览当前帧
-            PreviewFrame(currentFrame);
+            // 重置帧数
+            currentFrame = 0;
+
+            // 重新预览第0帧
+            PreviewFrame(0);
         }
 
         /// <summary>

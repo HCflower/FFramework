@@ -17,6 +17,8 @@ namespace SkillEditor
         private SkillEditorTimeline skillEditorTimeline;
         /// <summary>滚动同步管理器 - 协调各滚动视图的同步</summary>
         private SkillEditorScrollSync skillEditorScrollSync;
+        /// <summary>预览器处理器 - 管理所有预览器的生命周期和交互</summary>
+        private SkillEditorPreviewerHandler previewerHandler;
 
         /// <summary>当前选中的轨道项</summary>
         public static SkillEditorTrackItem CurrentTrackItem;
@@ -72,6 +74,9 @@ namespace SkillEditor
         /// </summary>
         private void OnDisable()
         {
+            // 清理预览器处理器资源
+            previewerHandler?.Dispose();
+
             SkillEditorData.SaveData();
             SkillEditorEvent.Cleanup();
 
@@ -89,6 +94,10 @@ namespace SkillEditor
             skillEditorTimeline = new SkillEditorTimeline();
             uiBuilder = new SkillEditorUIBuilder();
             skillEditorScrollSync = new SkillEditorScrollSync();
+            previewerHandler = new SkillEditorPreviewerHandler();
+
+            // 将预览器处理器传递给时间轴管理器
+            skillEditorTimeline.SetPreviewerHandler(previewerHandler);
 
             // 注册事件监听
             SkillEditorEvent.OnCurrentFrameChanged += OnCurrentFrameChanged;

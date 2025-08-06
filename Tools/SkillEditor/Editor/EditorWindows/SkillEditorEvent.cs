@@ -32,6 +32,9 @@ namespace SkillEditor
         /// <summary>时间轴缩放变化事件 - 无参数</summary>
         public static Action OnTimelineZoomChanged;
 
+        /// <summary>预览数据刷新请求事件 - 无参数</summary>
+        public static Action OnRefreshPreviewDataRequested;
+
         #endregion
 
         #region 事件触发方法
@@ -104,6 +107,15 @@ namespace SkillEditor
             OnTimelineZoomChanged?.Invoke();
         }
 
+        /// <summary>
+        /// 触发预览数据刷新请求事件
+        /// 通知预览器处理器重新加载所有预览数据，重置预览状态
+        /// </summary>
+        public static void TriggerRefreshPreviewDataRequested()
+        {
+            OnRefreshPreviewDataRequested?.Invoke();
+        }
+
         #endregion
 
         #region 资源管理
@@ -122,6 +134,7 @@ namespace SkillEditor
             OnSkillConfigChanged = null;
             OnPlayStateChanged = null;
             OnTimelineZoomChanged = null;
+            OnRefreshPreviewDataRequested = null;
         }
 
         /// <summary>
@@ -137,7 +150,8 @@ namespace SkillEditor
                 OnRefreshRequested != null ||
                 OnSkillConfigChanged != null ||
                 OnPlayStateChanged != null ||
-                OnTimelineZoomChanged != null;
+                OnTimelineZoomChanged != null ||
+                OnRefreshPreviewDataRequested != null;
         }
 
         /// <summary>
@@ -156,6 +170,7 @@ namespace SkillEditor
             stats.AppendLine($"  配置变化: {OnSkillConfigChanged?.GetInvocationList()?.Length ?? 0}");
             stats.AppendLine($"  播放状态变化: {OnPlayStateChanged?.GetInvocationList()?.Length ?? 0}");
             stats.AppendLine($"  时间轴缩放: {OnTimelineZoomChanged?.GetInvocationList()?.Length ?? 0}");
+            stats.AppendLine($"  预览数据刷新: {OnRefreshPreviewDataRequested?.GetInvocationList()?.Length ?? 0}");
             return stats.ToString();
         }
 

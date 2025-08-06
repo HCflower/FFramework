@@ -169,8 +169,25 @@ namespace SkillEditor
         {
             if (!isPreviewActive) return;
 
-            // 重新预览当前帧
-            PreviewFrame(currentFrame);
+            // 重新获取技能所有者的Transform组件引用
+            if (skillOwner != null)
+            {
+                targetTransform = skillOwner.transform;
+            }
+
+            // 将当前场景中的Transform状态作为新的原始状态
+            // 这样用户手动调整后的状态会成为预览的起始点
+            StoreOriginalTransform();
+
+            // 重置帧数和相关状态
+            currentFrame = 0;
+            previousFrame = -1;
+
+            // 更新轨道中所有clips的初始Transform状态为当前状态
+            UpdateClipsInitialTransform();
+
+            // 重新预览第0帧
+            PreviewFrame(0);
         }
 
         #endregion

@@ -16,7 +16,7 @@ namespace SkillEditor
         public static SkillConfig CurrentSkillConfig { get; set; }
 
         /// <summary>全局控制面板是否显示</summary>
-        public static bool IsGlobalControlShow { get; set; } = false;
+        public static bool IsGlobalControlShow { get; set; } = true;
 
         /// <summary>编辑器中的轨道信息列表</summary>
         public static List<SkillEditorTrackInfo> tracks = new();
@@ -117,7 +117,7 @@ namespace SkillEditor
         public static void ResetData()
         {
             CurrentSkillConfig = null;
-            IsGlobalControlShow = false;
+            IsGlobalControlShow = true;
             tracks.Clear();
             FrameUnitWidth = 10f;
             CurrentFrame = 1;

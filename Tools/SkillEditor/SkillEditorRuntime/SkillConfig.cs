@@ -15,15 +15,12 @@ namespace FFramework.Kit
         [Tooltip("技能最大帧数"), Min(1)] public int maxFrames = 60;
 
         [Header("技能基础信息")]
+        [Tooltip("技能ID"), Min(0)] public int skillId;
         [Tooltip("技能拥有者")] public SkillRuntimeController owner;
         [Tooltip("技能图标")] public Sprite skillIcon;
         [Tooltip("技能名称")] public string skillName;
-        [Tooltip("技能ID")] public int skillId;
         [TextArea(3, 5)]
         [Tooltip("技能描述")] public string description;
-
-        [Header("技能参数")]
-        [Tooltip("冷却时间")] public float cooldown = 1.0f;
 
         [Header("轨道管理")]
         public TrackContainer trackContainer = new TrackContainer();

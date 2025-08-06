@@ -89,12 +89,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   frameRate: 24
   maxFrames: 32
+  skillId: 0
   owner: {fileID: 0}
   skillIcon: {fileID: 21300000, guid: 48e7bec8a4f0e3049a6c34938bf5a7ca, type: 3}
   skillName: "\u6D66\u4E1C\u516C\u9E21"
-  skillId: 0
   description: "\u6D66\u4E1C\u653B\u51FB"
-  cooldown: 1
   trackContainer:
     animationTrack: {fileID: 297339559337665363}
     transformTrack: {fileID: -5395276449008929806}
@@ -178,13 +177,13 @@ MonoBehaviour:
       m_PreInfinity: 2
       m_PostInfinity: 2
       m_RotationOrder: 4
-    enableVibration: 0
+    enableVibration: 1
     randomizeDirection: 1
-    smoothVibration: 0
+    smoothVibration: 1
     animationStartFrame: 0
     animationDurationFrame: 0
-    vibrationFrequency: 5
-    vibrationIntensity: 1
+    vibrationFrequency: 10
+    vibrationIntensity: 0.5
     vibrationDecay:
       serializedVersion: 2
       m_Curve:
