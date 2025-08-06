@@ -26,6 +26,9 @@ namespace SkillEditor
         /// <summary>伤害检测预览管理器</summary>
         private SkillInjuryDetectionPreviewer injuryDetectionPreviewer;
 
+        /// <summary>摄像机预览管理器</summary>
+        private SkillCameraPreviewer cameraPreviewer;
+
         /// <summary>当前技能所有者</summary>
         private SkillRuntimeController currentSkillOwner;
 
@@ -55,6 +58,7 @@ namespace SkillEditor
             transformPreviewer?.Dispose();
             audioPreviewer?.Dispose();
             injuryDetectionPreviewer?.Dispose();
+            cameraPreviewer?.Dispose();
 
             // 取消事件订阅
             SkillEditorEvent.OnCurrentFrameChanged -= OnCurrentFrameChanged;
@@ -89,6 +93,11 @@ namespace SkillEditor
         /// 获取伤害检测预览管理器
         /// </summary>
         public SkillInjuryDetectionPreviewer InjuryDetectionPreviewer => injuryDetectionPreviewer;
+
+        /// <summary>
+        /// 获取摄像机预览管理器
+        /// </summary>
+        public SkillCameraPreviewer CameraPreviewer => cameraPreviewer;
 
         /// <summary>
         /// 当前技能所有者
@@ -131,6 +140,9 @@ namespace SkillEditor
 
             // 重新初始化伤害检测预览器
             InitializeInjuryDetectionPreviewer(selectedGameObject);
+
+            // 重新初始化摄像机预览器
+            InitializeCameraPreviewer(selectedGameObject);
         }
 
         /// <summary>
@@ -147,6 +159,9 @@ namespace SkillEditor
 
             // 更新伤害检测预览器配置
             UpdateInjuryDetectionPreviewerConfig(newConfig);
+
+            // 更新摄像机预览器配置
+            UpdateCameraPreviewerConfig(newConfig);
         }
 
         /// <summary>
@@ -168,6 +183,17 @@ namespace SkillEditor
             if (transformPreviewer != null && transformPreviewer.IsPreviewActive)
             {
                 transformPreviewer.RefreshTransformData();
+            }
+        }
+
+        /// <summary>
+        /// 刷新摄像机预览器数据 - 当轨道项发生变化时调用
+        /// </summary>
+        public void RefreshCameraPreviewerData()
+        {
+            if (cameraPreviewer != null && cameraPreviewer.IsPreviewActive)
+            {
+                cameraPreviewer.RefreshCameraData();
             }
         }
 
@@ -234,6 +260,12 @@ namespace SkillEditor
             {
                 injuryDetectionPreviewer.StartPreview();
             }
+
+            // 启动摄像机预览
+            if (cameraPreviewer != null && !cameraPreviewer.IsPreviewActive)
+            {
+                cameraPreviewer.StartPreview();
+            }
         }
 
         /// <summary>
@@ -246,6 +278,7 @@ namespace SkillEditor
             transformPreviewer?.StopPreview();
             audioPreviewer?.StopPreview();
             injuryDetectionPreviewer?.StopPreview();
+            cameraPreviewer?.StopPreview();
         }
 
         /// <summary>
@@ -285,6 +318,12 @@ namespace SkillEditor
             {
                 injuryDetectionPreviewer.PreviewFrame(frame);
             }
+
+            // 驱动摄像机到指定帧
+            if (cameraPreviewer != null && cameraPreviewer.IsPreviewActive)
+            {
+                cameraPreviewer.PreviewFrame(frame);
+            }
         }
 
         #endregion
@@ -314,6 +353,9 @@ namespace SkillEditor
 
             // 处理伤害检测预览
             HandleInjuryDetectionPreview(frame);
+
+            // 处理摄像机预览
+            HandleCameraPreview(frame);
         }
 
         /// <summary>
@@ -328,6 +370,7 @@ namespace SkillEditor
             HandleTransformPlayState(isPlaying);
             HandleAudioPlayState(isPlaying);
             HandleInjuryDetectionPlayState(isPlaying);
+            HandleCameraPlayState(isPlaying);
         }
 
         #endregion
@@ -915,6 +958,115 @@ namespace SkillEditor
             {
                 injuryDetectionPreviewer.Dispose();
                 injuryDetectionPreviewer = new SkillInjuryDetectionPreviewer(currentOwner, newConfig);
+            }
+        }
+
+        #endregion
+
+        #region 摄像机预览处理
+
+        /// <summary>
+        /// 处理摄像机预览
+        /// </summary>
+        /// <param name="frame">当前帧</param>
+        private void HandleCameraPreview(int frame)
+        {
+            // 如果摄像机预览器不存在，尝试初始化
+            if (cameraPreviewer == null && SkillEditorData.CurrentSkillConfig.owner != null)
+            {
+                InitializeCameraPreviewer(SkillEditorData.CurrentSkillConfig.owner);
+                Debug.Log($"自动初始化摄像机预览器 - 技能所有者: {SkillEditorData.CurrentSkillConfig.owner.name}");
+            }
+
+            if (cameraPreviewer != null)
+            {
+                // 如果没有在预览状态，则启动预览
+                if (!cameraPreviewer.IsPreviewActive)
+                {
+                    cameraPreviewer.StartPreview();
+                }
+
+                // 驱动摄像机到指定帧
+                cameraPreviewer.PreviewFrame(frame);
+            }
+            else
+            {
+                Debug.LogWarning($"摄像机预览器为空 - 帧: {frame}, 技能配置: {SkillEditorData.CurrentSkillConfig?.skillName}, 技能所有者: {SkillEditorData.CurrentSkillConfig?.owner?.name}");
+            }
+        }
+
+        /// <summary>
+        /// 处理摄像机播放状态
+        /// </summary>
+        /// <param name="isPlaying">是否正在播放</param>
+        private void HandleCameraPlayState(bool isPlaying)
+        {
+            if (cameraPreviewer == null) return;
+
+            if (isPlaying)
+            {
+                // 开始播放或恢复播放摄像机
+                if (SkillEditorData.CurrentSkillConfig != null)
+                {
+                    if (!cameraPreviewer.IsPreviewActive)
+                    {
+                        cameraPreviewer.StartPreview();
+                    }
+                    cameraPreviewer.PreviewFrame(SkillEditorData.CurrentFrame);
+                }
+            }
+            else
+            {
+                // 暂停时保持当前摄像机状态
+                // 摄像机预览器没有播放速度概念，只是显示当前帧的状态
+            }
+        }
+
+        /// <summary>
+        /// 初始化摄像机预览器
+        /// </summary>
+        /// <param name="selectedGameObject">选择的游戏对象作为技能所有者</param>
+        private void InitializeCameraPreviewer(SkillRuntimeController selectedGameObject)
+        {
+            // 清理现有的摄像机预览器
+            if (cameraPreviewer != null)
+            {
+                cameraPreviewer.Dispose();
+                cameraPreviewer = null;
+            }
+
+            // 如果有技能所有者和技能配置，创建新的摄像机预览器
+            if (selectedGameObject != null && SkillEditorData.CurrentSkillConfig != null)
+            {
+                cameraPreviewer = new SkillCameraPreviewer(selectedGameObject, SkillEditorData.CurrentSkillConfig);
+                Debug.Log($"初始化摄像机预览器 - 技能所有者: {selectedGameObject.name}");
+            }
+        }
+
+        /// <summary>
+        /// 更新摄像机预览器的配置
+        /// </summary>
+        /// <param name="newConfig">新的技能配置</param>
+        private void UpdateCameraPreviewerConfig(SkillConfig newConfig)
+        {
+            if (newConfig == null) return;
+
+            // 如果摄像机预览器不存在，尝试使用技能配置中的owner初始化
+            if (cameraPreviewer == null)
+            {
+                if (newConfig.owner != null)
+                {
+                    InitializeCameraPreviewer(newConfig.owner);
+                }
+                return;
+            }
+
+            // 重新初始化摄像机预览器以使用新配置
+            SkillRuntimeController currentOwner = cameraPreviewer.SkillOwner;
+            if (currentOwner != null)
+            {
+                cameraPreviewer.Dispose();
+                cameraPreviewer = new SkillCameraPreviewer(currentOwner, newConfig);
             }
         }
 

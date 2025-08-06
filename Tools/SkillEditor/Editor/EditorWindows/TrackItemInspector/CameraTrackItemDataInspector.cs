@@ -1,8 +1,9 @@
-using UnityEditor;
-using UnityEngine;
 using UnityEngine.UIElements;
 using UnityEditor.UIElements;
+using UnityEditor;
+using UnityEngine;
 using System.Linq;
+using System;
 
 namespace SkillEditor
 {
@@ -33,11 +34,20 @@ namespace SkillEditor
             CreateVector3Field("位置偏移:", "positionOffset", OnPositionOffsetChanged);
             CreateVector3Field("目标旋转:", "targetRotation", OnTargetRotationChanged);
             CreateFloatField("目标视野角度:", "targetFieldOfView", OnTargetFieldOfViewChanged);
-
-            // 动画设置
-            CreateSeparatorTitle("摄像机动画设置");
             CreateCurveTypeField();
             CreateCurveField("自定义曲线:", "customCurve", OnCustomCurveChanged);
+
+            CreateSeparatorTitle("摄像机动画设置");
+            CreateToggleField("是否启用震动:", "enableVibration", OnEnableVibrationChanged);
+            CreateToggleField("随机震动方向:", "randomizeDirection", OnRandomizeDirectionChanged);
+            CreateToggleField("平滑震动:", "smoothVibration", OnSmoothVibrationChanged);
+            CreateFloatField("动画起始帧:", "animationStartFrame", OnAnimationStartFrameChanged);
+            CreateFloatField("动画持续帧:", "animationDurationFrame", OnAnimationDurationFrameChanged);
+            CreateFloatField("震动强度:", "vibrationIntensity", OnVibrationIntensityChanged);
+            CreateFloatField("震动频率:", "vibrationFrequency", OnVibrationFrequencyChanged);
+            CreateCurveField("震动衰减曲线:", "vibrationDecay", OnVibrationDecayChanged);
+            CreateFloatField("阻尼系数:", "dampingFactor", OnDampingFactorChanged);
+            CreateVector3Field("震动方向:", "vibrationDirection", OnVibrationDirectionChanged);
         }
 
         protected override void PerformDelete()
@@ -152,6 +162,86 @@ namespace SkillEditor
             {
                 UpdateCameraTrackConfig(configClip => configClip.durationFrame = newValue, "持续帧数更新");
             }, "持续帧数更新");
+        }
+
+        private void OnEnableVibrationChanged(bool newValue)
+        {
+            SafeExecute(() =>
+            {
+                UpdateCameraTrackConfig(configClip => configClip.enableVibration = newValue, "是否启用震动更新");
+            }, "是否启用震动更新");
+        }
+
+        private void OnRandomizeDirectionChanged(bool newValue)
+        {
+            SafeExecute(() =>
+            {
+                UpdateCameraTrackConfig(configClip => configClip.randomizeDirection = newValue, "随机化震动方向更新");
+            }, "随机化震动方向更新");
+        }
+
+        private void OnSmoothVibrationChanged(bool newValue)
+        {
+            SafeExecute(() =>
+            {
+                UpdateCameraTrackConfig(configClip => configClip.smoothVibration = newValue, "平滑震动更新");
+            }, "平滑震动更新");
+        }
+
+        private void OnAnimationStartFrameChanged(float newValue)
+        {
+            SafeExecute(() =>
+            {
+                UpdateCameraTrackConfig(configClip => configClip.animationStartFrame = newValue, "动画开始帧更新");
+            }, "动画开始帧更新");
+        }
+
+        private void OnAnimationDurationFrameChanged(float newValue)
+        {
+            SafeExecute(() =>
+            {
+                UpdateCameraTrackConfig(configClip => configClip.animationDurationFrame = newValue, "动画持续帧数更新");
+            }, "动画持续帧数更新");
+        }
+
+        private void OnVibrationIntensityChanged(float newValue)
+        {
+            SafeExecute(() =>
+            {
+                UpdateCameraTrackConfig(configClip => configClip.vibrationIntensity = newValue, "震动强度更新");
+            }, "震动强度更新");
+        }
+
+        private void OnVibrationFrequencyChanged(float newValue)
+        {
+            SafeExecute(() =>
+          {
+              UpdateCameraTrackConfig(configClip => configClip.vibrationFrequency = newValue, "震动频率更新");
+          }, "震动频率更新");
+        }
+
+        private void OnVibrationDecayChanged(AnimationCurve newValue)
+        {
+            SafeExecute(() =>
+            {
+                UpdateCameraTrackConfig(configClip => configClip.vibrationDecay = newValue, "震动衰减曲线更新");
+            }, "震动衰减曲线更新");
+        }
+
+        private void OnDampingFactorChanged(float newValue)
+        {
+            SafeExecute(() =>
+            {
+                UpdateCameraTrackConfig(configClip => configClip.dampingFactor = newValue, "阻尼系数更新");
+            }, "阻尼系数更新");
+        }
+
+        private void OnVibrationDirectionChanged(Vector3 newValue)
+        {
+            SafeExecute(() =>
+            {
+                UpdateCameraTrackConfig(configClip => configClip.vibrationDirection = newValue, "震动方向更新");
+            }, "震动方向更新");
         }
 
         #endregion

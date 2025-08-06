@@ -161,6 +161,7 @@ namespace FFramework.Kit
         [Serializable]
         public class CameraClip : ClipBase
         {
+
             [Header("摄像机类型")]
             [Tooltip("是否启用位置变换")] public bool enablePosition = true;
             [Tooltip("是否启用旋转变换")] public bool enableRotation = true;
@@ -170,11 +171,20 @@ namespace FFramework.Kit
             [Tooltip("位置偏移量（相对于初始位置）")] public Vector3 positionOffset = Vector3.zero;
             [Tooltip("目标旋转（绝对值）")] public Vector3 targetRotation = Vector3.zero;
             [Tooltip("目标视野角度（绝对值）")] public float targetFieldOfView = 60f;
-
-            [Header("动画设置")]
             [Tooltip("动画曲线类型")] public AnimationCurveType curveType = AnimationCurveType.Linear;
             [Tooltip("自定义动画曲线")] public AnimationCurve customCurve = AnimationCurve.Linear(0, 0, 1, 1);
 
+            [Header("动画设置")]
+            [Tooltip("是否启用震动")] public bool enableVibration = false;
+            [Tooltip("是否随机化震动方向")] public bool randomizeDirection = true;
+            [Tooltip("是否平滑震动")] public bool smoothVibration;
+            [Tooltip("动画开始帧")] public float animationStartFrame;
+            [Tooltip("动画持续时间")] public float animationDurationFrame;
+            [Tooltip("震动频率")] public float vibrationFrequency = 5.0f;
+            [Tooltip("震动强度")] public float vibrationIntensity = 1.0f;
+            [Tooltip("震动衰减曲线")] public AnimationCurve vibrationDecay = AnimationCurve.Linear(0, 1, 1, 0);
+            [Tooltip("阻尼系数（用于渐进式震动停止）")] public float dampingFactor = 0.95f;
+            [Tooltip("震动方向(XYZ轴的权重)")] public Vector3 vibrationDirection = Vector3.one;
             // 运行时初始摄像机状态（不序列化，每次播放时设置）
             [System.NonSerialized] private Vector3 runtimeStartPosition;
             [System.NonSerialized] private Vector3 runtimeStartRotation;

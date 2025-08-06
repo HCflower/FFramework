@@ -17,13 +17,20 @@ namespace SkillEditor
         [Header("目标状态")]
         public Vector3 positionOffset = Vector3.zero;         // 目标位置
         public Vector3 targetRotation = Vector3.zero;         // 目标旋转
-        public float targetFieldOfView = 60f;                  // 目标视野角度
+        public float targetFieldOfView = 60f;                 // 目标视野角度
 
-        [Header("动画设置")]
         public AnimationCurveType curveType = AnimationCurveType.Linear;        // 动画曲线类型
         public AnimationCurve customCurve = AnimationCurve.Linear(0, 0, 1, 1);  // 自定义动画曲线
-        public bool isRelative = false;                     // 是否相对于当前状态
-        public Camera targetCamera;                         // 目标摄像机（为空则使用主摄像机）
-        public string cameraPath;                           // 摄像机路径（用于运行时查找）
+        [Header("动画设置")]
+        public bool enableVibration = false;                   // 是否启用震动
+        public float animationStartFrame;                      // 动画开始帧
+        public float animationDurationFrame;                   // 动画持续时间
+        public bool smoothVibration;                           // 是否平滑震动
+        public float vibrationIntensity = 1.0f;                // 震动强度
+        public float vibrationFrequency = 5.0f;                // 震动频率
+        public AnimationCurve vibrationDecay = AnimationCurve.Linear(0, 1, 1, 0); // 震动衰减曲线
+        public bool randomizeDirection = true;                 // 是否随机化震动方向
+        public float dampingFactor = 0.95f;                    // 阻尼系数（用于渐进式震动停止）
+        public Vector3 vibrationDirection = Vector3.one;       // 震动方向（XYZ轴的权重） 
     }
 }
