@@ -15,6 +15,9 @@ namespace SkillEditor
         /// <summary>当前编辑的技能配置</summary>
         public static SkillConfig CurrentSkillConfig { get; set; }
 
+        /// <summary>当前技能的拥有者（用于预览和测试）</summary>
+        public static SkillRuntimeController CurrentSkillOwner { get; set; }
+
         /// <summary>全局控制面板是否显示</summary>
         public static bool IsGlobalControlShow { get; set; } = true;
 
@@ -117,6 +120,7 @@ namespace SkillEditor
         public static void ResetData()
         {
             CurrentSkillConfig = null;
+            CurrentSkillOwner = null;
             IsGlobalControlShow = true;
             tracks.Clear();
             FrameUnitWidth = 10f;

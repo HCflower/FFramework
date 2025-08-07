@@ -116,15 +116,8 @@ namespace SkillEditor
         {
             currentSkillOwner = selectedGameObject;
 
-            // 更新技能配置中的owner字段
-            if (SkillEditorData.CurrentSkillConfig != null)
-            {
-                SkillEditorData.CurrentSkillConfig.owner = selectedGameObject;
-
-#if UNITY_EDITOR
-                UnityEditor.EditorUtility.SetDirty(SkillEditorData.CurrentSkillConfig);
-#endif
-            }
+            // 更新编辑器数据中的技能拥有者
+            SkillEditorData.CurrentSkillOwner = selectedGameObject;
 
             // 重新初始化动画预览器
             InitializeAnimationPreviewer(selectedGameObject);
@@ -474,10 +467,10 @@ namespace SkillEditor
         private void HandleEffectPreview(int frame)
         {
             // 如果特效预览器不存在，尝试初始化
-            if (effectPreviewer == null && SkillEditorData.CurrentSkillConfig.owner != null)
+            if (effectPreviewer == null && SkillEditorData.CurrentSkillOwner != null)
             {
-                InitializeEffectPreviewer(SkillEditorData.CurrentSkillConfig.owner);
-                Debug.Log($"自动初始化特效预览器 - 技能所有者: {SkillEditorData.CurrentSkillConfig.owner.name}");
+                InitializeEffectPreviewer(SkillEditorData.CurrentSkillOwner);
+                Debug.Log($"自动初始化特效预览器 - 技能所有者: {SkillEditorData.CurrentSkillOwner.name}");
             }
 
             if (effectPreviewer != null)
@@ -503,7 +496,7 @@ namespace SkillEditor
             }
             else
             {
-                Debug.LogWarning($"特效预览器为空 - 帧: {frame}, 技能配置: {SkillEditorData.CurrentSkillConfig?.skillName}, 技能所有者: {SkillEditorData.CurrentSkillConfig?.owner?.name}");
+                Debug.LogWarning($"特效预览器为空 - 帧: {frame}, 技能配置: {SkillEditorData.CurrentSkillConfig?.skillName}, 技能所有者: {SkillEditorData.CurrentSkillOwner?.name}");
             }
         }
 
@@ -571,9 +564,9 @@ namespace SkillEditor
             // 如果特效预览器不存在，尝试使用技能配置中的owner初始化
             if (effectPreviewer == null)
             {
-                if (newConfig.owner != null)
+                if (SkillEditorData.CurrentSkillOwner != null)
                 {
-                    InitializeEffectPreviewer(newConfig.owner);
+                    InitializeEffectPreviewer(SkillEditorData.CurrentSkillOwner);
                 }
                 return;
             }
@@ -642,10 +635,10 @@ namespace SkillEditor
         private void HandleTransformPreview(int frame)
         {
             // 如果Transform预览器不存在，尝试初始化
-            if (transformPreviewer == null && SkillEditorData.CurrentSkillConfig.owner != null)
+            if (transformPreviewer == null && SkillEditorData.CurrentSkillOwner != null)
             {
-                InitializeTransformPreviewer(SkillEditorData.CurrentSkillConfig.owner);
-                Debug.Log($"自动初始化Transform预览器 - 技能所有者: {SkillEditorData.CurrentSkillConfig.owner.name}");
+                InitializeTransformPreviewer(SkillEditorData.CurrentSkillOwner);
+                Debug.Log($"自动初始化Transform预览器 - 技能所有者: {SkillEditorData.CurrentSkillOwner.name}");
             }
 
             if (transformPreviewer != null)
@@ -661,7 +654,7 @@ namespace SkillEditor
             }
             else
             {
-                Debug.LogWarning($"Transform预览器为空 - 帧: {frame}, 技能配置: {SkillEditorData.CurrentSkillConfig?.skillName}, 技能所有者: {SkillEditorData.CurrentSkillConfig?.owner?.name}");
+                Debug.LogWarning($"Transform预览器为空 - 帧: {frame}, 技能配置: {SkillEditorData.CurrentSkillConfig?.skillName}, 技能所有者: {SkillEditorData.CurrentSkillOwner?.name}");
             }
         }
 
@@ -724,9 +717,9 @@ namespace SkillEditor
             // 如果Transform预览器不存在，尝试使用技能配置中的owner初始化
             if (transformPreviewer == null)
             {
-                if (newConfig.owner != null)
+                if (SkillEditorData.CurrentSkillOwner != null)
                 {
-                    InitializeTransformPreviewer(newConfig.owner);
+                    InitializeTransformPreviewer(SkillEditorData.CurrentSkillOwner);
                 }
                 return;
             }
@@ -898,10 +891,10 @@ namespace SkillEditor
         private void HandleInjuryDetectionPreview(int frame)
         {
             // 如果伤害检测预览器不存在，尝试初始化
-            if (injuryDetectionPreviewer == null && SkillEditorData.CurrentSkillConfig.owner != null)
+            if (injuryDetectionPreviewer == null && SkillEditorData.CurrentSkillOwner != null)
             {
-                InitializeInjuryDetectionPreviewer(SkillEditorData.CurrentSkillConfig.owner);
-                Debug.Log($"自动初始化伤害检测预览器 - 技能所有者: {SkillEditorData.CurrentSkillConfig.owner.name}");
+                InitializeInjuryDetectionPreviewer(SkillEditorData.CurrentSkillOwner);
+                Debug.Log($"自动初始化伤害检测预览器 - 技能所有者: {SkillEditorData.CurrentSkillOwner.name}");
             }
 
             if (injuryDetectionPreviewer != null)
@@ -917,7 +910,7 @@ namespace SkillEditor
             }
             else
             {
-                Debug.LogWarning($"伤害检测预览器为空 - 帧: {frame}, 技能配置: {SkillEditorData.CurrentSkillConfig?.skillName}, 技能所有者: {SkillEditorData.CurrentSkillConfig?.owner?.name}");
+                Debug.LogWarning($"伤害检测预览器为空 - 帧: {frame}, 技能配置: {SkillEditorData.CurrentSkillConfig?.skillName}, 技能所有者: {SkillEditorData.CurrentSkillOwner?.name}");
             }
         }
 
@@ -980,9 +973,9 @@ namespace SkillEditor
             // 如果伤害检测预览器不存在，尝试使用技能配置中的owner初始化
             if (injuryDetectionPreviewer == null)
             {
-                if (newConfig.owner != null)
+                if (SkillEditorData.CurrentSkillOwner != null)
                 {
-                    InitializeInjuryDetectionPreviewer(newConfig.owner);
+                    InitializeInjuryDetectionPreviewer(SkillEditorData.CurrentSkillOwner);
                 }
                 return;
             }
@@ -1007,10 +1000,10 @@ namespace SkillEditor
         private void HandleCameraPreview(int frame)
         {
             // 如果摄像机预览器不存在，尝试初始化
-            if (cameraPreviewer == null && SkillEditorData.CurrentSkillConfig.owner != null)
+            if (cameraPreviewer == null && SkillEditorData.CurrentSkillOwner != null)
             {
-                InitializeCameraPreviewer(SkillEditorData.CurrentSkillConfig.owner);
-                Debug.Log($"自动初始化摄像机预览器 - 技能所有者: {SkillEditorData.CurrentSkillConfig.owner.name}");
+                InitializeCameraPreviewer(SkillEditorData.CurrentSkillOwner);
+                Debug.Log($"自动初始化摄像机预览器 - 技能所有者: {SkillEditorData.CurrentSkillOwner.name}");
             }
 
             if (cameraPreviewer != null)
@@ -1026,7 +1019,7 @@ namespace SkillEditor
             }
             else
             {
-                Debug.LogWarning($"摄像机预览器为空 - 帧: {frame}, 技能配置: {SkillEditorData.CurrentSkillConfig?.skillName}, 技能所有者: {SkillEditorData.CurrentSkillConfig?.owner?.name}");
+                Debug.LogWarning($"摄像机预览器为空 - 帧: {frame}, 技能配置: {SkillEditorData.CurrentSkillConfig?.skillName}, 技能所有者: {SkillEditorData.CurrentSkillOwner?.name}");
             }
         }
 
@@ -1086,12 +1079,12 @@ namespace SkillEditor
         {
             if (newConfig == null) return;
 
-            // 如果摄像机预览器不存在，尝试使用技能配置中的owner初始化
+            // 如果摄像机预览器不存在，尝试使用技能拥有者初始化
             if (cameraPreviewer == null)
             {
-                if (newConfig.owner != null)
+                if (SkillEditorData.CurrentSkillOwner != null)
                 {
-                    InitializeCameraPreviewer(newConfig.owner);
+                    InitializeCameraPreviewer(SkillEditorData.CurrentSkillOwner);
                 }
                 return;
             }

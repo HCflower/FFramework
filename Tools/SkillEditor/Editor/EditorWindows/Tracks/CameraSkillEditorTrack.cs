@@ -177,6 +177,23 @@ namespace SkillEditor
                 durationFrame = frameCount,
                 // 默认摄像机动作参数
                 curveType = FFramework.Kit.AnimationCurveType.Linear,
+                enablePosition = true,
+                enableRotation = true,
+                enableFieldOfView = false,
+                positionOffset = Vector3.zero,
+                targetRotation = Vector3.zero,
+                targetFieldOfView = 60f,
+                customCurve = AnimationCurve.Linear(0, 0, 1, 1),
+                enableVibration = false,
+                randomizeDirection = true,
+                smoothVibration = true,
+                animationStartFrame = startFrame,
+                animationDurationFrame = frameCount,
+                vibrationFrequency = 5.0f,
+                vibrationIntensity = 1.0f,
+                vibrationDecay = AnimationCurve.Linear(0, 1, 1, 0),
+                dampingFactor = 0.95f,
+                vibrationDirection = Vector3.one,
             };
 
             // 添加到摄像机轨道
@@ -240,6 +257,16 @@ namespace SkillEditor
                         cameraData.enableFieldOfView = clip.enableFieldOfView;
                         cameraData.curveType = clip.curveType;
                         cameraData.customCurve = clip.customCurve;
+                        cameraData.enableVibration = clip.enableVibration;
+                        cameraData.randomizeDirection = clip.randomizeDirection;
+                        cameraData.smoothVibration = clip.smoothVibration;
+                        cameraData.animationStartFrame = clip.animationStartFrame;
+                        cameraData.animationDurationFrame = clip.animationDurationFrame;
+                        cameraData.vibrationFrequency = clip.vibrationFrequency;
+                        cameraData.vibrationIntensity = clip.vibrationIntensity;
+                        cameraData.vibrationDecay = clip.vibrationDecay;
+                        cameraData.dampingFactor = clip.dampingFactor;
+                        cameraData.vibrationDirection = clip.vibrationDirection;
 
 #if UNITY_EDITOR
                         // 标记数据已修改

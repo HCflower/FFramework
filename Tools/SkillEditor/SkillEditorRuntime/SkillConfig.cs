@@ -16,7 +16,6 @@ namespace FFramework.Kit
 
         [Header("技能基础信息")]
         [Tooltip("技能ID"), Min(0)] public int skillId;
-        [Tooltip("技能拥有者")] public SkillRuntimeController owner;
         [Tooltip("技能图标")] public Sprite skillIcon;
         [Tooltip("技能名称")] public string skillName;
         [TextArea(3, 5)]

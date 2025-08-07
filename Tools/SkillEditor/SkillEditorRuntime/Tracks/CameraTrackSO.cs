@@ -237,11 +237,80 @@ namespace FFramework.Kit
             /// <returns>插值后的位置</returns>
             public Vector3 GetInterpolatedPosition(float progress)
             {
-                if (!enablePosition) return isInitialized ? runtimeStartPosition : Vector3.zero;
+                if (!enablePosition)
+                {
+                    return isInitialized ? runtimeStartPosition : Vector3.zero;
+                }
 
                 Vector3 startPos = isInitialized ? runtimeStartPosition : Vector3.zero;
                 float curveValue = GetCurveValue(progress);
-                return Vector3.Lerp(startPos, GetActualEndPosition(), curveValue);
+                Vector3 basePosition = Vector3.Lerp(startPos, GetActualEndPosition(), curveValue);
+
+                // 添加震动效果
+                if (enableVibration && vibrationIntensity > 0f)
+                {
+                    Vector3 vibrationOffset = CalculateVibrationOffset(progress);
+                    Vector3 finalPosition = basePosition + vibrationOffset;
+                    return finalPosition;
+                }
+
+                return basePosition;
+            }
+
+            /// <summary>
+            /// 计算震动偏移量
+            /// </summary>
+            /// <param name="progress">时间进度 (0-1)</param>
+            /// <returns>震动偏移向量</returns>
+            private Vector3 CalculateVibrationOffset(float progress)
+            {
+                if (!enableVibration || vibrationIntensity <= 0f)
+                {
+                    return Vector3.zero;
+                }
+
+                // 计算当前时间（使用Time.time确保运行时的准确性）
+                float currentTime = Time.time * vibrationFrequency;
+
+                // 如果在预览模式，使用基于进度的时间计算
+                if (Application.isEditor && !Application.isPlaying)
+                {
+                    currentTime = progress * (durationFrame > 0 ? durationFrame / 30f : 1f) * vibrationFrequency;
+                }
+
+                // 应用震动衰减
+                float decayMultiplier = vibrationDecay.Evaluate(progress);
+                float currentIntensity = vibrationIntensity * decayMultiplier;
+
+                Vector3 vibrationOffset = Vector3.zero;
+
+                if (randomizeDirection)
+                {
+                    // 随机震动方向，使用柏林噪声创建平滑的随机震动
+                    float randomSeed = currentTime;
+                    vibrationOffset.x = (Mathf.PerlinNoise(randomSeed + 100f, 0f) * 2f - 1f);
+                    vibrationOffset.y = (Mathf.PerlinNoise(randomSeed + 200f, 0f) * 2f - 1f);
+                    vibrationOffset.z = (Mathf.PerlinNoise(randomSeed + 300f, 0f) * 2f - 1f);
+                }
+                else
+                {
+                    // 正弦波震动
+                    float waveValue = Mathf.Sin(currentTime * Mathf.PI * 2f);
+                    vibrationOffset = vibrationDirection.normalized * waveValue;
+                }
+
+                // 应用强度和方向权重
+                vibrationOffset.x *= vibrationDirection.x * currentIntensity;
+                vibrationOffset.y *= vibrationDirection.y * currentIntensity;
+                vibrationOffset.z *= vibrationDirection.z * currentIntensity;
+
+                // 如果启用平滑震动，应用阻尼
+                if (smoothVibration)
+                {
+                    vibrationOffset *= dampingFactor;
+                }
+
+                return vibrationOffset;
             }
 
             /// <summary>

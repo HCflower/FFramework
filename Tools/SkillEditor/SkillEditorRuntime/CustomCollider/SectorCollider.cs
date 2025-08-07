@@ -14,6 +14,26 @@ public class SectorCollider : CustomCollider
     [Tooltip("扇形角度"), Range(0, 360)] public float sectorAngle = 90;
     [Tooltip("扇形厚度"), Min(0.1f)] public float sectorThickness = 0.1f;
 
+    [Header("检测设置")]
+    [Tooltip("检测层级")] public LayerMask detectionLayerMask = -1;
+
+    // 缓存的计算值，避免重复计算
+    private float cachedInnerRadiusSqr;
+    private float cachedOuterRadiusSqr;
+    private float cachedHalfThickness;
+    private float cachedHalfAngleCos;
+    private bool cacheValid = false;
+
+    // 缓存关键点数组，避免重复分配
+    private Vector3[] cachedKeyPoints;
+    private bool keyPointsCacheValid = false;
+
+    // 额外的性能优化缓存
+    private Vector3 cachedSectorCenter;
+    private Vector3 cachedSectorForward;
+    private Vector3 cachedSectorUp;
+    private bool transformCacheValid = false;
+
     #region 扇形特有属性 - 重写基类属性以提供更明确的命名
 
     /// <summary>
@@ -49,6 +69,47 @@ public class SectorCollider : CustomCollider
     public void SetSectorLookDirection(Vector3 worldDirection) => SetColliderLookDirection(worldDirection);
     public void SetSectorLookAtPosition(Vector3 worldPosition) => SetColliderLookAtPosition(worldPosition);
     public void ResetSectorRotationToTransform() => ResetColliderRotationToTransform();
+
+    #endregion
+
+    #region 缓存管理
+
+    /// <summary>
+    /// 更新缓存的计算值
+    /// </summary>
+    private void UpdateCache()
+    {
+        if (cacheValid) return;
+
+        cachedInnerRadiusSqr = innerCircleRadius * innerCircleRadius;
+        cachedOuterRadiusSqr = outerCircleRadius * outerCircleRadius;
+        cachedHalfThickness = sectorThickness * 0.5f;
+        cachedHalfAngleCos = Mathf.Cos(sectorAngle * 0.5f * Mathf.Deg2Rad);
+        cacheValid = true;
+    }
+
+    /// <summary>
+    /// 更新Transform相关的缓存
+    /// </summary>
+    private void UpdateTransformCache()
+    {
+        if (transformCacheValid) return;
+
+        cachedSectorCenter = SectorCenter;
+        cachedSectorForward = SectorForward;
+        cachedSectorUp = SectorUp;
+        transformCacheValid = true;
+    }
+
+    /// <summary>
+    /// 使缓存失效
+    /// </summary>
+    private void InvalidateCache()
+    {
+        cacheValid = false;
+        keyPointsCacheValid = false;
+        transformCacheValid = false;
+    }
 
     #endregion
 
@@ -110,29 +171,33 @@ public class SectorCollider : CustomCollider
     /// <returns>是否在扇形内</returns>
     public bool IsPointInSector(Vector3 worldPosition, Vector3 sectorCenter, Vector3 sectorForward, Vector3 sectorUp)
     {
+        UpdateCache(); // 确保缓存是最新的
+
         Vector3 localPosition = worldPosition - sectorCenter;
 
-        // 快速距离检查（使用平方距离避免开方计算）
+        // 快速距离检查（使用缓存的平方距离值）
         float sqrDistance = localPosition.sqrMagnitude;
-        if (sqrDistance < innerCircleRadius * innerCircleRadius || sqrDistance > outerCircleRadius * outerCircleRadius)
+        if (sqrDistance < cachedInnerRadiusSqr || sqrDistance > cachedOuterRadiusSqr)
             return false;
 
-        // 检查高度范围（厚度）
+        // 检查高度范围（厚度，使用缓存值）
         float heightOffset = Vector3.Dot(localPosition, sectorUp);
-        if (Mathf.Abs(heightOffset) > sectorThickness * 0.5f)
+        if (Mathf.Abs(heightOffset) > cachedHalfThickness)
             return false;
 
         // 如果角度为360度，跳过角度检查
         if (sectorAngle >= 360f)
             return true;
 
-        // 投影到扇形平面
+        // 投影到扇形平面并检查角度范围（使用缓存的余弦值）
         Vector3 projectedPos = localPosition - heightOffset * sectorUp;
 
-        // 检查角度范围（使用点积比较，避免Vector3.Angle的反三角函数计算）
+        // 对于零向量，认为在扇形内（中心点）
+        if (projectedPos.sqrMagnitude < 0.0001f)
+            return true;
+
         float dot = Vector3.Dot(sectorForward.normalized, projectedPos.normalized);
-        float halfAngleCos = Mathf.Cos(sectorAngle * 0.5f * Mathf.Deg2Rad);
-        return dot >= halfAngleCos;
+        return dot >= cachedHalfAngleCos;
     }
 
     /// <summary>
@@ -146,15 +211,15 @@ public class SectorCollider : CustomCollider
         if (!enableCollisionDetection)
             return tempColliderList;
 
-        // 使用基类方法获取附近的碰撞体
-        Collider[] nearbyColliders = GetNearbyColliders();
+        // 使用 Physics.OverlapSphere 进行初步筛选，考虑检测层级
+        Collider[] nearbyColliders = Physics.OverlapSphere(SectorCenter, outerCircleRadius, detectionLayerMask);
 
         foreach (var collider in nearbyColliders)
         {
             if (collider == null || collider.transform == transform) continue;
 
-            // 使用基类方法检查碰撞体是否在范围内
-            if (IsAnyCornerInRange(collider))
+            // 使用扇形特有的检测方法检查碰撞体是否在扇形范围内
+            if (IsColliderInSectorRange(collider))
             {
                 tempColliderList.Add(collider);
             }
@@ -164,13 +229,161 @@ public class SectorCollider : CustomCollider
     }
 
     /// <summary>
-    /// 检查碰撞体是否在扇形范围内
+    /// 获取扇形的关键点，用于反向碰撞检测（使用缓存优化）
+    /// </summary>
+    /// <returns>扇形关键点数组</returns>
+    private Vector3[] GetSectorKeyPoints()
+    {
+        if (keyPointsCacheValid && cachedKeyPoints != null)
+            return cachedKeyPoints;
+
+        UpdateCache(); // 确保基础缓存是最新的
+        UpdateTransformCache(); // 确保Transform缓存是最新的
+
+        Vector3 center = cachedSectorCenter;
+        Vector3 forward = cachedSectorForward;
+        Vector3 up = cachedSectorUp;
+        Vector3 upOffset = up * cachedHalfThickness;
+
+        // 使用更紧凑的计算策略
+        if (sectorAngle < 360f)
+        {
+            // 非360度扇形，使用精简的关键点
+            int pointCount = innerCircleRadius > 0 ? 6 : 4; // 减少关键点数量
+            cachedKeyPoints = new Vector3[pointCount];
+
+            int index = 0;
+            // 添加扇形中心点（上下两个）
+            cachedKeyPoints[index++] = center + upOffset;
+            cachedKeyPoints[index++] = center - upOffset;
+
+            // 只添加前向的外圆点
+            Vector3 forwardOuter = center + forward * outerCircleRadius;
+            cachedKeyPoints[index++] = forwardOuter + upOffset;
+            cachedKeyPoints[index++] = forwardOuter - upOffset;
+
+            // 如果有内圆，添加前向内圆点
+            if (innerCircleRadius > 0)
+            {
+                Vector3 forwardInner = center + forward * innerCircleRadius;
+                cachedKeyPoints[index++] = forwardInner + upOffset;
+                cachedKeyPoints[index++] = forwardInner - upOffset;
+            }
+        }
+        else
+        {
+            // 360度扇形，使用四个方向
+            int pointCount = innerCircleRadius > 0 ? 12 : 8;
+            cachedKeyPoints = new Vector3[pointCount];
+
+            Vector3 right = Vector3.Cross(forward, up).normalized;
+            Vector3[] directions = { forward, right, -forward, -right };
+
+            int index = 0;
+            foreach (var direction in directions)
+            {
+                if (innerCircleRadius > 0)
+                {
+                    Vector3 innerPoint = center + direction * innerCircleRadius;
+                    cachedKeyPoints[index++] = innerPoint + upOffset;
+                    cachedKeyPoints[index++] = innerPoint - upOffset;
+                }
+                Vector3 outerPoint = center + direction * outerCircleRadius;
+                cachedKeyPoints[index++] = outerPoint + upOffset;
+                cachedKeyPoints[index++] = outerPoint - upOffset;
+            }
+        }
+
+        keyPointsCacheValid = true;
+        return cachedKeyPoints;
+    }
+
+    /// <summary>
+    /// 检查碰撞体是否在扇形范围内（优化版本）
     /// </summary>
     /// <param name="collider">目标碰撞体</param>
     /// <returns>是否在扇形内</returns>
+    private bool IsColliderInSectorRange(Collider collider)
+    {
+        UpdateTransformCache(); // 确保Transform缓存最新
+
+        Bounds bounds = collider.bounds;
+
+        // 快速预检查：使用包围盒中心距离进行初步筛选
+        Vector3 centerPos = bounds.center;
+        float centerDistanceSqr = (centerPos - cachedSectorCenter).sqrMagnitude;
+
+        // 如果包围盒中心距离超出外圆+包围盒扩展范围，直接排除
+        float boundsExtent = bounds.size.magnitude * 0.5f;
+        float maxCheckDistance = outerCircleRadius + boundsExtent;
+        if (centerDistanceSqr > maxCheckDistance * maxCheckDistance)
+            return false;
+
+        // 检查碰撞体中心点
+        if (IsPointInSector(centerPos))
+            return true;
+
+        // 智能角点检测：只检查最可能在扇形内的角点
+        Vector3 sectorToCenter = centerPos - cachedSectorCenter;
+
+        // 基于方向性选择要检查的角点（减少不必要的检查）
+        bool checkMinX = Vector3.Dot(sectorToCenter, Vector3.right) < 0;
+        bool checkMinY = Vector3.Dot(sectorToCenter, Vector3.up) < 0;
+        bool checkMinZ = Vector3.Dot(sectorToCenter, cachedSectorForward) < 0;
+
+        // 只检查最相关的4个角点而不是全部8个
+        Vector3[] relevantCorners = new Vector3[4];
+        relevantCorners[0] = new Vector3(checkMinX ? bounds.min.x : bounds.max.x, checkMinY ? bounds.min.y : bounds.max.y, checkMinZ ? bounds.min.z : bounds.max.z);
+        relevantCorners[1] = new Vector3(!checkMinX ? bounds.min.x : bounds.max.x, checkMinY ? bounds.min.y : bounds.max.y, checkMinZ ? bounds.min.z : bounds.max.z);
+        relevantCorners[2] = new Vector3(checkMinX ? bounds.min.x : bounds.max.x, !checkMinY ? bounds.min.y : bounds.max.y, checkMinZ ? bounds.min.z : bounds.max.z);
+        relevantCorners[3] = new Vector3(checkMinX ? bounds.min.x : bounds.max.x, checkMinY ? bounds.min.y : bounds.max.y, !checkMinZ ? bounds.min.z : bounds.max.z);
+
+        // 检查选择的角点
+        foreach (var corner in relevantCorners)
+        {
+            if (IsPointInSector(corner))
+                return true;
+        }
+
+        // 优化的反向检测：只在必要时进行
+        // 如果碰撞体很小，跳过反向检测
+        if (boundsExtent < outerCircleRadius * 0.3f)
+            return false;
+
+        // 使用简化的反向检测：只检查几个关键点
+        return PerformOptimizedReverseCheck(collider, bounds);
+    }
+
+    /// <summary>
+    /// 执行优化的反向检测
+    /// </summary>
+    /// <param name="collider">碰撞体</param>
+    /// <param name="bounds">包围盒</param>
+    /// <returns>是否检测到碰撞</returns>
+    private bool PerformOptimizedReverseCheck(Collider collider, Bounds bounds)
+    {
+        // 只检查最关键的3个点：中心和两个主要方向
+        Vector3[] criticalPoints = new Vector3[3];
+        criticalPoints[0] = cachedSectorCenter; // 扇形中心
+        criticalPoints[1] = cachedSectorCenter + cachedSectorForward * (outerCircleRadius * 0.5f); // 前方中点
+        criticalPoints[2] = cachedSectorCenter + cachedSectorForward * outerCircleRadius; // 前方边缘
+
+        foreach (var point in criticalPoints)
+        {
+            Vector3 closestPoint = collider.ClosestPoint(point);
+            if (Vector3.Distance(closestPoint, point) < 0.02f) // 稍微放宽容差以提高检测率
+                return true;
+        }
+
+        return false;
+    }    /// <summary>
+         /// 检查碰撞体是否在扇形范围内
+         /// </summary>
+         /// <param name="collider">目标碰撞体</param>
+         /// <returns>是否在扇形内</returns>
     public bool IsColliderInSector(Collider collider)
     {
-        return IsAnyCornerInRange(collider);
+        return IsColliderInSectorRange(collider);
     }
 
     #endregion
@@ -184,24 +397,55 @@ public class SectorCollider : CustomCollider
     {
         base.ValidateParameters();
 
+        bool paramsChanged = false;
+
         // 确保外圆半径大于内圆半径
         if (outerCircleRadius <= innerCircleRadius)
         {
             outerCircleRadius = innerCircleRadius + 0.1f;
+            paramsChanged = true;
         }
 
         // 确保角度在合理范围内
-        sectorAngle = Mathf.Clamp(sectorAngle, 0f, 360f);
+        float clampedAngle = Mathf.Clamp(sectorAngle, 0f, 360f);
+        if (clampedAngle != sectorAngle)
+        {
+            sectorAngle = clampedAngle;
+            paramsChanged = true;
+        }
 
         // 确保厚度为正值
-        sectorThickness = Mathf.Max(sectorThickness, 0.1f);
+        float clampedThickness = Mathf.Max(sectorThickness, 0.1f);
+        if (clampedThickness != sectorThickness)
+        {
+            sectorThickness = clampedThickness;
+            paramsChanged = true;
+        }
+
+        // 如果参数发生变化，使缓存失效
+        if (paramsChanged)
+        {
+            InvalidateCache();
+        }
     }
+
+#if UNITY_EDITOR
+    /// <summary>
+    /// Unity编辑器中参数变化时调用，确保缓存失效
+    /// </summary>
+    protected override void OnValidate()
+    {
+        base.OnValidate();
+        InvalidateCache();
+    }
+#endif
 
     #endregion
 
     #region 调试绘制
 
 #if UNITY_EDITOR
+
     /// <summary>
     /// 绘制扇形区域
     /// </summary>
