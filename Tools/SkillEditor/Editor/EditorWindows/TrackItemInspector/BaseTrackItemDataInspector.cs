@@ -2,7 +2,6 @@ using UnityEngine.UIElements;
 using UnityEditor.UIElements;
 using UnityEngine;
 using UnityEditor;
-using System.Linq;
 
 namespace SkillEditor
 {
@@ -12,8 +11,11 @@ namespace SkillEditor
     /// </summary>
     public abstract class BaseTrackItemDataInspector : Editor
     {
+        #region 字段和属性
+
         protected VisualElement root;
         protected BaseTrackItemData targetData;
+        private bool isInitialized = false;
 
         /// <summary>
         /// 获取轨道项类型名称，用于样式类名
@@ -30,14 +32,51 @@ namespace SkillEditor
         /// </summary>
         protected abstract string DeleteButtonText { get; }
 
+        #endregion
+
+        #region 生命周期管理
+
+        /// <summary>
+        /// 创建检查器UI
+        /// </summary>
         public override VisualElement CreateInspectorGUI()
         {
             targetData = target as BaseTrackItemData;
             root = new VisualElement();
 
+            if (targetData == null)
+            {
+                CreateErrorDisplay("无法获取轨道项数据");
+                return root;
+            }
+
+            // 初始化检查器
+            InitializeInspector();
+            isInitialized = true;
+
+            return root;
+        }
+
+        /// <summary>
+        /// 初始化检查器
+        /// </summary>
+        private void InitializeInspector()
+        {
             // 加载样式表
             LoadStyleSheets();
 
+            // 创建UI结构
+            BuildInspectorUI();
+
+            // 注册事件监听
+            RegisterEventHandlers();
+        }
+
+        /// <summary>
+        /// 构建检查器UI
+        /// </summary>
+        private void BuildInspectorUI()
+        {
             // 创建标题
             CreateTitle();
 
@@ -49,9 +88,109 @@ namespace SkillEditor
 
             // 创建操作按钮
             CreateActionButtons();
-
-            return root;
         }
+
+        /// <summary>
+        /// 注册事件处理器
+        /// </summary>
+        protected virtual void RegisterEventHandlers()
+        {
+            // 子类可重写此方法来注册特定事件
+        }
+
+        /// <summary>
+        /// 当组件被销毁时清理资源
+        /// </summary>
+        protected virtual void OnDestroy()
+        {
+            UnregisterEventHandlers();
+        }
+
+        /// <summary>
+        /// 取消事件处理器注册
+        /// </summary>
+        protected virtual void UnregisterEventHandlers()
+        {
+            // 子类可重写此方法来清理事件监听
+        }
+
+        #endregion
+
+        #region 检查器面板管理
+
+        /// <summary>
+        /// 刷新检查器面板
+        /// 重新构建整个UI，用于数据结构发生重大变化时
+        /// </summary>
+        public void RefreshInspectorPanel()
+        {
+            if (!isInitialized || root == null)
+                return;
+
+            SafeExecute(() =>
+            {
+                // 清空当前UI
+                root.Clear();
+
+                // 重新构建UI
+                BuildInspectorUI();
+
+                // 重新注册事件
+                RegisterEventHandlers();
+
+                Debug.Log($"[{TrackItemTypeName}] 检查器面板已刷新");
+            }, "检查器面板刷新");
+        }
+
+        /// <summary>
+        /// 刷新检查器数据
+        /// 只更新数据显示，不重建UI结构
+        /// </summary>
+        public void RefreshInspectorData()
+        {
+            if (!isInitialized || root == null)
+                return;
+
+            SafeExecute(() =>
+            {
+                // 重新序列化对象以获取最新数据
+                serializedObject.Update();
+
+                // 强制重绘以确保UI元素显示最新值
+                UnityEditor.EditorApplication.delayCall += () =>
+                {
+                    if (root != null)
+                    {
+                        // 触发UI重绘
+                        root.MarkDirtyRepaint();
+                    }
+                    Repaint();
+                };
+
+                // 触发UI数据更新
+                OnDataRefreshed();
+            }, "检查器数据刷新");
+        }
+
+        /// <summary>
+        /// 数据刷新后的回调，子类可重写
+        /// </summary>
+        protected virtual void OnDataRefreshed()
+        {
+            // 子类可重写此方法来处理数据刷新后的逻辑
+        }
+
+        /// <summary>
+        /// 创建错误显示
+        /// </summary>
+        private void CreateErrorDisplay(string errorMessage)
+        {
+            var errorLabel = new Label($"错误: {errorMessage}");
+            errorLabel.AddToClassList("ErrorLabel");
+            root.Add(errorLabel);
+        }
+
+        #endregion
 
         #region 虚方法 - 子类可重写
 
@@ -112,7 +251,7 @@ namespace SkillEditor
             CreateReadOnlyField("轨道项名称:", "trackItemName");
 
             // 总帧数
-            CreateReadOnlyField("总帧数:", "frameCount");
+            CreateReadOnlyField("基准帧数:", "frameCount");
 
             // 起始帧
             CreateIntegerField("起始帧:", "startFrame", OnStartFrameChanged);
@@ -200,23 +339,8 @@ namespace SkillEditor
             field.AddToClassList("TextField");
             field.BindProperty(serializedObject.FindProperty(propertyName));
 
-            if (onValueChanged != null)
-            {
-                field.RegisterValueChangedCallback(evt => onValueChanged(evt.newValue));
-            }
-
-            // 添加回车键事件处理
-            if (onValueChanged != null)
-            {
-                field.RegisterCallback<KeyDownEvent>(evt =>
-                {
-                    if (evt.keyCode == KeyCode.Return || evt.keyCode == KeyCode.KeypadEnter)
-                    {
-                        SkillEditorEvent.TriggerRefreshRequested();
-                        evt.StopPropagation();
-                    }
-                });
-            }
+            // 注册值变化事件
+            RegisterFieldEvents(field, onValueChanged);
 
             content.Add(field);
             root.Add(content);
@@ -235,13 +359,39 @@ namespace SkillEditor
             field.AddToClassList("TextField");
             field.BindProperty(serializedObject.FindProperty(propertyName));
 
-            if (onValueChanged != null)
-            {
-                field.RegisterValueChangedCallback(evt => onValueChanged(evt.newValue));
-            }
+            // 注册值变化事件
+            RegisterFieldEvents(field, onValueChanged);
 
             content.Add(field);
             root.Add(content);
+        }
+
+        /// <summary>
+        /// 为字段注册通用事件处理器
+        /// </summary>
+        /// <typeparam name="T">字段值类型</typeparam>
+        /// <param name="field">UI字段</param>
+        /// <param name="onValueChanged">值变化回调</param>
+        private void RegisterFieldEvents<T>(BaseField<T> field, System.Action<T> onValueChanged = null)
+        {
+            if (onValueChanged != null)
+            {
+                field.RegisterValueChangedCallback(evt =>
+                {
+                    // 注意：不在这里自动刷新，让子类控制刷新时机
+                    onValueChanged(evt.newValue);
+                });
+            }
+
+            // 添加回车键事件处理，用于立即刷新
+            field.RegisterCallback<KeyDownEvent>(evt =>
+            {
+                if (evt.keyCode == KeyCode.Return || evt.keyCode == KeyCode.KeypadEnter)
+                {
+                    ApplyDataChangesAndRefresh();
+                    evt.StopPropagation();
+                }
+            });
         }
 
         /// <summary>
@@ -257,10 +407,8 @@ namespace SkillEditor
             field.AddToClassList("TextField");
             field.BindProperty(serializedObject.FindProperty(propertyName));
 
-            if (onValueChanged != null)
-            {
-                field.RegisterValueChangedCallback(evt => onValueChanged(evt.newValue));
-            }
+            // 注册值变化事件
+            RegisterFieldEvents(field, onValueChanged);
 
             content.Add(field);
             root.Add(content);
@@ -279,9 +427,13 @@ namespace SkillEditor
             field.AddToClassList("Toggle");
             field.BindProperty(serializedObject.FindProperty(propertyName));
 
+            // 注册值变化事件（Toggle 不需要回车键处理）
             if (onValueChanged != null)
             {
-                field.RegisterValueChangedCallback(evt => onValueChanged(evt.newValue));
+                field.RegisterValueChangedCallback(evt =>
+                {
+                    onValueChanged(evt.newValue);
+                });
             }
 
             content.Add(field);
@@ -302,9 +454,13 @@ namespace SkillEditor
             field.AddToClassList("ObjectField");
             field.BindProperty(serializedObject.FindProperty(propertyName));
 
+            // 对象字段特殊处理（不需要回车键事件）
             if (onValueChanged != null)
             {
-                field.RegisterValueChangedCallback(evt => onValueChanged(evt.newValue as T));
+                field.RegisterValueChangedCallback(evt =>
+                {
+                    onValueChanged(evt.newValue as T);
+                });
             }
 
             content.Add(field);
@@ -324,9 +480,13 @@ namespace SkillEditor
             field.AddToClassList("ColorField");
             field.BindProperty(serializedObject.FindProperty(propertyName));
 
+            // 颜色字段特殊处理（不需要回车键事件）
             if (onValueChanged != null)
             {
-                field.RegisterValueChangedCallback(evt => onValueChanged(evt.newValue));
+                field.RegisterValueChangedCallback(evt =>
+                {
+                    onValueChanged(evt.newValue);
+                });
             }
 
             content.Add(field);
@@ -346,9 +506,13 @@ namespace SkillEditor
             field.AddToClassList("CurveField");
             field.BindProperty(serializedObject.FindProperty(propertyName));
 
+            // 曲线字段特殊处理（不需要回车键事件）
             if (onValueChanged != null)
             {
-                field.RegisterValueChangedCallback(evt => onValueChanged(evt.newValue));
+                field.RegisterValueChangedCallback(evt =>
+                {
+                    onValueChanged(evt.newValue);
+                });
             }
 
             content.Add(field);
@@ -494,7 +658,7 @@ namespace SkillEditor
 
         #endregion
 
-        #region 工具方法
+        #region 工具方法和辅助功能
 
         /// <summary>
         /// 标记技能配置为已修改
@@ -546,9 +710,31 @@ namespace SkillEditor
                     MarkSkillConfigDirty();
                 };
 
-                Debug.Log($"[{TrackItemTypeName}] 轨道UI刷新请求已延迟执行");
             }, "轨道UI刷新");
         }
+
+        /// <summary>
+        /// 应用数据变化并刷新相关UI
+        /// 综合方法，同时处理检查器和轨道UI的刷新
+        /// </summary>
+        protected void ApplyDataChangesAndRefresh()
+        {
+            SafeExecute(() =>
+            {
+                // 应用序列化对象的修改
+                serializedObject.ApplyModifiedProperties();
+
+                // 立即刷新检查器数据显示
+                RefreshInspectorData();
+
+                // 立即刷新轨道UI
+                RefreshTrackUI();
+
+                // 强制重绘检查器
+                Repaint();
+            }, "数据变化应用和UI刷新");
+        }
+
         #endregion
     }
 }

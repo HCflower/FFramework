@@ -37,7 +37,7 @@ namespace SkillEditor
             CreateCurveTypeField();
             CreateCurveField("自定义曲线:", "customCurve", OnCustomCurveChanged);
 
-            CreateSeparatorTitle("摄像机动画设置");
+            CreateSeparatorTitle("摄像机震动设置");
             CreateToggleField("是否启用震动:", "enableVibration", OnEnableVibrationChanged);
             CreateToggleField("随机震动方向:", "randomizeDirection", OnRandomizeDirectionChanged);
             CreateToggleField("平滑震动:", "smoothVibration", OnSmoothVibrationChanged);

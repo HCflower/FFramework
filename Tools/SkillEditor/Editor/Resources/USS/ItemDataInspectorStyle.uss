@@ -39,40 +39,72 @@
 
 .ItemDataViewContent-Animation{
     border-left-width: 2px;
+    border-left-color: #585858;
+}
+.ItemDataViewContent-Animation:hover{
+    border-left-width: 2px;
     border-left-color: rgb(42, 184, 206);
 }
 
 .ItemDataViewContent-Audio{
+    border-left-width: 2px;
+    border-left-color: #585858;
+}
+.ItemDataViewContent-Audio:hover{
     border-left-width: 2px;
     border-left-color: rgb(250, 193, 23);
 }
 
 .ItemDataViewContent-Effect{
     border-left-width: 2px;
+    border-left-color: #585858;
+}
+.ItemDataViewContent-Effect:hover{
+    border-left-width: 2px;
     border-left-color: rgb(190, 42, 206);
 }
 
 .ItemDataViewContent-Attack{
+    border-left-width: 2px;
+    border-left-color: #585858
+}
+.ItemDataViewContent-Attack:hover{
     border-left-width: 2px;
     border-left-color: rgb(206, 45, 42);
 }
 
 .ItemDataViewContent-Event{
     border-left-width: 2px;
+    border-left-color: #585858
+}
+.ItemDataViewContent-Event:hover{
+    border-left-width: 2px;
     border-left-color: rgb(42, 116, 206);
 }
 
 .ItemDataViewContent-Transform{
+    border-left-width: 2px;
+    border-left-color: #585858
+}
+.ItemDataViewContent-Transform:hover{
     border-left-width: 2px;
     border-left-color: rgb(42, 206, 83);
 }
 
 .ItemDataViewContent-Camera{
     border-left-width: 2px;
+    border-left-color: #585858
+}
+.ItemDataViewContent-Camera:hover{
+    border-left-width: 2px;
     border-left-color: rgb(42, 154, 206);
 }
 
 .ItemDataViewContent-GameObject{
+    border-left-width: 2px;
+    border-left-color: #585858
+}
+.ItemDataViewContent-GameObject:hover{
     border-left-width: 2px;
     border-left-color: rgb(42, 154, 206);
 }
@@ -85,7 +117,7 @@
     -unity-text-align: middle-center;
     -unity-font-style: bold;
     font-size: 12px;
-    background-color: rgba(163, 49, 49, 1);
+    background-color: rgba(142, 48, 48, 1);
 
     flex-grow: 1;   /* 允许输入区域根据可用空间扩展 */
     flex-shrink: 1; /* 允许在空间不足时收缩 */

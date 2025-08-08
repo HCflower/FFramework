@@ -42,6 +42,16 @@ namespace SkillEditor
 
     /// <summary>
     /// 音频预览器类，负责在编辑器模式下预览音频
+    /// 
+    /// 修复说明：
+    /// 1. OnPlay方法：只在点击音频片段开始帧时播放，避免在片段内任意位置都触发播放
+    /// 2. OnAudioClipClicked方法：专门处理点击音频片段内部的播放逻辑
+    /// 3. OnTimelineClicked方法：统一处理时间轴点击，区分是否点击在音频片段上
+    /// 4. IsFrameInAudioClip方法：检查帧是否在音频片段范围内
+    /// 
+    /// 使用方法：
+    /// - 点击空白时间轴：调用OnTimelineClicked(frame, false)
+    /// - 点击音频片段：调用OnTimelineClicked(frame, true, audioClip, startFrame)
     /// </summary>
     public class SkillAudioPreviewer : System.IDisposable
     {
@@ -120,7 +130,7 @@ namespace SkillEditor
                 if (currentFrame < audioStartFrame || currentFrame > audioEndFrame)
                 {
                     // 当前帧超出音频片段区域，停止播放
-                    if (isPlaying)
+                    if (isPlaying && currentClip == audioClip)
                     {
                         StopAudio();
                     }
@@ -138,28 +148,25 @@ namespace SkillEditor
                 float relativeFrame = currentFrame - audioStartFrame;
                 float totalSegmentFrames = audioEndFrame - audioStartFrame;
 
-                // 重要：基于片段进度来计算音频播放进度，确保：
-                // - 片段开始时（relativeFrame=0）：音频从开头播放（startProgress=0）
-                // - 片段中间时：音频播放到相应位置
-                // - 片段结束时（relativeFrame=totalSegmentFrames）：音频播放到结尾（startProgress=1）
+                // 基于片段进度来计算音频播放进度
                 float segmentProgress = relativeFrame / totalSegmentFrames;
                 startProgress = Mathf.Clamp01(segmentProgress);
             }
             else
             {
                 // 基于整个时间轴的位置计算播放进度（非片段模式）
-                float currentTime = currentFrame / frameRate;
+                float currentTime = currentFrame / (float)frameRate;
                 startProgress = Mathf.Clamp01(currentTime / audioClip.length);
             }
 
-            // 特殊处理：如果当前帧是音频片段的第一帧，强制播放
+            // 特殊处理：如果当前帧是音频片段的第一帧，强制从头播放
             bool isFirstFrameOfSegment = (audioStartFrame >= 0 && currentFrame == audioStartFrame);
 
             // 如果是同一个音频剪辑且播放进度差异很小，不重新播放（除非是片段第一帧）
             if (currentClip == audioClip && isPlaying && !isFirstFrameOfSegment)
             {
                 float progressDifference = Mathf.Abs(currentStartProgress - startProgress);
-                if (progressDifference < 0.05f) // 放宽到5%的误差，避免过于敏感
+                if (progressDifference < 0.02f) // 缩小误差范围到2%，提高精确度
                 {
                     return;
                 }
@@ -222,6 +229,48 @@ namespace SkillEditor
         }
 
         /// <summary>
+        /// 检查指定帧是否在某个音频片段内
+        /// </summary>
+        /// <param name="frameIndex">帧索引</param>
+        /// <param name="audioStartFrame">音频开始帧</param>
+        /// <param name="audioClip">音频剪辑</param>
+        /// <param name="frameRate">帧率</param>
+        /// <returns>是否在音频片段内</returns>
+        public bool IsFrameInAudioClip(int frameIndex, int audioStartFrame, AudioClip audioClip, int frameRate = 60)
+        {
+            if (audioClip == null) return false;
+
+            int audioFrameCount = (int)(audioClip.length * frameRate);
+            int audioEndFrame = audioStartFrame + audioFrameCount;
+
+            return frameIndex >= audioStartFrame && frameIndex <= audioEndFrame;
+        }
+
+        /// <summary>
+        /// 处理时间轴点击事件（区分是否点击在音频片段上）
+        /// </summary>
+        /// <param name="clickedFrame">点击的帧位置</param>
+        /// <param name="isClickOnAudioClip">是否点击在音频片段上</param>
+        /// <param name="targetAudioClip">目标音频剪辑（如果点击在音频片段上）</param>
+        /// <param name="audioStartFrame">音频开始帧（如果点击在音频片段上）</param>
+        /// <param name="frameRate">帧率</param>
+        public void OnTimelineClicked(int clickedFrame, bool isClickOnAudioClip = false, AudioClip targetAudioClip = null, int audioStartFrame = -1, int frameRate = 60)
+        {
+            if (!isPreviewActive) return;
+
+            if (isClickOnAudioClip && targetAudioClip != null && audioStartFrame >= 0)
+            {
+                // 点击在音频片段上，播放对应位置的音频
+                OnAudioClipClicked(targetAudioClip, clickedFrame, audioStartFrame, frameRate);
+            }
+            else
+            {
+                // 点击在空白时间轴上，检查是否有音频需要播放
+                OnPlay(clickedFrame);
+            }
+        }
+
+        /// <summary>
         /// 检查音频是否在播放
         /// </summary>
         /// <returns>是否正在播放</returns>
@@ -251,17 +300,8 @@ namespace SkillEditor
                         {
                             if (skillAudioEvent.clip == null) continue;
 
-                            int audioFrameCount = (int)(skillAudioEvent.clip.length * 60); // 使用固定帧率60
-                            int audioLastFrameIndex = audioFrameCount + skillAudioEvent.startFrame;
-
-                            // 开始帧在左边 && 长度大于当前选中帧
-                            if (skillAudioEvent.startFrame < startFrameIndex && audioLastFrameIndex > startFrameIndex)
-                            {
-                                int offsetX = startFrameIndex - skillAudioEvent.startFrame;
-                                float rate = (float)offsetX / audioFrameCount;
-                                EditorAudioUtility.PlayAudio(skillAudioEvent.clip, rate);
-                            }
-                            else if (skillAudioEvent.startFrame == startFrameIndex)
+                            // 只有当点击的帧正好是音频片段的开始帧时才播放
+                            if (skillAudioEvent.startFrame == startFrameIndex)
                             {
                                 // 播放音频,重头开始
                                 EditorAudioUtility.PlayAudio(skillAudioEvent.clip, 0);
@@ -270,6 +310,37 @@ namespace SkillEditor
                     }
                 }
             }
+        }
+
+        /// <summary>
+        /// 点击音频片段时的播放处理（用于直接点击音频片段）
+        /// </summary>
+        /// <param name="audioClip">音频剪辑</param>
+        /// <param name="clickedFrame">点击的帧位置</param>
+        /// <param name="audioStartFrame">音频片段开始帧</param>
+        /// <param name="frameRate">帧率</param>
+        public void OnAudioClipClicked(AudioClip audioClip, int clickedFrame, int audioStartFrame, int frameRate = 60)
+        {
+            if (!isPreviewActive || audioClip == null) return;
+
+            // 计算点击位置在音频片段内的相对进度
+            int relativeFrame = clickedFrame - audioStartFrame;
+            int audioFrameCount = (int)(audioClip.length * frameRate);
+
+            // 确保相对帧数在有效范围内
+            relativeFrame = Mathf.Clamp(relativeFrame, 0, audioFrameCount);
+
+            // 计算播放进度
+            float playProgress = (float)relativeFrame / audioFrameCount;
+            playProgress = Mathf.Clamp01(playProgress);
+
+            // 播放音频
+            PlayAudio(audioClip, playProgress);
+            currentClip = audioClip;
+            currentStartProgress = playProgress;
+            isPlaying = true;
+
+            Debug.Log($"点击音频片段播放：进度 {playProgress:F2}，相对帧 {relativeFrame}/{audioFrameCount}");
         }
 
         /// <summary>

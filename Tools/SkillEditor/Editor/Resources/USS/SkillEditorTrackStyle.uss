@@ -138,16 +138,21 @@
 
 /* 事件轨道项 */
 .TrackItem-Event{
-    /* background-color: rgba(255, 255, 255, 0.45);   */
-
-    border-left-width: 2px;
-    border-left-color: rgba(255, 255, 255, 1);    
+    /* border-left-width: 2px;
+    border-left-color: rgba(255, 255, 255, 1);     */
 }
 /* 事件轨道项 - 鼠标悬停效果 */
 .TrackItem-Event:hover{
     background-color: rgba(255, 255, 255, 0.25); 
 }
-
+.EventIcon{
+    width: 12px;
+    height: 100%;
+    position: absolute;
+    left: -6px;
+    background-size: 25px 25px;
+    background-image: resource("Icon/SignalAsset Icon");
+}
 /* 变换轨道项 */
 .TrackItem-Transform{
     background-color: rgba(30, 172, 77, 0.45);

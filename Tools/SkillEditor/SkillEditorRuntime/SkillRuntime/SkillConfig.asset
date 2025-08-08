@@ -17,7 +17,7 @@ MonoBehaviour:
   isEnabled: 0
   transformClips:
   - clipName: Transform
-    startFrame: 18
+    startFrame: 15
     durationFrame: 12
     positionOffset: {x: 0, y: 0, z: 5}
     targetRotation: {x: 0, y: 0, z: 0}
@@ -68,12 +68,12 @@ MonoBehaviour:
     isEnabled: 1
     effectClips:
     - clipName: basicslash
-      startFrame: 19
-      durationFrame: 12
+      startFrame: 21
+      durationFrame: 24
       effectPrefab: {fileID: 6389406066330802589, guid: 5ef8d476ac4025a4e85cc5e7c5004889, type: 3}
-      playSpeed: 1
-      position: {x: 0.8, y: 2.5, z: 0.35}
-      rotation: {x: -90, y: -90, z: 1}
+      effectPlaySpeed: 0.5
+      position: {x: 0, y: 2.5, z: 0}
+      rotation: {x: -90, y: 0, z: -280}
       scale: {x: 0.5, y: 0.5, z: 0.5}
 --- !u!114 &11400000
 MonoBehaviour:
@@ -88,7 +88,7 @@ MonoBehaviour:
   m_Name: SkillConfig
   m_EditorClassIdentifier: 
   frameRate: 24
-  maxFrames: 32
+  maxFrames: 72
   skillId: 0
   skillIcon: {fileID: 21300000, guid: 48e7bec8a4f0e3049a6c34938bf5a7ca, type: 3}
   skillName: "\u6D66\u4E1C\u516C\u9E21"
@@ -120,9 +120,9 @@ MonoBehaviour:
   animationClips:
   - clipName: 2H_Melee_Attack_Spin
     startFrame: 0
-    durationFrame: 32
+    durationFrame: 72
     clip: {fileID: 7400000, guid: 3a91922c9630cdc4e94e060121e72b00, type: 2}
-    playSpeed: 1
+    animationPlaySpeed: 1
     normalizedTransitionTime: 0.15
     isLoop: 0
     applyRootMotion: 1
@@ -143,7 +143,7 @@ MonoBehaviour:
   isEnabled: 0
   cameraClips:
   - clipName: Camera Main Camera
-    startFrame: 24
+    startFrame: 23
     durationFrame: 5
     enablePosition: 1
     enableRotation: 0
@@ -227,25 +227,13 @@ MonoBehaviour:
     isEnabled: 1
     injuryDetectionClips:
     - clipName: InjuryDetection
-      startFrame: 19
-      durationFrame: 5
+      startFrame: 21
+      durationFrame: 20
       targetLayers:
         serializedVersion: 2
-        m_Bits: 64
+        m_Bits: 4294967295
       enableAllCollisionGroups: 0
       collisionGroupId: 0
-  - trackName: "\u4F24\u5BB3\u68C0\u6D4B\u8F68\u9053 2"
-    trackIndex: 1
-    isEnabled: 0
-    injuryDetectionClips:
-    - clipName: InjuryDetection
-      startFrame: 25
-      durationFrame: 5
-      targetLayers:
-        serializedVersion: 2
-        m_Bits: 64
-      enableAllCollisionGroups: 0
-      collisionGroupId: 1
 --- !u!114 &4144422302740679402
 MonoBehaviour:
   m_ObjectHideFlags: 0

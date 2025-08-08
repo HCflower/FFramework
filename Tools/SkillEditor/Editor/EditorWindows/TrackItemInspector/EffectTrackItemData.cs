@@ -8,12 +8,10 @@ namespace SkillEditor
     /// </summary>
     public class EffectTrackItemData : BaseTrackItemData
     {
-        [Header("特效设置")]
-        [Tooltip("特效资源")] public GameObject effectPrefab;
-
-        [Header("Transform")]
-        [Tooltip("特效位置")] public Vector3 position = Vector3.zero;
-        [Tooltip("特效旋转")] public Vector3 rotation = Vector3.zero;
-        [Tooltip("特效缩放")] public Vector3 scale = Vector3.one;
+        public GameObject effectPrefab;             //特效资源
+        public float effectPlaySpeed;               //特效播放速度
+        public Vector3 position = Vector3.zero;     //特效位置
+        public Vector3 rotation = Vector3.zero;     //特效旋转
+        public Vector3 scale = Vector3.one;         //特效缩放
     }
 }

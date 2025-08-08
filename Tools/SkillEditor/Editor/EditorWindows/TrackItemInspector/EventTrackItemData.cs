@@ -10,8 +10,7 @@ namespace SkillEditor
     /// </summary>
     public class EventTrackItemData : BaseTrackItemData
     {
-        [Header("事件参数")]
-        [Tooltip("事件类型")] public string eventType;
-        [Tooltip("事件参数")] public string eventParameters;
+        public string eventType;          //事件类型
+        public string eventParameters;    //事件参数
     }
 }

@@ -63,6 +63,7 @@ namespace SkillEditor
             if (newItem.ItemData is EffectTrackItemData effectData)
             {
                 effectData.effectPrefab = gameObject;
+                effectData.effectPlaySpeed = 1.0f;
                 effectData.position = Vector3.zero;
                 effectData.rotation = Vector3.zero;
                 effectData.scale = Vector3.one;
@@ -168,18 +169,15 @@ namespace SkillEditor
                     effectClips = new System.Collections.Generic.List<FFramework.Kit.EffectTrack.EffectClip>()
                 };
                 effectTrackSO.effectTracks.Add(newTrack);
-                Debug.Log($"AddEffectToConfig: 创建新轨道 {newTrack.trackName} (索引: {newTrack.trackIndex})");
             }
 
             // 获取指定索引的特效轨道
             var effectTrack = effectTrackSO.effectTracks[trackIndex];
-            Debug.Log($"AddEffectToConfig: 使用轨道索引 {trackIndex}, 轨道名称: {effectTrack.trackName}");
 
             // 确保特效片段列表存在
             if (effectTrack.effectClips == null)
             {
                 effectTrack.effectClips = new System.Collections.Generic.List<FFramework.Kit.EffectTrack.EffectClip>();
-                Debug.Log("AddEffectToConfig: 初始化特效片段列表");
             }
 
             // 创建技能配置中的特效片段数据
@@ -189,6 +187,7 @@ namespace SkillEditor
                 startFrame = startFrame,
                 durationFrame = frameCount,
                 effectPrefab = effectGameObject,
+                effectPlaySpeed = 1.0f,
                 scale = Vector3.one,
                 rotation = Vector3.zero,
                 position = Vector3.zero
@@ -242,6 +241,7 @@ namespace SkillEditor
                     if (trackItem?.ItemData is EffectTrackItemData effectData)
                     {
                         effectData.durationFrame = clip.durationFrame;
+                        effectData.effectPlaySpeed = clip.effectPlaySpeed;
                         effectData.position = clip.position;
                         effectData.rotation = clip.rotation;
                         effectData.scale = clip.scale;

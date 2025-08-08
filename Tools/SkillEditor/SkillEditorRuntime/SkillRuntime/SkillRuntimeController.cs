@@ -479,7 +479,7 @@ namespace FFramework.Kit
                         Debug.Log($"SkillRuntimeController: 播放动画 {animClip.clip.name} 在帧 {frame}, 归一化时间: {normalizedTime}, 过渡时间: {animClip.normalizedTransitionTime}秒, 根运动: {animClip.applyRootMotion}");
                     }
 
-                    skillAnimator.speed = animClip.playSpeed * playSpeed;
+                    skillAnimator.speed = animClip.animationPlaySpeed * playSpeed;
                 }
 
                 break; // 只播放第一个匹配的动画片段
@@ -532,7 +532,7 @@ namespace FFramework.Kit
                             effectObj != null && !effectObj.activeInHierarchy)
                         {
                             effectObj.SetActive(true);
-                            PlayEffect(effectObj, frame - effectClip.startFrame);
+                            PlayEffect(effectObj, frame - effectClip.startFrame, effectClip);
                         }
                     }
                     else
@@ -572,7 +572,7 @@ namespace FFramework.Kit
                         audioSource.volume = audioClip.volume;
                         audioSource.pitch = audioClip.pitch * playSpeed;
                         audioSource.loop = audioClip.isLoop;
-                        audioSource.Play();
+                        audioSource.PlayOneShot(audioClip.clip);
 
                         Debug.Log($"SkillRuntimeController: 播放音频 {audioClip.clip.name} 在帧 {frame}");
                     }
@@ -696,12 +696,17 @@ namespace FFramework.Kit
         /// </summary>
         /// <param name="effectObj">特效对象</param>
         /// <param name="frameOffset">帧偏移</param>
-        private void PlayEffect(GameObject effectObj, int frameOffset)
+        /// <param name="effectClip">特效片段</param>
+        private void PlayEffect(GameObject effectObj, int frameOffset, EffectTrack.EffectClip effectClip)
         {
             var particleSystems = effectObj.GetComponentsInChildren<ParticleSystem>();
             foreach (var ps in particleSystems)
             {
                 if (ps.isPlaying) ps.Stop(true);
+
+                // 应用特效播放速度
+                var main = ps.main;
+                main.simulationSpeed = effectClip.effectPlaySpeed * playSpeed;
 
                 ps.Play();
 

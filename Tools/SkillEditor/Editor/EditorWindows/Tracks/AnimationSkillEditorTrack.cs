@@ -94,7 +94,7 @@ namespace SkillEditor
                 startFrame = startFrame,
                 durationFrame = frameCount,
                 clip = animationClip,
-                playSpeed = 1.0f,
+                animationPlaySpeed = 1.0f,
                 normalizedTransitionTime = 0.15f,
                 isLoop = false,
                 applyRootMotion = false
@@ -143,7 +143,7 @@ namespace SkillEditor
                     if (trackItem?.ItemData is AnimationTrackItemData animationData)
                     {
                         animationData.durationFrame = clip.durationFrame;
-                        animationData.playSpeed = clip.playSpeed;
+                        animationData.animationPlaySpeed = clip.animationPlaySpeed;
                         animationData.normalizedTransitionTime = clip.normalizedTransitionTime;
                         animationData.isLoop = clip.isLoop;
                         animationData.applyRootMotion = clip.applyRootMotion;

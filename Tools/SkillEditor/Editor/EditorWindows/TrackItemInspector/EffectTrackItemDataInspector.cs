@@ -24,22 +24,104 @@ namespace SkillEditor
         {
             // 特效预制体字段
             CreateObjectField<GameObject>("特效预制体:", "effectPrefab", OnEffectPrefabChanged);
-
+            CreateFloatField("特效播放速度:", "effectPlaySpeed", OnEffectPlaySpeedChanged);
             // Transform 设置
             CreateVector3Field("特效位置:", "position", OnPositionChanged);
             CreateVector3Field("特效旋转:", "rotation", OnRotationChanged);
             CreateVector3Field("特效缩放:", "scale", OnScaleChanged);
         }
 
-        protected override void PerformDelete()
+        #region 事件处理方法
+
+        private void OnEffectPrefabChanged(GameObject newPrefab)
         {
-            if (EditorUtility.DisplayDialog("删除确认",
-                $"确定要删除特效轨道项 \"{effectTargetData.trackItemName}\" 吗？\n\n此操作将会：\n• 从界面移除此轨道项\n• 删除对应的配置数据\n• 无法撤销",
-                "确认删除", "取消"))
+            SafeExecute(() =>
             {
-                DeleteEffectTrackItem();
-            }
+                UpdateEffectTrackConfig(configClip =>
+                {
+                    configClip.effectPrefab = newPrefab;
+                }, "特效预制体更新");
+
+            }, "特效预制体更新");
         }
+
+        private void OnEffectPlaySpeedChanged(float newValue)
+        {
+            SafeExecute(() =>
+            {
+                UpdateEffectTrackConfig(configClip =>
+                {
+                    configClip.effectPlaySpeed = newValue;
+                    //刷新持续帧
+                    configClip.durationFrame = (int)(targetData.frameCount / newValue);
+                    effectTargetData.durationFrame = configClip.durationFrame;
+                }, "特效播放速度更新");
+            }, "特效播放速度更新");
+        }
+
+        private void OnPositionChanged(Vector3 newValue)
+        {
+            SafeExecute(() =>
+            {
+                UpdateEffectTrackConfig(configClip =>
+                {
+                    configClip.position = newValue;
+                }, "特效位置更新");
+
+            }, "特效位置更新");
+        }
+
+        private void OnRotationChanged(Vector3 newValue)
+        {
+            SafeExecute(() =>
+            {
+                UpdateEffectTrackConfig(configClip =>
+                {
+                    configClip.rotation = newValue;
+                }, "特效旋转更新");
+
+            }, "特效旋转更新");
+        }
+
+        private void OnScaleChanged(Vector3 newValue)
+        {
+            SafeExecute(() =>
+            {
+                UpdateEffectTrackConfig(configClip =>
+                {
+                    configClip.scale = newValue;
+                }, "特效缩放更新");
+
+            }, "特效缩放更新");
+        }
+
+        /// <summary>
+        /// 起始帧变化事件处理
+        /// </summary>
+        /// <param name="newValue">新的起始帧值</param>
+        protected override void OnStartFrameChanged(int newValue)
+        {
+            SafeExecute(() =>
+            {
+                UpdateEffectTrackConfig(configClip => configClip.startFrame = newValue, "起始帧更新");
+            }, "起始帧更新");
+        }
+
+        /// <summary>
+        /// 持续帧数变化事件处理
+        /// </summary>
+        /// <param name="newValue">新的持续帧数值</param>
+        protected override void OnDurationFrameChanged(int newValue)
+        {
+            SafeExecute(() =>
+            {
+                UpdateEffectTrackConfig(configClip => configClip.durationFrame = newValue, "持续帧数更新");
+            }, "持续帧数更新");
+        }
+
+        #endregion
+
+        #region 数据同步方法
 
         /// <summary>
         /// 删除特效轨道项的完整流程
@@ -121,79 +203,15 @@ namespace SkillEditor
             }, "删除特效轨道项");
         }
 
-        #region 事件处理方法
-
-        private void OnEffectPrefabChanged(GameObject newPrefab)
+        protected override void PerformDelete()
         {
-            SafeExecute(() =>
+            if (EditorUtility.DisplayDialog("删除确认",
+                $"确定要删除特效轨道项 \"{effectTargetData.trackItemName}\" 吗？\n\n此操作将会：\n• 从界面移除此轨道项\n• 删除对应的配置数据\n• 无法撤销",
+                "确认删除", "取消"))
             {
-                UpdateEffectTrackConfig(configClip =>
-                {
-                    configClip.effectPrefab = newPrefab;
-                }, "特效预制体更新");
-            }, "特效预制体更新");
+                DeleteEffectTrackItem();
+            }
         }
-
-        private void OnPositionChanged(Vector3 newValue)
-        {
-            SafeExecute(() =>
-            {
-                UpdateEffectTrackConfig(configClip =>
-                {
-                    configClip.position = newValue;
-                }, "特效位置更新");
-            }, "特效位置更新");
-        }
-
-        private void OnRotationChanged(Vector3 newValue)
-        {
-            SafeExecute(() =>
-            {
-                UpdateEffectTrackConfig(configClip =>
-                {
-                    configClip.rotation = newValue;
-                }, "特效旋转更新");
-            }, "特效旋转更新");
-        }
-
-        private void OnScaleChanged(Vector3 newValue)
-        {
-            SafeExecute(() =>
-            {
-                UpdateEffectTrackConfig(configClip =>
-                {
-                    configClip.scale = newValue;
-                }, "特效缩放更新");
-            }, "特效缩放更新");
-        }
-
-        /// <summary>
-        /// 起始帧变化事件处理
-        /// </summary>
-        /// <param name="newValue">新的起始帧值</param>
-        protected override void OnStartFrameChanged(int newValue)
-        {
-            SafeExecute(() =>
-            {
-                UpdateEffectTrackConfig(configClip => configClip.startFrame = newValue, "起始帧更新");
-            }, "起始帧更新");
-        }
-
-        /// <summary>
-        /// 持续帧数变化事件处理
-        /// </summary>
-        /// <param name="newValue">新的持续帧数值</param>
-        protected override void OnDurationFrameChanged(int newValue)
-        {
-            SafeExecute(() =>
-            {
-                UpdateEffectTrackConfig(configClip => configClip.durationFrame = newValue, "持续帧数更新");
-            }, "持续帧数更新");
-        }
-
-        #endregion
-
-        #region 数据同步方法
 
         /// <summary>
         /// 统一的特效配置数据更新方法

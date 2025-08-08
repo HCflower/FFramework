@@ -237,12 +237,13 @@ namespace SkillEditor
                         // 检查特效是否应该在当前帧激活
                         if (frameIndex >= effectClip.startFrame && frameIndex < effectLastFrameIndex)
                         {
-                            // 计算播放时间
+                            // 计算播放时间，考虑特效播放速度
                             int offsetFrame = frameIndex - effectClip.startFrame;
-                            float playTime = offsetFrame / GetFrameRate();
+                            float basePlayTime = offsetFrame / GetFrameRate();
+                            float adjustedPlayTime = basePlayTime * effectClip.effectPlaySpeed;
 
                             // 激活特效并设置到正确的播放时间
-                            PlayEffectAtTime(instance.effectObject, playTime);
+                            PlayEffectAtTime(instance.effectObject, adjustedPlayTime);
                             instance.isActive = true;
                         }
                         else if (hideOthersFirst)
@@ -302,6 +303,9 @@ namespace SkillEditor
                         // 创建特效实例数据并添加到管理字典
                         var instance = new EffectInstance(effectInstance, effectClip, effectKey);
                         activeEffectInstances[effectKey] = instance;
+
+                        // 应用特效播放速度
+                        SetEffectPlaySpeed(effectInstance, effectClip.effectPlaySpeed);
 
                         // 初始设置为不可见
                         SetEffectActive(effectInstance, false);
@@ -384,6 +388,9 @@ namespace SkillEditor
 
                 // 应用初始变换
                 ApplyTransformToEffect(effectInstance, effectClip);
+
+                // 应用播放速度
+                SetEffectPlaySpeed(effectInstance, effectClip.effectPlaySpeed);
             }
 
             return effectInstance;
@@ -397,7 +404,7 @@ namespace SkillEditor
             if (skillOwner == null) return;
 
             // 查找现有的特效容器
-            Transform existingContainer = skillOwner.transform.Find("EffectPreviewContainer");
+            Transform existingContainer = skillOwner.transform.Find("EffectContainer");
 
             if (existingContainer != null)
             {
@@ -407,7 +414,7 @@ namespace SkillEditor
             else
             {
                 // 创建新的特效容器
-                GameObject containerObj = new GameObject("EffectPreviewContainer");
+                GameObject containerObj = new GameObject("EffectContainer");
                 containerObj.transform.SetParent(skillOwner.transform);
                 containerObj.transform.localPosition = Vector3.zero;
                 containerObj.transform.localRotation = Quaternion.identity;
@@ -439,6 +446,9 @@ namespace SkillEditor
                     {
                         // 更新为最新的片段数据
                         instance.clipData = effectClip;
+
+                        // 更新播放速度（如果发生了变化）
+                        SetEffectPlaySpeed(instance.effectObject, effectClip.effectPlaySpeed);
                     }
                 }
             }
@@ -476,6 +486,9 @@ namespace SkillEditor
             effectTransform.localPosition = effectClip.position;
             effectTransform.localRotation = Quaternion.Euler(effectClip.rotation);
             effectTransform.localScale = effectClip.scale;
+
+            // 确保播放速度也是最新的
+            SetEffectPlaySpeed(effectObject, effectClip.effectPlaySpeed);
         }
 
         /// <summary>
@@ -501,6 +514,47 @@ namespace SkillEditor
         }
 
         /// <summary>
+        /// 设置特效播放速度
+        /// </summary>
+        /// <param name="effectObject">特效对象</param>
+        /// <param name="playSpeed">播放速度倍率</param>
+        private void SetEffectPlaySpeed(GameObject effectObject, float playSpeed)
+        {
+            if (effectObject == null) return;
+
+            // 设置粒子系统的播放速度
+            var particleSystems = effectObject.GetComponentsInChildren<ParticleSystem>();
+            foreach (var ps in particleSystems)
+            {
+                var main = ps.main;
+                main.simulationSpeed = playSpeed;
+            }
+
+            // 设置Animator的播放速度
+            var animators = effectObject.GetComponentsInChildren<Animator>();
+            foreach (var animator in animators)
+            {
+                if (animator != null)
+                {
+                    animator.speed = playSpeed;
+                }
+            }
+
+            // 设置Animation的播放速度
+            var animations = effectObject.GetComponentsInChildren<Animation>();
+            foreach (var animation in animations)
+            {
+                if (animation != null)
+                {
+                    foreach (AnimationState state in animation)
+                    {
+                        state.speed = playSpeed;
+                    }
+                }
+            }
+        }
+
+        /// <summary>
         /// 检查特效在指定帧是否应该激活
         /// </summary>
         /// <param name="effectClip">特效片段</param>
@@ -520,7 +574,8 @@ namespace SkillEditor
         private float CalculateEffectPlayTime(EffectTrack.EffectClip effectClip, int currentFrame)
         {
             int relativeFrame = currentFrame - effectClip.startFrame;
-            return Mathf.Max(0, relativeFrame) / GetFrameRate();
+            float baseTime = Mathf.Max(0, relativeFrame) / GetFrameRate();
+            return baseTime * effectClip.effectPlaySpeed; // 考虑播放速度
         }
 
         /// <summary>
@@ -542,6 +597,17 @@ namespace SkillEditor
                 ps.Play();
                 if (timeInSeconds > 0)
                     ps.Simulate(timeInSeconds, true, false, true);
+            }
+
+            // 处理Animator组件的播放速度
+            var animators = effectObject.GetComponentsInChildren<Animator>();
+            foreach (var animator in animators)
+            {
+                if (animator != null && animator.runtimeAnimatorController != null)
+                {
+                    // 注意：这里不直接设置speed，因为speed应该由effectPlaySpeed控制
+                    // 如果需要特效内部动画也受播放速度影响，可以在SetEffectPlaySpeed中处理
+                }
             }
         }
 

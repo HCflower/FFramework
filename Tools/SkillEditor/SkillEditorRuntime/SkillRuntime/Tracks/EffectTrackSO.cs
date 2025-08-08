@@ -142,7 +142,7 @@ namespace FFramework.Kit
         {
             [Header("特效设置")]
             [Tooltip("特效资源")] public GameObject effectPrefab;
-            [Tooltip("特效播放速度")] public float playSpeed = 1f;
+            [Tooltip("特效播放速度")] public float effectPlaySpeed = 1f;
             [Header("Transform")]
             [Tooltip("特效位置")] public Vector3 position = Vector3.zero;
             [Tooltip("特效旋转")] public Vector3 rotation = Vector3.zero;

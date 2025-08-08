@@ -28,9 +28,7 @@ namespace SkillEditor
         /// <summary>
         /// 轨道管理器构造函数
         /// </summary>
-        public SkillEditorTrackHandler()
-        {
-        }
+        public SkillEditorTrackHandler() { }
 
         /// <summary>
         /// 初始化轨道管理器

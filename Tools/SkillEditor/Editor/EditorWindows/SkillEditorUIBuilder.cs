@@ -323,7 +323,7 @@ namespace SkillEditor
             CreateButton(parent, "保存配置文件", "", () =>
             {
                 AssetDatabase.SaveAssetIfDirty(SkillEditorData.CurrentSkillConfig);
-                Debug.Log($"已保存技能配置: {SkillEditorData.CurrentSkillConfig?.skillName}");
+                Debug.Log($"<color=green>已保存技能配置: {SkillEditorData.CurrentSkillConfig?.skillName}</color>");
             });
 
             // 添加配置按钮

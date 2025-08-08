@@ -1,8 +1,7 @@
 using UnityEngine.UIElements;
-using System.Linq;
-
 using UnityEditor;
 using UnityEngine;
+using System.Linq;
 
 namespace SkillEditor
 {
@@ -27,7 +26,7 @@ namespace SkillEditor
             CreateObjectField<AnimationClip>("动画片段:", "animationClip", OnAnimationClipChanged);
 
             // 播放速度
-            CreateFloatField("播放速度:", "playSpeed", OnPlaySpeedChanged);
+            CreateFloatField("播放速度:", "animationPlaySpeed", OnPlaySpeedChanged);
 
             // 动画过渡时间
             CreateFloatField("动画过渡时间:", "normalizedTransitionTime", OnNormalizedTransitionTimeChanged);
@@ -63,7 +62,7 @@ namespace SkillEditor
         {
             SafeExecute(() =>
             {
-                UpdateAnimationTrackConfig(configClip => configClip.playSpeed = newValue, "播放速度更新");
+                UpdateAnimationTrackConfig(configClip => configClip.animationPlaySpeed = newValue, "播放速度更新");
             }, "播放速度更新");
         }
 

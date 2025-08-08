@@ -224,7 +224,12 @@ namespace SkillEditor
             itemContent.tooltip = title;
             // 应用轨道类型特定样式
             AddTrackTypeStyleClass(itemContent);
-
+            if (trackType == TrackType.EventTrack)
+            {
+                Label eventIcon = new Label();
+                eventIcon.AddToClassList("EventIcon");
+                itemContent.Add(eventIcon);
+            }
             // 添加标题标签
             AddTitleLabel(itemContent, title);
 
@@ -510,7 +515,7 @@ namespace SkillEditor
         private void SetDefaultAnimationData(AnimationTrackItemData data)
         {
             data.durationFrame = frameCount; // 默认持续帧数为轨道项帧数
-            data.playSpeed = 1f; // 默认播放速度为1
+            data.animationPlaySpeed = 1f; // 默认播放速度为1
             data.isLoop = false; // 默认不循环播放
             data.applyRootMotion = false; // 默认不应用根运动
             data.animationClip = null; // 默认动画片段为空
@@ -528,7 +533,7 @@ namespace SkillEditor
             {
                 data.animationClip = configClip.clip;
                 data.durationFrame = configClip.durationFrame;
-                data.playSpeed = configClip.playSpeed;
+                data.animationPlaySpeed = configClip.animationPlaySpeed;
                 data.isLoop = configClip.isLoop;
                 data.applyRootMotion = configClip.applyRootMotion;
             }
