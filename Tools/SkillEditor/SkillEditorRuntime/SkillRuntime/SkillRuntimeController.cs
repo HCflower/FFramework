@@ -571,7 +571,6 @@ namespace FFramework.Kit
                         audioSource.clip = audioClip.clip;
                         audioSource.volume = audioClip.volume;
                         audioSource.pitch = audioClip.pitch * playSpeed;
-                        audioSource.loop = audioClip.isLoop;
                         audioSource.PlayOneShot(audioClip.clip);
 
                         Debug.Log($"SkillRuntimeController: 播放音频 {audioClip.clip.name} 在帧 {frame}");

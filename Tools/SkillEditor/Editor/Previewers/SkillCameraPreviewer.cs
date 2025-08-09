@@ -39,9 +39,6 @@ namespace SkillEditor
         /// <summary>原始摄像机状态</summary>
         private OriginalCameraState originalCameraState;
 
-        /// <summary>震动相关的随机状态</summary>
-        private Dictionary<string, System.Random> vibrationRandomStates = new Dictionary<string, System.Random>();
-
         /// <summary>存储每个摄像机的原始状态（片段开始前的状态）</summary>
         private Dictionary<Camera, OriginalCameraState> cameraOriginalStates = new Dictionary<Camera, OriginalCameraState>();
 
@@ -118,8 +115,6 @@ namespace SkillEditor
 
             // 预览第一帧
             PreviewFrame(0);
-
-            Debug.Log($"摄像机预览已启动 - 目标摄像机: {targetCamera.name}");
         }
 
         /// <summary>
@@ -138,13 +133,8 @@ namespace SkillEditor
             // 恢复主摄像机的原始状态
             RestoreOriginalCameraState();
 
-            // 清理震动随机状态
-            vibrationRandomStates.Clear();
-
             // 清理活跃片段记录
             activeClips.Clear();
-
-            Debug.Log("摄像机预览已停止");
         }
 
         /// <summary>
@@ -388,9 +378,6 @@ namespace SkillEditor
                         // 执行该片段的摄像机控制
                         bool hasCameraControl = ExecuteCameraClipAtFrame(clip, clipCamera, frame);
 
-                        // 应用震动效果
-                        ApplyVibrationEffectForClip(clip, clipCamera, frame);
-
                         if (hasCameraControl)
                         {
                             // 标记场景需要重绘
@@ -435,121 +422,6 @@ namespace SkillEditor
             return true;
         }
 
-        /// <summary>
-        /// 为特定片段应用震动效果
-        /// </summary>
-        /// <param name="clip">摄像机片段</param>
-        /// <param name="camera">目标摄像机</param>
-        /// <param name="frame">当前帧</param>
-        private void ApplyVibrationEffectForClip(CameraTrack.CameraClip clip, Camera camera, int frame)
-        {
-            if (clip == null || camera == null || !clip.enableVibration) return;
-
-            // 检查当前帧是否在震动片段范围内
-            if (!clip.IsFrameInRange(frame)) return;
-
-            // 计算震动进度
-            float progress = clip.durationFrame > 0 ? (float)(frame - clip.startFrame) / clip.durationFrame : 0f;
-            progress = Mathf.Clamp01(progress);
-
-            // 应用震动
-            ApplyVibrationToCamera(clip, camera, progress, frame);
-        }
-
-        /// <summary>
-        /// 应用震动效果（保留旧方法兼容性）
-        /// </summary>
-        /// <param name="frame">当前帧</param>
-        private void ApplyVibrationEffect(int frame)
-        {
-            if (skillConfig?.trackContainer?.cameraTrack == null || targetCamera == null)
-                return;
-
-            var cameraTrack = skillConfig.trackContainer.cameraTrack;
-
-            // 遍历所有摄像机片段，寻找需要震动的片段
-            foreach (var clip in cameraTrack.cameraClips)
-            {
-                ApplyVibrationEffectForClip(clip, targetCamera, frame);
-            }
-        }
-
-        /// <summary>
-        /// 应用震动到摄像机
-        /// </summary>
-        /// <param name="clip">摄像机片段</param>
-        /// <param name="camera">目标摄像机</param>
-        /// <param name="progress">震动进度 (0-1)</param>
-        /// <param name="frame">当前帧</param>
-        private void ApplyVibrationToCamera(CameraTrack.CameraClip clip, Camera camera, float progress, int frame)
-        {
-            if (camera == null) return;
-
-            // 获取或创建该片段的随机数生成器
-            string clipKey = $"{clip.clipName}_{clip.startFrame}";
-            int seed = clip.startFrame.GetHashCode() ^ clip.clipName.GetHashCode();
-
-            if (!vibrationRandomStates.ContainsKey(clipKey))
-            {
-                // 使用片段的起始帧和名称作为种子，确保震动效果可重现
-                vibrationRandomStates[clipKey] = new System.Random(seed);
-            }
-
-            var random = vibrationRandomStates[clipKey];
-
-            // 计算震动强度（考虑衰减曲线）
-            float decayValue = clip.vibrationDecay.Evaluate(progress);
-            float currentIntensity = clip.vibrationIntensity * decayValue;
-
-            // 应用阻尼系数
-            currentIntensity *= Mathf.Pow(clip.dampingFactor, frame - clip.startFrame);
-
-            if (currentIntensity <= 0.001f) return; // 震动强度过小时跳过
-
-            // 生成震动偏移
-            Vector3 vibrationOffset = Vector3.zero;
-
-            if (clip.randomizeDirection)
-            {
-                // 随机方向震动 - 使用震动频率控制随机更新速度
-                float frequencyTime = frame * clip.vibrationFrequency * 0.1f;
-                int frequencyFrame = Mathf.FloorToInt(frequencyTime);
-
-                // 每隔一定帧数更新随机方向（基于频率）
-                var frequencyRandom = new System.Random(seed ^ frequencyFrame);
-
-                vibrationOffset = new Vector3(
-                    (float)(frequencyRandom.NextDouble() * 2.0 - 1.0) * clip.vibrationDirection.x,
-                    (float)(frequencyRandom.NextDouble() * 2.0 - 1.0) * clip.vibrationDirection.y,
-                    (float)(frequencyRandom.NextDouble() * 2.0 - 1.0) * clip.vibrationDirection.z
-                ) * currentIntensity;
-            }
-            else
-            {
-                // 固定方向震动（使用正弦波） - 使用震动频率控制震动速度
-                float time = frame * clip.vibrationFrequency * 0.016f; // 0.016约等于1/60，模拟60fps的时间步长
-                vibrationOffset = new Vector3(
-                    Mathf.Sin(time) * clip.vibrationDirection.x,
-                    Mathf.Sin(time * 1.1f) * clip.vibrationDirection.y, // 稍微不同的频率比例
-                    Mathf.Sin(time * 0.9f) * clip.vibrationDirection.z  // 稍微不同的频率比例
-                ) * currentIntensity;
-            }
-
-            // 应用震动到摄像机位置
-            camera.transform.position += vibrationOffset;
-        }
-
-        /// <summary>
-        /// 应用震动到摄像机（兼容旧接口）
-        /// </summary>
-        /// <param name="clip">摄像机片段</param>
-        /// <param name="progress">震动进度 (0-1)</param>
-        /// <param name="frame">当前帧</param>
-        private void ApplyVibrationToCamera(CameraTrack.CameraClip clip, float progress, int frame)
-        {
-            ApplyVibrationToCamera(clip, targetCamera, progress, frame);
-        }
-
         #endregion
 
         #region 清理方法
@@ -563,7 +435,6 @@ namespace SkillEditor
             skillOwner = null;
             skillConfig = null;
             targetCamera = null;
-            vibrationRandomStates.Clear();
             cameraOriginalStates.Clear();
             activeClips.Clear();
         }

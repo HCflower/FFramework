@@ -145,7 +145,6 @@ namespace FFramework.Kit
             [Range(0, 3.0f)] public float pitch = 1.0f;
             [Range(0, 1.0f)] public float spatialBlend = 0.0f;             // 空间混合
             [Range(0, 1.0f)] public float reverbZoneMix = 0.0f;            // 反响区域混合
-            public bool isLoop = false;
         }
     }
 }

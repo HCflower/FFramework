@@ -9,6 +9,5 @@ namespace SkillEditor
         public float pitch;                     // 音调
         public float spatialBlend;             // 空间混合
         public float reverbZoneMix;            // 反响区域混合
-        public bool isLoop;                     // 是否循环播放
     }
 }

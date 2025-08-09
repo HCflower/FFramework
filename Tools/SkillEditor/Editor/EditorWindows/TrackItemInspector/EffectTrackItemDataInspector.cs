@@ -24,6 +24,7 @@ namespace SkillEditor
         {
             // 特效预制体字段
             CreateObjectField<GameObject>("特效预制体:", "effectPrefab", OnEffectPrefabChanged);
+            CreateObjectField<GameObject>("特效预制体:", "hitEffectPrefab", OnHitEffectPrefabChanged);
             CreateFloatField("特效播放速度:", "effectPlaySpeed", OnEffectPlaySpeedChanged);
             // Transform 设置
             CreateVector3Field("特效位置:", "position", OnPositionChanged);
@@ -43,6 +44,18 @@ namespace SkillEditor
                 }, "特效预制体更新");
 
             }, "特效预制体更新");
+        }
+
+        private void OnHitEffectPrefabChanged(GameObject newPrefab)
+        {
+            SafeExecute(() =>
+            {
+                UpdateEffectTrackConfig(configClip =>
+                {
+                    configClip.hitEffectPrefab = newPrefab;
+                }, "击中特效预制体更新");
+
+            }, "击中特效预制体更新");
         }
 
         private void OnEffectPlaySpeedChanged(float newValue)
@@ -122,6 +135,84 @@ namespace SkillEditor
         #endregion
 
         #region 数据同步方法
+
+        protected override void CreateAdditionalActionButtons()
+        {
+            // 打开震动预设文件
+            var getEffectPrefabContent = CreateContentContainer("");
+            var openShakePresetButton = new Button()
+            {
+                text = "获取特效变换"
+            };
+            openShakePresetButton.clicked += () =>
+            {
+                GetEffectTransformFromScene();
+            };
+            openShakePresetButton.AddToClassList("CustomButton");
+            getEffectPrefabContent.Add(openShakePresetButton);
+            root.Add(getEffectPrefabContent);
+        }
+
+        /// <summary>
+        /// 从场景中获取特效物体的Transform信息并更新到配置中
+        /// </summary>
+        private void GetEffectTransformFromScene()
+        {
+            SafeExecute(() =>
+            {
+                // 查找场景中的特效物体
+                GameObject effectObject = FindEffectObjectInScene();
+                if (effectObject != null)
+                {
+                    // 使用四元数转换，但转换为标准化的欧拉角
+                    Quaternion quat = effectObject.transform.rotation;
+                    Vector3 euler = quat.eulerAngles;
+
+                    // 标准化角度到-180到180度范围
+                    euler.x = (euler.x > 180) ? euler.x - 360 : euler.x;
+                    euler.y = (euler.y > 180) ? euler.y - 360 : euler.y;
+                    euler.z = (euler.z > 180) ? euler.z - 360 : euler.z;
+                    // 交换y和z轴的值
+                    float temp = euler.y;
+                    euler.y = euler.z;
+                    euler.z = temp;
+
+                    effectTargetData.rotation = euler;
+
+                    // 更新特效轨道项的Transform信息
+                    effectTargetData.position = effectObject.transform.position;
+                    effectTargetData.scale = effectObject.transform.localScale;
+                    // 保存数据
+                    UpdateEffectTrackConfig(configClip => { configClip.position = effectObject.transform.position; }, "特效position更新");
+                    UpdateEffectTrackConfig(configClip => { configClip.rotation = euler; }, "特效rotation更新");
+                    UpdateEffectTrackConfig(configClip => { configClip.scale = effectObject.transform.localScale; }, "特效localScale更新");
+                }
+            }, "获取特效Transform信息");
+        }
+
+        /// <summary>
+        /// 在场景中查找对应的特效物体
+        /// </summary>
+        /// <returns>找到的特效物体，如果未找到返回null</returns>
+        private GameObject FindEffectObjectInScene()
+        {
+            if (effectTargetData == null) return null;
+
+            // 直接通过轨道项名称查找
+            GameObject effectObject = GameObject.Find(effectTargetData.trackItemName);
+            if (effectObject != null) return effectObject;
+
+            // 通过预制体名称查找
+            if (effectTargetData.effectPrefab != null)
+            {
+                string prefabName = effectTargetData.effectPrefab.name;
+                effectObject = GameObject.Find(prefabName);
+                if (effectObject != null) return effectObject;
+
+                if (effectObject != null) return effectObject;
+            }
+            return null;
+        }
 
         /// <summary>
         /// 删除特效轨道项的完整流程

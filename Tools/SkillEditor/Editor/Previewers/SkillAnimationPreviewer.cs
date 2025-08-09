@@ -153,8 +153,6 @@ namespace SkillEditor
             currentSkillConfig = null;
             currentPreviewFrame = 0;
             currentPreviewClip = null;
-
-            Debug.Log("停止动画预览");
         }
 
         /// <summary>

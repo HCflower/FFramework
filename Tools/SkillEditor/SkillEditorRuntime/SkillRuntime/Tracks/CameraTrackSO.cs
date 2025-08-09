@@ -175,16 +175,9 @@ namespace FFramework.Kit
             [Tooltip("自定义动画曲线")] public AnimationCurve customCurve = AnimationCurve.Linear(0, 0, 1, 1);
 
             [Header("动画设置")]
-            [Tooltip("是否启用震动")] public bool enableVibration = false;
-            [Tooltip("是否随机化震动方向")] public bool randomizeDirection = true;
-            [Tooltip("是否平滑震动")] public bool smoothVibration;
-            [Tooltip("动画开始帧")] public float animationStartFrame;
-            [Tooltip("动画持续时间")] public float animationDurationFrame;
-            [Tooltip("震动频率")] public float vibrationFrequency = 5.0f;
-            [Tooltip("震动强度")] public float vibrationIntensity = 1.0f;
-            [Tooltip("震动衰减曲线")] public AnimationCurve vibrationDecay = AnimationCurve.Linear(0, 1, 1, 0);
-            [Tooltip("阻尼系数（用于渐进式震动停止）")] public float dampingFactor = 0.95f;
-            [Tooltip("震动方向(XYZ轴的权重)")] public Vector3 vibrationDirection = Vector3.one;
+            [Tooltip("动画开始帧")] public int animationStartFrame;
+            [Tooltip("动画持续时间")] public int animationDurationFrame;
+            [Tooltip("震动预设")] public ShakePreset shakePreset;
             // 运行时初始摄像机状态（不序列化，每次播放时设置）
             [System.NonSerialized] private Vector3 runtimeStartPosition;
             [System.NonSerialized] private Vector3 runtimeStartRotation;
@@ -246,71 +239,7 @@ namespace FFramework.Kit
                 float curveValue = GetCurveValue(progress);
                 Vector3 basePosition = Vector3.Lerp(startPos, GetActualEndPosition(), curveValue);
 
-                // 添加震动效果
-                if (enableVibration && vibrationIntensity > 0f)
-                {
-                    Vector3 vibrationOffset = CalculateVibrationOffset(progress);
-                    Vector3 finalPosition = basePosition + vibrationOffset;
-                    return finalPosition;
-                }
-
                 return basePosition;
-            }
-
-            /// <summary>
-            /// 计算震动偏移量
-            /// </summary>
-            /// <param name="progress">时间进度 (0-1)</param>
-            /// <returns>震动偏移向量</returns>
-            private Vector3 CalculateVibrationOffset(float progress)
-            {
-                if (!enableVibration || vibrationIntensity <= 0f)
-                {
-                    return Vector3.zero;
-                }
-
-                // 计算当前时间（使用Time.time确保运行时的准确性）
-                float currentTime = Time.time * vibrationFrequency;
-
-                // 如果在预览模式，使用基于进度的时间计算
-                if (Application.isEditor && !Application.isPlaying)
-                {
-                    currentTime = progress * (durationFrame > 0 ? durationFrame / 30f : 1f) * vibrationFrequency;
-                }
-
-                // 应用震动衰减
-                float decayMultiplier = vibrationDecay.Evaluate(progress);
-                float currentIntensity = vibrationIntensity * decayMultiplier;
-
-                Vector3 vibrationOffset = Vector3.zero;
-
-                if (randomizeDirection)
-                {
-                    // 随机震动方向，使用柏林噪声创建平滑的随机震动
-                    float randomSeed = currentTime;
-                    vibrationOffset.x = (Mathf.PerlinNoise(randomSeed + 100f, 0f) * 2f - 1f);
-                    vibrationOffset.y = (Mathf.PerlinNoise(randomSeed + 200f, 0f) * 2f - 1f);
-                    vibrationOffset.z = (Mathf.PerlinNoise(randomSeed + 300f, 0f) * 2f - 1f);
-                }
-                else
-                {
-                    // 正弦波震动
-                    float waveValue = Mathf.Sin(currentTime * Mathf.PI * 2f);
-                    vibrationOffset = vibrationDirection.normalized * waveValue;
-                }
-
-                // 应用强度和方向权重
-                vibrationOffset.x *= vibrationDirection.x * currentIntensity;
-                vibrationOffset.y *= vibrationDirection.y * currentIntensity;
-                vibrationOffset.z *= vibrationDirection.z * currentIntensity;
-
-                // 如果启用平滑震动，应用阻尼
-                if (smoothVibration)
-                {
-                    vibrationOffset *= dampingFactor;
-                }
-
-                return vibrationOffset;
             }
 
             /// <summary>

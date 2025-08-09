@@ -237,9 +237,23 @@ namespace SkillEditor
         /// </summary>
         protected void CreateTitle()
         {
+            var titleContainer = new VisualElement();
+            titleContainer.AddToClassList("ItemDataViewTitleContent");
+
+            // left line
+            var leftLine = new Label();
+            leftLine.AddToClassList("ItemDataViewTitleLine");
+            titleContainer.Add(leftLine);
+            // title
             Label title = new Label(TrackItemDisplayTitle);
             title.AddToClassList("ItemDataViewTitle");
-            root.Add(title);
+            titleContainer.Add(title);
+            // right line
+            var rightLine = new Label();
+            rightLine.AddToClassList("ItemDataViewTitleLine");
+            titleContainer.Add(rightLine);
+
+            root.Add(titleContainer);
         }
 
         /// <summary>
@@ -613,10 +627,24 @@ namespace SkillEditor
         /// </summary>
         protected void CreateSeparatorTitle(string separatorTitleText)
         {
+            var titleContainer = new VisualElement();
+            titleContainer.AddToClassList("ItemDataViewTitleContent");
+
+            // left line
+            var leftLine = new Label();
+            leftLine.AddToClassList("ItemDataViewTitleLine");
+            titleContainer.Add(leftLine);
+            // title
             Label separatorTitle = new Label();
             separatorTitle.AddToClassList("SeparatorTitle");
             separatorTitle.text = separatorTitleText;
-            root.Add(separatorTitle);
+            titleContainer.Add(separatorTitle);
+            // right line
+            var rightLine = new Label();
+            rightLine.AddToClassList("ItemDataViewTitleLine");
+            titleContainer.Add(rightLine);
+
+            root.Add(titleContainer);
         }
 
         /// <summary>

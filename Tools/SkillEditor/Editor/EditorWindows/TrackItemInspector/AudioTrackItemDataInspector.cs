@@ -35,7 +35,6 @@ namespace SkillEditor
             // 循环状态
             CreateSliderField("空间混合:", "spatialBlend", 0.0f, 1.0f, OnSpatialBlendChanged);
             CreateSliderField("混响区混音:", "reverbZoneMix", 0.0f, 1.0f, OnReverbZoneMixChanged);
-            CreateToggleField("是否循环:", "isLoop", OnLoopChanged);
         }
 
         protected override void PerformDelete()
@@ -90,14 +89,6 @@ namespace SkillEditor
             {
                 UpdateAudioTrackConfig(configClip => configClip.reverbZoneMix = newValue, "混响区混音更新");
             }, "混响区混音更新");
-        }
-
-        private void OnLoopChanged(bool newValue)
-        {
-            SafeExecute(() =>
-            {
-                UpdateAudioTrackConfig(configClip => configClip.isLoop = newValue, "循环状态更新");
-            }, "循环状态更新");
         }
 
         /// <summary>

@@ -60,7 +60,6 @@ namespace SkillEditor
                 audioData.audioClip = audioClip;
                 audioData.volume = 1.0f;
                 audioData.pitch = 1.0f;
-                audioData.isLoop = false;
 
 #if UNITY_EDITOR
                 EditorUtility.SetDirty(audioData);
@@ -115,7 +114,6 @@ namespace SkillEditor
                 audioData.pitch = 1.0f;
                 audioData.spatialBlend = 0.0f;
                 audioData.reverbZoneMix = 1.0f;
-                audioData.isLoop = false;
 
 #if UNITY_EDITOR
                 EditorUtility.SetDirty(audioData);
@@ -203,7 +201,6 @@ namespace SkillEditor
                 pitch = 1.0f,
                 spatialBlend = 0.0f,
                 reverbZoneMix = 1.0f,
-                isLoop = false
             };
 
             // 添加到对应索引的音频轨道
@@ -259,8 +256,6 @@ namespace SkillEditor
                         audioData.durationFrame = clip.durationFrame;
                         audioData.volume = clip.volume;
                         audioData.pitch = clip.pitch;
-                        audioData.isLoop = clip.isLoop;
-
 #if UNITY_EDITOR
                         // 标记数据已修改
                         UnityEditor.EditorUtility.SetDirty(audioData);

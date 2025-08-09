@@ -22,15 +22,8 @@ namespace SkillEditor
         public AnimationCurveType curveType = AnimationCurveType.Linear;        // 动画曲线类型
         public AnimationCurve customCurve = AnimationCurve.Linear(0, 0, 1, 1);  // 自定义动画曲线
         [Header("动画设置")]
-        public bool enableVibration = false;                   // 是否启用震动
-        public float animationStartFrame;                      // 动画开始帧
-        public float animationDurationFrame;                   // 动画持续时间
-        public bool smoothVibration;                           // 是否平滑震动
-        public float vibrationIntensity = 1.0f;                // 震动强度
-        public float vibrationFrequency = 5.0f;                // 震动频率
-        public AnimationCurve vibrationDecay = AnimationCurve.Linear(0, 1, 1, 0); // 震动衰减曲线
-        public bool randomizeDirection = true;                 // 是否随机化震动方向
-        public float dampingFactor = 0.95f;                    // 阻尼系数（用于渐进式震动停止）
-        public Vector3 vibrationDirection = Vector3.one;       // 震动方向（XYZ轴的权重） 
+        public int animationStartFrame;                                       //动画开始帧
+        public int animationDurationFrame;                                    //动画持续时间
+        public ShakePreset shakePreset;                                       // 预设震动效果
     }
 }

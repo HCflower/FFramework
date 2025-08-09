@@ -69,7 +69,6 @@ namespace SkillEditor
             }
 
             isPreviewActive = true;
-            Debug.Log($"伤害检测预览已启动 - 技能拥有者: {skillOwner.name}");
         }
 
         /// <summary>
@@ -80,7 +79,6 @@ namespace SkillEditor
             // 停止预览时，确保所有碰撞组都被设置为非激活状态
             DeactivateAllCollisionGroups();
             isPreviewActive = false;
-            Debug.Log("伤害检测预览已停止");
         }
 
         /// <summary>

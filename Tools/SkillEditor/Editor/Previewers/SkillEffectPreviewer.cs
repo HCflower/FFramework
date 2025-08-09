@@ -289,13 +289,11 @@ namespace SkillEditor
                     {
                         // 存在则直接使用
                         effectInstance = existingEffect;
-                        Debug.Log($"SkillEffectPreviewer: 找到现有特效实例: {effectClip.clipName}");
                     }
                     else
                     {
                         // 不存在则创建新实例
                         effectInstance = CreateEffectInstance(effectClip);
-                        Debug.Log($"SkillEffectPreviewer: 创建新特效实例: {effectClip.clipName}");
                     }
 
                     if (effectInstance != null)
@@ -409,7 +407,6 @@ namespace SkillEditor
             if (existingContainer != null)
             {
                 effectContainer = existingContainer;
-                Debug.Log("SkillEffectPreviewer: 使用现有特效容器");
             }
             else
             {
@@ -421,7 +418,6 @@ namespace SkillEditor
                 containerObj.transform.localScale = Vector3.one;
 
                 effectContainer = containerObj.transform;
-                Debug.Log("SkillEffectPreviewer: 创建新特效容器");
             }
         }
 

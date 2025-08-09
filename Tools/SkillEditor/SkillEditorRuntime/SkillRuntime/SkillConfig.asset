@@ -71,9 +71,10 @@ MonoBehaviour:
       startFrame: 21
       durationFrame: 24
       effectPrefab: {fileID: 6389406066330802589, guid: 5ef8d476ac4025a4e85cc5e7c5004889, type: 3}
+      hitEffectPrefab: {fileID: 0}
       effectPlaySpeed: 0.5
-      position: {x: 0, y: 2.5, z: 0}
-      rotation: {x: -90, y: 0, z: -280}
+      position: {x: 0, y: 2.2, z: 0}
+      rotation: {x: -90, y: 0, z: 80.00001}
       scale: {x: 0.5, y: 0.5, z: 0.5}
 --- !u!114 &11400000
 MonoBehaviour:
@@ -176,39 +177,9 @@ MonoBehaviour:
       m_PreInfinity: 2
       m_PostInfinity: 2
       m_RotationOrder: 4
-    enableVibration: 1
-    randomizeDirection: 1
-    smoothVibration: 1
-    animationStartFrame: 24
+    animationStartFrame: 23
     animationDurationFrame: 5
-    vibrationFrequency: 5
-    vibrationIntensity: 10
-    vibrationDecay:
-      serializedVersion: 2
-      m_Curve:
-      - serializedVersion: 3
-        time: 0
-        value: 1
-        inSlope: 0
-        outSlope: -1
-        tangentMode: 0
-        weightedMode: 0
-        inWeight: 0
-        outWeight: 0
-      - serializedVersion: 3
-        time: 1
-        value: 0
-        inSlope: -1
-        outSlope: 0
-        tangentMode: 0
-        weightedMode: 0
-        inWeight: 0
-        outWeight: 0
-      m_PreInfinity: 2
-      m_PostInfinity: 2
-      m_RotationOrder: 4
-    dampingFactor: 0.95
-    vibrationDirection: {x: 0.25, y: 0.25, z: 0.25}
+    shakePreset: {fileID: 11400000, guid: e68b6101fe0610a46a9f69c687d8b5d5, type: 2}
 --- !u!114 &776813478751267645
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -259,7 +230,6 @@ MonoBehaviour:
       pitch: 1
       spatialBlend: 0
       reverbZoneMix: 1
-      isLoop: 0
 --- !u!114 &7653467681583022307
 MonoBehaviour:
   m_ObjectHideFlags: 0

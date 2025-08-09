@@ -600,7 +600,6 @@ namespace SkillEditor
             audioData.audioClip = audioClip;
             audioData.volume = volume;
             audioData.pitch = pitch;
-            audioData.isLoop = isLoop;
             return audioData;
         }
 

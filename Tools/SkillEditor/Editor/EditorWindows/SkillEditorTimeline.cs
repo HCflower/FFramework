@@ -121,7 +121,7 @@ namespace SkillEditor
         {
             if (timelineIMGUI == null) return;
 
-            float newWidth = SkillEditorData.CalculateTimelineWidth();
+            float newWidth = SkillEditorData.CalculateTimelineWidth() + 10;
             timelineIMGUI.style.width = newWidth;
 
             // 同步更新轨道内容宽度
@@ -157,7 +157,7 @@ namespace SkillEditor
             // 强制更新时间轴布局
             if (timelineIMGUI != null)
             {
-                float newWidth = SkillEditorData.CalculateTimelineWidth();
+                float newWidth = SkillEditorData.CalculateTimelineWidth() + 10;
                 timelineIMGUI.style.width = newWidth;
                 timelineIMGUI.style.minWidth = newWidth;
 
@@ -175,7 +175,7 @@ namespace SkillEditor
             // 同步更新轨道内容宽度
             if (trackContent != null)
             {
-                float newWidth = SkillEditorData.CalculateTimelineWidth();
+                float newWidth = SkillEditorData.CalculateTimelineWidth() + 10;
                 trackContent.style.width = newWidth;
                 trackContent.style.minWidth = newWidth;
             }
@@ -303,7 +303,7 @@ namespace SkillEditor
         {
             timelineIMGUI = new VisualElement();
             timelineIMGUI.AddToClassList("TimeLineIMGUI");
-            timelineIMGUI.style.width = SkillEditorData.CalculateTimelineWidth();
+            timelineIMGUI.style.width = SkillEditorData.CalculateTimelineWidth() + 10;
             timelineIMGUI.style.position = Position.Relative;
 
             DrawTimelineScale();
@@ -396,7 +396,7 @@ namespace SkillEditor
             float visibleWidth = timelineIMGUI.resolvedStyle.width;
             if (visibleWidth <= 0)
             {
-                visibleWidth = SkillEditorData.CalculateTimelineWidth();
+                visibleWidth = SkillEditorData.CalculateTimelineWidth() + 10;
                 if (visibleWidth <= 0) visibleWidth = 800;
             }
 
@@ -422,10 +422,10 @@ namespace SkillEditor
         private void DrawVisibleScaleTicks(int startFrame, int endFrame)
         {
             // 使用内容宽度，确保所有帧刻度都能显示
-            float timelineWidth = Mathf.Max(timelineIMGUI.resolvedStyle.width, SkillEditorData.CalculateTimelineWidth());
+            float timelineWidth = Mathf.Max(timelineIMGUI.resolvedStyle.width, SkillEditorData.CalculateTimelineWidth() + 10);
             if (timelineWidth <= 0)
             {
-                timelineWidth = 800f;
+                timelineWidth = 810f;
             }
 
             float frameWidth = SkillEditorData.FrameUnitWidth;

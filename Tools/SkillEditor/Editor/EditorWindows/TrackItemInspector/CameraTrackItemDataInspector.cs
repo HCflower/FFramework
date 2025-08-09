@@ -38,26 +38,9 @@ namespace SkillEditor
             CreateCurveField("自定义曲线:", "customCurve", OnCustomCurveChanged);
 
             CreateSeparatorTitle("摄像机震动设置");
-            CreateToggleField("是否启用震动:", "enableVibration", OnEnableVibrationChanged);
-            CreateToggleField("随机震动方向:", "randomizeDirection", OnRandomizeDirectionChanged);
-            CreateToggleField("平滑震动:", "smoothVibration", OnSmoothVibrationChanged);
-            CreateFloatField("动画起始帧:", "animationStartFrame", OnAnimationStartFrameChanged);
-            CreateFloatField("动画持续帧:", "animationDurationFrame", OnAnimationDurationFrameChanged);
-            CreateFloatField("震动强度:", "vibrationIntensity", OnVibrationIntensityChanged);
-            CreateFloatField("震动频率:", "vibrationFrequency", OnVibrationFrequencyChanged);
-            CreateCurveField("震动衰减曲线:", "vibrationDecay", OnVibrationDecayChanged);
-            CreateFloatField("阻尼系数:", "dampingFactor", OnDampingFactorChanged);
-            CreateVector3Field("震动方向:", "vibrationDirection", OnVibrationDirectionChanged);
-        }
-
-        protected override void PerformDelete()
-        {
-            if (EditorUtility.DisplayDialog("删除确认",
-                $"确定要删除摄像机轨道项 \"{cameraTargetData.trackItemName}\" 吗？\n\n此操作将会：\n• 从界面移除此轨道项\n• 删除对应的配置数据\n• 无法撤销",
-                "确认删除", "取消"))
-            {
-                DeleteCameraTrackItem();
-            }
+            CreateIntegerField("震动起始帧:", "animationStartFrame", OnAnimationStartFrameChanged);
+            CreateIntegerField("震动持续帧:", "animationDurationFrame", OnAnimationDurationFrameChanged);
+            CreateObjectField<FFramework.Kit.ShakePreset>("震动配置:", "shakePreset", OnShakeConfigChanged);
         }
 
         /// <summary>
@@ -140,6 +123,48 @@ namespace SkillEditor
             }, "曲线类型更新");
         }
 
+        private void OnAnimationStartFrameChanged(int newValue)
+        {
+            SafeExecute(() =>
+            {
+                if (cameraTargetData.startFrame <= newValue && newValue <= cameraTargetData.startFrame + cameraTargetData.durationFrame)
+                {
+                    UpdateCameraTrackConfig(configClip => configClip.animationStartFrame = newValue, "动画开始帧更新");
+                }
+                else
+                {
+                    Debug.LogError("动画开始帧超出范围");
+                }
+            }, "动画开始帧更新");
+        }
+
+        private void OnAnimationDurationFrameChanged(int newValue)
+        {
+            SafeExecute(() =>
+            {
+                if (newValue > 0)
+                {
+                    UpdateCameraTrackConfig(configClip => configClip.animationDurationFrame = newValue, "动画持续时间更新");
+                }
+                else
+                {
+                    Debug.LogError("动画持续时间必须大于0");
+                }
+            }, "动画持续时间更新");
+        }
+
+        private void OnShakeConfigChanged(FFramework.Kit.ShakePreset shakePreset)
+        {
+            SafeExecute(() =>
+            {
+                UpdateCameraTrackConfig(configClip =>
+                {
+                    configClip.shakePreset = shakePreset;
+                }, "震动预设更新");
+
+            }, "震动预设更新");
+        }
+
         /// <summary>
         /// 起始帧变化事件处理
         /// </summary>
@@ -164,89 +189,31 @@ namespace SkillEditor
             }, "持续帧数更新");
         }
 
-        private void OnEnableVibrationChanged(bool newValue)
-        {
-            SafeExecute(() =>
-            {
-                UpdateCameraTrackConfig(configClip => configClip.enableVibration = newValue, "是否启用震动更新");
-            }, "是否启用震动更新");
-        }
-
-        private void OnRandomizeDirectionChanged(bool newValue)
-        {
-            SafeExecute(() =>
-            {
-                UpdateCameraTrackConfig(configClip => configClip.randomizeDirection = newValue, "随机化震动方向更新");
-            }, "随机化震动方向更新");
-        }
-
-        private void OnSmoothVibrationChanged(bool newValue)
-        {
-            SafeExecute(() =>
-            {
-                UpdateCameraTrackConfig(configClip => configClip.smoothVibration = newValue, "平滑震动更新");
-            }, "平滑震动更新");
-        }
-
-        private void OnAnimationStartFrameChanged(float newValue)
-        {
-            SafeExecute(() =>
-            {
-                UpdateCameraTrackConfig(configClip => configClip.animationStartFrame = newValue, "动画开始帧更新");
-            }, "动画开始帧更新");
-        }
-
-        private void OnAnimationDurationFrameChanged(float newValue)
-        {
-            SafeExecute(() =>
-            {
-                UpdateCameraTrackConfig(configClip => configClip.animationDurationFrame = newValue, "动画持续帧数更新");
-            }, "动画持续帧数更新");
-        }
-
-        private void OnVibrationIntensityChanged(float newValue)
-        {
-            SafeExecute(() =>
-            {
-                UpdateCameraTrackConfig(configClip => configClip.vibrationIntensity = newValue, "震动强度更新");
-            }, "震动强度更新");
-        }
-
-        private void OnVibrationFrequencyChanged(float newValue)
-        {
-            SafeExecute(() =>
-          {
-              UpdateCameraTrackConfig(configClip => configClip.vibrationFrequency = newValue, "震动频率更新");
-          }, "震动频率更新");
-        }
-
-        private void OnVibrationDecayChanged(AnimationCurve newValue)
-        {
-            SafeExecute(() =>
-            {
-                UpdateCameraTrackConfig(configClip => configClip.vibrationDecay = newValue, "震动衰减曲线更新");
-            }, "震动衰减曲线更新");
-        }
-
-        private void OnDampingFactorChanged(float newValue)
-        {
-            SafeExecute(() =>
-            {
-                UpdateCameraTrackConfig(configClip => configClip.dampingFactor = newValue, "阻尼系数更新");
-            }, "阻尼系数更新");
-        }
-
-        private void OnVibrationDirectionChanged(Vector3 newValue)
-        {
-            SafeExecute(() =>
-            {
-                UpdateCameraTrackConfig(configClip => configClip.vibrationDirection = newValue, "震动方向更新");
-            }, "震动方向更新");
-        }
-
         #endregion
 
         #region 数据同步方法
+
+        protected override void CreateAdditionalActionButtons()
+        {
+            // 打开震动预设文件
+            var openShakePresetContent = CreateContentContainer("");
+            var openShakePresetButton = new Button()
+            {
+                text = "打开震动预设文件"
+            };
+            openShakePresetButton.clicked += () =>
+            {
+                // 打开预设SO面板
+                if (cameraTargetData.shakePreset != null)
+                {
+                    UnityEditor.Selection.activeObject = cameraTargetData.shakePreset;
+                    UnityEditor.EditorGUIUtility.PingObject(cameraTargetData.shakePreset);
+                }
+            };
+            openShakePresetButton.AddToClassList("CustomButton");
+            openShakePresetContent.Add(openShakePresetButton);
+            root.Add(openShakePresetContent);
+        }
 
         /// <summary>
         /// 统一的摄像机配置数据更新方法
@@ -314,6 +281,16 @@ namespace SkillEditor
             else
             {
                 Debug.LogWarning($"无法执行 {operationName}：找不到对应的摄像机片段配置 (片段名: {cameraTargetData.trackItemName}, 起始帧: {cameraTargetData.startFrame})");
+            }
+        }
+
+        protected override void PerformDelete()
+        {
+            if (EditorUtility.DisplayDialog("删除确认",
+                $"确定要删除摄像机轨道项 \"{cameraTargetData.trackItemName}\" 吗？\n\n此操作将会：\n• 从界面移除此轨道项\n• 删除对应的配置数据\n• 无法撤销",
+                "确认删除", "取消"))
+            {
+                DeleteCameraTrackItem();
             }
         }
 
