@@ -145,7 +145,6 @@ namespace SkillEditor
                 clip = animationClip,
                 animationPlaySpeed = 1.0f,
                 normalizedTransitionTime = 0.15f,
-                isLoop = false,
                 applyRootMotion = false
             };
 
@@ -195,7 +194,6 @@ namespace SkillEditor
                         animationData.animationClip = clip.clip;
                         animationData.durationFrame = clip.durationFrame;
                         animationData.animationPlaySpeed = clip.animationPlaySpeed;
-                        animationData.isLoop = clip.isLoop;
                         animationData.applyRootMotion = clip.applyRootMotion;
 
 #if UNITY_EDITOR

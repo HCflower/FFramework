@@ -305,7 +305,7 @@ namespace SkillEditor
             timelineIMGUI.AddToClassList("TimeLineIMGUI");
             timelineIMGUI.style.width = SkillEditorData.CalculateTimelineWidth() + 10;
             timelineIMGUI.style.position = Position.Relative;
-
+            timelineIMGUI.tooltip = "移动帧: 鼠标左键\n缩放时间轴: ctrl+鼠标中键";
             DrawTimelineScale();
             RegisterTimelineMouseEvents();
             timelineContainer.Add(timelineIMGUI);
@@ -446,8 +446,8 @@ namespace SkillEditor
 
                     CreateTickLine(adjustedPosition, isMajorTick);
 
-                    // 绘制标签条件：主要刻度、最大帧、或0帧
-                    if (isMajorTick || isMaxFrame || frame == 0)
+                    // 绘制标签条件：主要刻度、或0帧
+                    if (isMajorTick || frame == 0)
                     {
                         CreateTickLabel(adjustedPosition, frame);
                     }
@@ -607,7 +607,10 @@ namespace SkillEditor
             var indicator = new VisualElement();
             indicator.name = "Current-frame-indicator";
             indicator.AddToClassList("Current-frame-indicator");
-
+            // 创建新指示器Icon
+            var indicatorIcon = new Label();
+            indicatorIcon.AddToClassList("Current-frame-indicator-icon");
+            indicator.Add(indicatorIcon);
             // 计算指示器位置（考虑滚动偏移）
             float xPosition = SkillEditorData.CurrentFrame * SkillEditorData.FrameUnitWidth;
             indicator.style.left = xPosition - SkillEditorData.TrackViewContentOffsetX - 1;

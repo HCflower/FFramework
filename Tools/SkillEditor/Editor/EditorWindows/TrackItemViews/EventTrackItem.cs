@@ -215,20 +215,14 @@ namespace SkillEditor
         /// <returns>配置完成的事件轨道项内容容器</returns>
         private VisualElement CreateEventTrackItemContent(string title)
         {
-            VisualElement itemContent = new VisualElement();
-            itemContent.AddToClassList("TrackItemContent");
-            itemContent.AddToClassList("TrackItem-Event"); // 事件轨道特定样式
-            itemContent.tooltip = title;
-
-            // 创建事件图标标签
-            eventIcon = new Label();
-            eventIcon.AddToClassList("EventIcon");
-            itemContent.Add(eventIcon);
+            VisualElement eventItemContent = new VisualElement();
+            eventItemContent.AddToClassList("EventIcon");
+            eventItemContent.tooltip = title;
 
             // 添加标题标签
-            AddTitleLabel(itemContent, title);
+            AddTitleLabel(eventItemContent, title);
 
-            return itemContent;
+            return eventItemContent;
         }
 
         /// <summary>

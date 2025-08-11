@@ -38,7 +38,8 @@ namespace SkillEditor
             CreateCurveField("自定义曲线:", "customCurve", OnCustomCurveChanged);
 
             CreateSeparatorTitle("摄像机震动设置");
-            CreateIntegerField("震动起始帧:", "animationStartFrame", OnAnimationStartFrameChanged);
+            CreateToggleField("启用震动:", "enableShake", OnEnableShakeChanged);
+            CreateIntegerField("震动起始帧偏移:", "animationStartFrameOffset", OnAnimationStartFrameOffsetChanged);
             CreateIntegerField("震动持续帧:", "animationDurationFrame", OnAnimationDurationFrameChanged);
             CreateObjectField<FFramework.Kit.ShakePreset>("震动配置:", "shakePreset", OnShakeConfigChanged);
         }
@@ -123,13 +124,21 @@ namespace SkillEditor
             }, "曲线类型更新");
         }
 
-        private void OnAnimationStartFrameChanged(int newValue)
+        private void OnEnableShakeChanged(bool newValue)
+        {
+            SafeExecute(() =>
+          {
+              UpdateCameraTrackConfig(configClip => configClip.enableShake = newValue, "是否启用震动更新");
+          }, "是否启用震动更新");
+        }
+
+        private void OnAnimationStartFrameOffsetChanged(int newValue)
         {
             SafeExecute(() =>
             {
-                if (cameraTargetData.startFrame <= newValue && newValue <= cameraTargetData.startFrame + cameraTargetData.durationFrame)
+                if (newValue >= 0 && newValue <= cameraTargetData.durationFrame - cameraTargetData.animationDurationFrame)
                 {
-                    UpdateCameraTrackConfig(configClip => configClip.animationStartFrame = newValue, "动画开始帧更新");
+                    UpdateCameraTrackConfig(configClip => configClip.animationStartFrameOffset = newValue, "动画开始帧更新");
                 }
                 else
                 {
@@ -142,13 +151,14 @@ namespace SkillEditor
         {
             SafeExecute(() =>
             {
-                if (newValue > 0)
+
+                if (newValue >= 0 && newValue <= cameraTargetData.durationFrame)
                 {
                     UpdateCameraTrackConfig(configClip => configClip.animationDurationFrame = newValue, "动画持续时间更新");
                 }
                 else
                 {
-                    Debug.LogError("动画持续时间必须大于0");
+                    Debug.LogError("动画持续帧超出范围");
                 }
             }, "动画持续时间更新");
         }

@@ -456,9 +456,20 @@ namespace FFramework.Kit
             {
                 if (animClip.clip == null || !animClip.IsFrameInRange(frame)) continue;
 
-                // 计算播放时间
+                // 计算播放时间，需要考虑动画片段的播放速度
                 float localTime = (frame - animClip.startFrame) / FrameRate;
-                float normalizedTime = animClip.clip.length > 0 ? localTime / animClip.clip.length : 0f;
+
+                // 应用动画播放速度：播放速度越快，动画时间进度越快
+                float scaledTime = localTime * animClip.animationPlaySpeed;
+
+                // 计算归一化时间
+                float normalizedTime = animClip.clip.length > 0 ? scaledTime / animClip.clip.length : 0f;
+
+                // 如果是循环播放，使用模运算来循环时间
+                if (animClip.clip.length > 0)
+                {
+                    normalizedTime = normalizedTime % 1.0f;
+                }
 
                 // 检查是否需要切换动画片段或者是第一帧
                 bool shouldPlayAnimation = currentAnimationClip != animClip.clip.name || frame == animClip.startFrame;
@@ -476,7 +487,6 @@ namespace FFramework.Kit
                         // 使用CrossFadeInFixedTime实现平滑过渡
                         // normalizedTransitionTime 是过渡时间（秒），normalizedTime 是动画开始的归一化时间
                         skillAnimator.CrossFadeInFixedTime(animationStateHash, animClip.normalizedTransitionTime, 0, normalizedTime);
-                        Debug.Log($"SkillRuntimeController: 播放动画 {animClip.clip.name} 在帧 {frame}, 归一化时间: {normalizedTime}, 过渡时间: {animClip.normalizedTransitionTime}秒, 根运动: {animClip.applyRootMotion}");
                     }
 
                     skillAnimator.speed = animClip.animationPlaySpeed * playSpeed;
@@ -572,8 +582,6 @@ namespace FFramework.Kit
                         audioSource.volume = audioClip.volume;
                         audioSource.pitch = audioClip.pitch * playSpeed;
                         audioSource.PlayOneShot(audioClip.clip);
-
-                        Debug.Log($"SkillRuntimeController: 播放音频 {audioClip.clip.name} 在帧 {frame}");
                     }
                 }
             }
@@ -589,10 +597,69 @@ namespace FFramework.Kit
             if (cameraTrack != null && cameraTrack.isEnabled && skillCamera != null)
             {
                 cameraTrack.ExecuteAtFrame(skillCamera, frame);
+
+                // 处理摄像机震动
+                ExecuteCameraShake(cameraTrack, frame);
             }
             else if (cameraTrack != null && cameraTrack.isEnabled && skillCamera == null)
             {
                 Debug.LogWarning($"SkillRuntimeController: 摄像机轨道已启用但未找到摄像机，无法执行震动效果");
+            }
+        }
+
+        /// <summary>
+        /// 执行摄像机震动
+        /// </summary>
+        /// <param name="cameraTrackSO">摄像机轨道SO</param>
+        /// <param name="frame">当前帧</param>
+        private void ExecuteCameraShake(CameraTrackSO cameraTrackSO, int frame)
+        {
+            if (cameraTrackSO?.cameraClips == null || skillCamera == null) return;
+
+            // 获取或添加震动组件
+            SmoothShake shakeComponent = skillCamera.GetComponent<SmoothShake>();
+            if (shakeComponent == null)
+            {
+                shakeComponent = skillCamera.gameObject.AddComponent<SmoothShake>();
+            }
+            foreach (var clip in cameraTrackSO.cameraClips)
+            {
+                if (!clip.enableShake || clip.shakePreset == null) continue;
+                // 设置震动的预设
+                shakeComponent.shakePreset = clip.shakePreset;
+                // 计算震动的起始帧和结束帧
+                int shakeStartFrame = clip.startFrame + clip.animationStartFrameOffset;
+                int shakeEndFrame = clip.startFrame + clip.animationDurationFrame;
+
+                // 检查当前帧是否在震动范围内
+                if (frame >= shakeStartFrame && frame <= shakeEndFrame)
+                {
+                    // 如果震动还没有开始，启动震动
+                    if (!shakeComponent.IsShaking)
+                    {
+                        shakeComponent.StartShake(clip.shakePreset);
+                    }
+                }
+                else if (frame > shakeEndFrame && shakeComponent.IsShaking)
+                {
+                    // 如果超出震动范围且正在震动，停止震动
+                    shakeComponent.StopShake();
+                }
+            }
+        }
+
+        /// <summary>
+        /// 停止摄像机震动
+        /// </summary>
+        private void StopCameraShake()
+        {
+            if (skillCamera != null)
+            {
+                SmoothShake shakeComponent = skillCamera.GetComponent<SmoothShake>();
+                if (shakeComponent != null && shakeComponent.IsShaking)
+                {
+                    shakeComponent.StopShake();
+                }
             }
         }
 
@@ -850,6 +917,9 @@ namespace FFramework.Kit
             {
                 audioSource.Stop();
             }
+
+            // 停止摄像机震动
+            StopCameraShake();
 
             // 停用所有特效
             foreach (var effectObj in effectInstances.Values)

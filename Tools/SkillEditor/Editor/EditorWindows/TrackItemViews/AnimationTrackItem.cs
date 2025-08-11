@@ -285,16 +285,27 @@ namespace SkillEditor
 
             var animationData = ScriptableObject.CreateInstance<AnimationTrackItemData>();
             animationData.trackItemName = itemName;
-            animationData.frameCount = frameCount;
             animationData.startFrame = startFrame;
             animationData.trackIndex = trackIndex; // 设置轨道索引用于多轨道数据定位
-            animationData.durationFrame = frameCount;
 
             // 设置动画特有的默认属性
             SetDefaultAnimationProperties(animationData);
 
             // 从技能配置同步动画数据
             SyncWithAnimationConfigData(animationData, itemName);
+
+            // 基准帧数应该在同步配置数据后设置，如果配置中没有数据则使用当前轨道项帧数
+            // 这样确保基准帧数反映的是动画的原始长度
+            if (animationData.frameCount <= 0)
+            {
+                animationData.frameCount = frameCount;
+            }
+
+            // 如果持续帧数还没有设置，则使用基准帧数
+            if (animationData.durationFrame <= 0)
+            {
+                animationData.durationFrame = animationData.frameCount;
+            }
 
             return animationData;
         }
@@ -318,11 +329,10 @@ namespace SkillEditor
         private void SetDefaultAnimationProperties(AnimationTrackItemData animationData)
         {
             // 默认动画参数
-            animationData.durationFrame = frameCount; // 默认持续帧数为轨道项帧数
             animationData.animationPlaySpeed = 1f; // 默认播放速度为1
-            animationData.isLoop = false; // 默认不循环播放
             animationData.applyRootMotion = false; // 默认不应用根运动
             animationData.animationClip = null; // 默认动画片段为空
+            // 注意：frameCount 和 durationFrame 在外部设置
         }
 
         /// <summary>
@@ -346,8 +356,15 @@ namespace SkillEditor
                 animationData.animationClip = configClip.clip;
                 animationData.durationFrame = configClip.durationFrame;
                 animationData.animationPlaySpeed = configClip.animationPlaySpeed;
-                animationData.isLoop = configClip.isLoop;
                 animationData.applyRootMotion = configClip.applyRootMotion;
+
+                // 如果配置中有原始帧数，则使用配置中的值作为基准帧数
+                // 否则使用动画片段的实际长度作为基准帧数
+                if (configClip.clip != null)
+                {
+                    float frameRate = SkillEditorData.CurrentSkillConfig?.frameRate ?? 30f;
+                    animationData.frameCount = Mathf.RoundToInt(configClip.clip.length * frameRate);
+                }
             }
         }
 

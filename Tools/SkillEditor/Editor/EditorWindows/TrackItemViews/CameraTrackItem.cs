@@ -55,8 +55,13 @@ namespace SkillEditor
             SetWidth();
             UpdatePosition();
             visual.Add(trackItem);
+
+            // 初始化摄像机数据
+            currentCameraData = CreateCameraTrackItemData();
+
             // 设置摄像机事件视图
-            SetCameraEventView(startFrame, startFrame, 2);
+            SetEventView(startFrame, currentCameraData.animationStartFrameOffset, currentCameraData.animationDurationFrame, cameraEvent);
+
             // 注册拖拽事件
             RegisterDragEvents();
         }
@@ -150,18 +155,8 @@ namespace SkillEditor
         {
             SetWidth();
             UpdatePosition();
-        }
-
-        /// <summary>
-        /// 设置摄像机事件视图的显示
-        /// 用于显示摄像机轨道中的事件可视化表示
-        /// </summary>
-        /// <param name="leftFrame">相对左边界帧</param>
-        /// <param name="startFrame">事件起始帧</param>
-        /// <param name="durationFrame">事件持续帧数</param>
-        public void SetCameraEventView(int leftFrame, int startFrame, int durationFrame)
-        {
-            SetEventView(leftFrame, startFrame, durationFrame, cameraEvent, Color.green);
+            // 设置摄像机事件视图
+            SetEventView(startFrame, currentCameraData.animationStartFrameOffset, currentCameraData.animationDurationFrame, cameraEvent);
         }
 
         /// <summary>
@@ -173,13 +168,12 @@ namespace SkillEditor
         /// <param name="durationFrame">事件持续帧数</param>
         /// <param name="eventElement">要设置的事件元素</param>
         /// <param name="color">事件显示颜色</param>
-        protected virtual void SetEventView(int leftFrame, int startFrame, int durationFrame, VisualElement eventElement, Color color)
+        protected virtual void SetEventView(int leftFrame, int startFrame, int durationFrame, VisualElement eventElement)
         {
             if (eventElement == null) return;
-
+            eventElement.AddToClassList("CameraEvent");
             eventElement.style.width = durationFrame * SkillEditorData.FrameUnitWidth;
-            eventElement.style.left = (startFrame - leftFrame) * SkillEditorData.FrameUnitWidth;
-            eventElement.style.backgroundColor = color;
+            eventElement.style.left = startFrame * SkillEditorData.FrameUnitWidth - 2;
         }
 
         #endregion
@@ -358,7 +352,8 @@ namespace SkillEditor
             cameraData.targetFieldOfView = 60f;
             cameraData.shakePreset = null;
             cameraData.customCurve = AnimationCurve.Linear(0, 0, 1, 1);
-            cameraData.animationStartFrame = startFrame;
+            cameraData.enableShake = false;
+            cameraData.animationStartFrameOffset = startFrame;
             cameraData.animationDurationFrame = frameCount;
         }
 
@@ -390,7 +385,8 @@ namespace SkillEditor
                 cameraData.targetFieldOfView = configClip.targetFieldOfView;
                 cameraData.shakePreset = configClip.shakePreset;
                 cameraData.customCurve = configClip.customCurve;
-                cameraData.animationStartFrame = configClip.animationStartFrame;
+                cameraData.enableShake = configClip.enableShake;
+                cameraData.animationStartFrameOffset = configClip.animationStartFrameOffset;
                 cameraData.animationDurationFrame = configClip.animationDurationFrame;
             }
         }

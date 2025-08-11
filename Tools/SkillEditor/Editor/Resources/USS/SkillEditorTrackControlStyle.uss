@@ -19,7 +19,7 @@
 
 .TrackControlArea-Audio{
     border-left-width: 1px;
-    border-left-color: rgb(250, 193, 23);
+    border-left-color: rgb(229, 155, 29);
 }
 
 .TrackControlArea-Effect{

@@ -33,7 +33,7 @@ namespace FFramework.Kit
         [Header("基础设置")]
         [Tooltip("片段名称")] public string clipName;
         [Tooltip("起始帧"), Min(0)] public int startFrame;
-        [Tooltip("持续帧数(-1表示完整播放)"), Min(-1)] public int durationFrame = -1;
+        [Tooltip("持续帧数"), Min(1)] public int durationFrame = 1;
 
         public virtual int EndFrame => startFrame + (durationFrame > 0 ? durationFrame : 0);
 

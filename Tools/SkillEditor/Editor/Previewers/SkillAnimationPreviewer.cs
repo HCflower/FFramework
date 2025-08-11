@@ -36,6 +36,9 @@ namespace SkillEditor
         /// <summary>当前预览的动画片段</summary>
         private AnimationClip currentPreviewClip;
 
+        /// <summary>全局播放速度倍数</summary>
+        private float globalPlaySpeedMultiplier = 1f;
+
         #endregion
 
         #region 公共属性
@@ -179,11 +182,11 @@ namespace SkillEditor
                     if (animClip.clip == null) continue;
 
                     // 检查当前帧是否在动画片段的播放范围内
-                    int clipEndFrame = animClip.startFrame + Mathf.RoundToInt(animClip.clip.length * currentSkillConfig.frameRate);
+                    int clipEndFrame = animClip.startFrame + animClip.durationFrame; // 使用配置中的持续帧数
                     if (currentPreviewFrame >= animClip.startFrame && currentPreviewFrame < clipEndFrame)
                     {
                         float playTime = CalculateClipTime(animClip);
-                        PlayAnimationAtTime(animClip.clip, playTime);
+                        PlayAnimationAtTime(animClip.clip, playTime, animClip);
                         return; // 找到第一个匹配的动画片段后返回
                     }
                 }
@@ -201,14 +204,25 @@ namespace SkillEditor
             if (currentTime < clipStartTime) return 0f;
 
             float localTime = currentTime - clipStartTime;
+
+            // 应用播放速度：播放速度越快，动画时间进度越快
+            float scaledTime = localTime * animClip.animationPlaySpeed;
+
             float clipDuration = animClip.clip.length;
-            return Mathf.Clamp(localTime, 0f, clipDuration);
+
+            // 如果是循环播放，使用模运算来循环时间
+            if (clipDuration > 0f)
+            {
+                scaledTime = scaledTime % clipDuration;
+            }
+
+            return Mathf.Clamp(scaledTime, 0f, clipDuration);
         }
 
         /// <summary>
         /// 在指定时间播放动画
         /// </summary>
-        private void PlayAnimationAtTime(AnimationClip clip, float time)
+        private void PlayAnimationAtTime(AnimationClip clip, float time, FFramework.Kit.AnimationTrack.AnimationClip animClipData = null)
         {
             currentPreviewClip = clip;
 
@@ -223,26 +237,50 @@ namespace SkillEditor
                     UpdateSkillStateClip(clip);
                     float normalizedTime = clip.length > 0 ? time / clip.length : 0f;
                     previewAnimator.Play("Skill", 0, normalizedTime);
+
+                    // 在运行时模式下，也需要设置Animator的播放速度来匹配动画片段的播放速度
+                    if (animClipData != null)
+                    {
+                        // 最终播放速度 = 动画片段播放速度 × 全局播放速度倍数
+                        float finalPlaySpeed = animClipData.animationPlaySpeed * globalPlaySpeedMultiplier;
+                        previewAnimator.speed = finalPlaySpeed;
+                    }
+                    else
+                    {
+                        previewAnimator.speed = globalPlaySpeedMultiplier;
+                    }
                 }
             }
         }
 
         /// <summary>
-        /// 设置预览播放速度
+        /// 设置预览播放速度（全局速度倍数，会叠加到动画片段的播放速度上）
         /// </summary>
-        /// <param name="speed">播放速度倍数</param>
+        /// <param name="speed">全局播放速度倍数</param>
         public void SetPreviewSpeed(float speed)
         {
+            globalPlaySpeedMultiplier = speed;
+
             if (isEditModePreview || previewAnimator == null) return;
 
             bool wasPlaying = previewAnimator.speed > 0f;
-            previewAnimator.speed = speed;
 
             // 如果从暂停恢复播放，重新计算开始时间
             if (!wasPlaying && speed > 0f && isPreviewing && currentSkillConfig != null)
             {
                 double frameTime = currentPreviewFrame / currentSkillConfig.frameRate;
                 previewStartTime = EditorApplication.timeSinceStartup - frameTime;
+            }
+
+            // 如果当前有播放的动画片段，立即更新播放速度
+            if (speed <= 0f)
+            {
+                previewAnimator.speed = 0f; // 暂停
+            }
+            else
+            {
+                // 重新触发当前帧的预览来应用新的播放速度
+                PreviewFrame(currentPreviewFrame);
             }
         }
 
@@ -326,7 +364,9 @@ namespace SkillEditor
             }
 
             // 检查是否应该播放
-            bool shouldPlay = isEditModePreview ? SkillEditorData.IsPlaying : previewAnimator.speed > 0f;
+            bool shouldPlay = isEditModePreview ?
+                SkillEditorData.IsPlaying :
+                (previewAnimator.speed > 0f && globalPlaySpeedMultiplier > 0f);
             if (!shouldPlay) return;
 
             // 计算目标帧

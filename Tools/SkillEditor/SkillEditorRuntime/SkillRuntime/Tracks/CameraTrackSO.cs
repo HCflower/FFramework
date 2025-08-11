@@ -175,7 +175,8 @@ namespace FFramework.Kit
             [Tooltip("自定义动画曲线")] public AnimationCurve customCurve = AnimationCurve.Linear(0, 0, 1, 1);
 
             [Header("动画设置")]
-            [Tooltip("动画开始帧")] public int animationStartFrame;
+            [Tooltip("是否启用震动")] public bool enableShake = false;
+            [Tooltip("动画开始帧偏移")] public int animationStartFrameOffset;
             [Tooltip("动画持续时间")] public int animationDurationFrame;
             [Tooltip("震动预设")] public ShakePreset shakePreset;
             // 运行时初始摄像机状态（不序列化，每次播放时设置）

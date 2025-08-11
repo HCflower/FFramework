@@ -72,7 +72,7 @@
 }
 .ItemDataViewContent-Audio:hover{
     border-left-width: 2px;
-    border-left-color: rgb(250, 193, 23);
+    border-left-color: rgb(229, 155, 29);
 }
 
 .ItemDataViewContent-Effect{

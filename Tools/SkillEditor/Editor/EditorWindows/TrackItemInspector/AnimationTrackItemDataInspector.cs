@@ -31,9 +31,6 @@ namespace SkillEditor
             // 动画过渡时间
             CreateFloatField("动画过渡时间:", "normalizedTransitionTime", OnNormalizedTransitionTimeChanged);
 
-            // 循环播放
-            CreateToggleField("是否循环播放:", "isLoop", OnLoopChanged);
-
             // 应用根运动
             CreateToggleField("应用根运动:", "applyRootMotion", OnApplyRootMotionChanged);
         }
@@ -62,7 +59,14 @@ namespace SkillEditor
         {
             SafeExecute(() =>
             {
-                UpdateAnimationTrackConfig(configClip => configClip.animationPlaySpeed = newValue, "播放速度更新");
+                UpdateAnimationTrackConfig(configClip =>
+                {
+                    configClip.animationPlaySpeed = newValue;
+                    //刷新持续帧
+                    configClip.durationFrame = (int)(targetData.frameCount / newValue);
+                    animationTargetData.durationFrame = configClip.durationFrame;
+                }, "播放速度更新");
+
             }, "播放速度更新");
         }
 
@@ -73,14 +77,6 @@ namespace SkillEditor
                 UpdateAnimationTrackConfig(configClip => configClip.normalizedTransitionTime = newValue, "过渡时间更新");
             }, "过渡时间更新");
 
-        }
-
-        private void OnLoopChanged(bool newValue)
-        {
-            SafeExecute(() =>
-            {
-                UpdateAnimationTrackConfig(configClip => configClip.isLoop = newValue, "循环播放设置更新");
-            }, "循环播放设置更新");
         }
 
         private void OnApplyRootMotionChanged(bool newValue)
