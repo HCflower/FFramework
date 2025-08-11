@@ -13,7 +13,7 @@ namespace FFramework.Kit
         [Header("时间轴设置")]
         [Tooltip("帧率"), Min(1)] public float frameRate = 30;
         [Tooltip("技能最大帧数"), Min(1)] public int maxFrames = 60;
-
+        [Tooltip("技能播放状态名")] public string skillPlayStateName = "SkillPlay";
         [Header("技能基础信息")]
         [Tooltip("技能ID"), Min(0)] public int skillId;
         [Tooltip("技能图标")] public Sprite skillIcon;

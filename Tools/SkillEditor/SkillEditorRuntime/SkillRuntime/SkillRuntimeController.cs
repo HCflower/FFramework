@@ -16,7 +16,7 @@ namespace FFramework.Kit
         [Tooltip("技能动画状态机")] public Animator skillAnimator;
         [Tooltip("技能控制的摄像机")] public Camera skillCamera;
         [Tooltip("默认动画状态名")] public string defaultStateName = "Idle";
-        [Tooltip("技能动画状态名")] public string skillAnimationStateName = "Skill";
+        [Tooltip("技能动画状态名")] public string skillAnimationStateName = "SkillPlay";
 
         [Header("运行时状态")]
         [SerializeField, Tooltip("是否正在播放技能")][ShowOnly] private bool isPlaying = false;
@@ -480,6 +480,25 @@ namespace FFramework.Kit
 
                     // 设置根运动
                     skillAnimator.applyRootMotion = animClip.applyRootMotion;
+
+                    // 将当前动画片段设置到AnimatorController对应的动画状态
+                    var controller = skillAnimator.runtimeAnimatorController as UnityEditor.Animations.AnimatorController;
+                    if (controller != null && !string.IsNullOrEmpty(skillAnimationStateName))
+                    {
+                        if (controller.layers.Length > 0)
+                        {
+                            var layer = controller.layers[0];
+                            foreach (var state in layer.stateMachine.states)
+                            {
+                                if (state.state.name == skillAnimationStateName)
+                                {
+                                    state.state.motion = animClip.clip;
+                                    skillAnimator.Rebind(); // 强制刷新
+                                    break;
+                                }
+                            }
+                        }
+                    }
 
                     // 使用缓存的哈希值，避免每次重新计算
                     if (skillAnimator.HasState(0, animationStateHash))

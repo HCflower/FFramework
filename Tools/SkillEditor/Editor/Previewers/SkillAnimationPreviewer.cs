@@ -77,11 +77,6 @@ namespace SkillEditor
             previewTarget = target;
             previewAnimator = animator;
 
-            if (!HasSkillState())
-            {
-                Debug.LogWarning($"控制器中没有找到'Skill'状态");
-            }
-
             return true;
         }
 
@@ -236,7 +231,7 @@ namespace SkillEditor
                 {
                     UpdateSkillStateClip(clip);
                     float normalizedTime = clip.length > 0 ? time / clip.length : 0f;
-                    previewAnimator.Play("Skill", 0, normalizedTime);
+                    previewAnimator.Play(currentSkillConfig.skillPlayStateName, 0, normalizedTime);
 
                     // 在运行时模式下，也需要设置Animator的播放速度来匹配动画片段的播放速度
                     if (animClipData != null)
@@ -297,30 +292,30 @@ namespace SkillEditor
         #region 私有方法
 
         /// <summary>
-        /// 检查Animator是否有Skill状态
+        /// 检查Animator是否有SkillPlay状态
         /// </summary>
-        /// <returns>是否存在Skill状态</returns>
+        /// <returns>是否存在SkillPlay状态</returns>
         private bool HasSkillState()
         {
             if (previewAnimator == null || previewAnimator.runtimeAnimatorController == null)
+                return false;
+            if (currentSkillConfig == null || string.IsNullOrEmpty(currentSkillConfig.skillPlayStateName))
                 return false;
 
             var controller = previewAnimator.runtimeAnimatorController as UnityEditor.Animations.AnimatorController;
             if (controller == null) return false;
 
-            // 检查第一层是否有Skill状态
             if (controller.layers.Length > 0)
             {
                 var layer = controller.layers[0];
                 foreach (var state in layer.stateMachine.states)
                 {
-                    if (state.state.name == "Skill")
+                    if (state.state.name == currentSkillConfig.skillPlayStateName)
                     {
                         return true;
                     }
                 }
             }
-
             return false;
         }
 
@@ -342,7 +337,7 @@ namespace SkillEditor
                 var layer = controller.layers[0];
                 foreach (var childState in layer.stateMachine.states)
                 {
-                    if (childState.state.name == "Skill")
+                    if (childState.state.name == currentSkillConfig.skillPlayStateName)
                     {
                         // 更新状态的动画片段
                         childState.state.motion = clip;
