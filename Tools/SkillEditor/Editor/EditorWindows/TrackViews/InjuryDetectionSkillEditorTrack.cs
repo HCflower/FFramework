@@ -45,14 +45,17 @@ namespace SkillEditor
         /// <param name="startFrame">起始帧</param>
         /// <param name="addToConfig">是否添加到配置</param>
         /// <returns>创建的轨道项</returns>
-        protected override SkillEditorTrackItem CreateTrackItemFromResource(object resource, int startFrame, bool addToConfig)
+        protected override BaseTrackItemView CreateTrackItemFromResource(object resource, int startFrame, bool addToConfig)
         {
             if (!(resource is string injuryDetectionName))
                 return null;
 
             // 伤害检测轨道项默认5帧长度
             int frameCount = 5;
-            var newItem = new SkillEditorTrackItem(trackArea, injuryDetectionName, trackType, frameCount, startFrame, trackIndex);
+            var newItem = new InjuryDetectionTrackItem(trackArea, injuryDetectionName, frameCount, startFrame, trackIndex);
+
+            // 添加到基类的轨道项列表，确保在时间轴缩放时能够被刷新
+            trackItems.Add(newItem);
 
             // 添加到技能配置
             if (addToConfig)
@@ -83,7 +86,7 @@ namespace SkillEditor
         /// <param name="startFrame">起始帧</param>
         /// <param name="addToConfig">是否添加到配置</param>
         /// <returns>创建的伤害检测轨道项</returns>
-        public SkillEditorTrackItem CreateInjuryDetectionItem(string injuryDetectionName, int startFrame, bool addToConfig = true)
+        public BaseTrackItemView CreateInjuryDetectionItem(string injuryDetectionName, int startFrame, bool addToConfig = true)
         {
             return AddTrackItem(injuryDetectionName, startFrame, addToConfig);
         }
@@ -191,8 +194,9 @@ namespace SkillEditor
                 var trackItem = track.AddTrackItem(clip.clipName, clip.startFrame, false);
 
                 // 更新轨道项的持续帧数和相关数据
-                if (trackItem?.ItemData is InjuryDetectionTrackItemData attackData)
+                if (trackItem is InjuryDetectionTrackItem injuryDetectionTrackItem)
                 {
+                    var attackData = injuryDetectionTrackItem.InjuryDetectionData;
                     attackData.durationFrame = clip.durationFrame;
                     // 从配置中恢复完整的攻击属性
                     attackData.targetLayers = clip.targetLayers;

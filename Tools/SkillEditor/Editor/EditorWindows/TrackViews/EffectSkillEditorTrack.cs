@@ -1,6 +1,5 @@
 using UnityEngine.UIElements;
 using UnityEngine;
-using System.Linq;
 
 #if UNITY_EDITOR
 using UnityEditor;
@@ -44,7 +43,7 @@ namespace SkillEditor
         /// <param name="startFrame">起始帧</param>
         /// <param name="addToConfig">是否添加到配置</param>
         /// <returns>创建的轨道项</returns>
-        protected override SkillEditorTrackItem CreateTrackItemFromResource(object resource, int startFrame, bool addToConfig)
+        protected override BaseTrackItemView CreateTrackItemFromResource(object resource, int startFrame, bool addToConfig)
         {
             if (!(resource is GameObject gameObject))
             {
@@ -57,21 +56,23 @@ namespace SkillEditor
             int frameCount = Mathf.RoundToInt(duration * frameRate);
             string itemName = gameObject.name;
 
-            var newItem = new SkillEditorTrackItem(trackArea, itemName, trackType, frameCount, startFrame, trackIndex);
+            var newItem = new EffectTrackItem(trackArea, itemName, frameCount, startFrame, trackIndex);
+
+            // 添加到基类的轨道项列表，确保在时间轴缩放时能够被刷新
+            trackItems.Add(newItem);
 
             // 设置特效轨道项的数据
-            if (newItem.ItemData is EffectTrackItemData effectData)
-            {
-                effectData.effectPrefab = gameObject;
-                effectData.effectPlaySpeed = 1.0f;
-                effectData.position = Vector3.zero;
-                effectData.rotation = Vector3.zero;
-                effectData.scale = Vector3.one;
+            var effectData = newItem.EffectData;
+            effectData.effectPrefab = gameObject;
+            effectData.effectPlaySpeed = 1.0f;
+            effectData.position = Vector3.zero;
+            effectData.rotation = Vector3.zero;
+            effectData.scale = Vector3.one;
 
 #if UNITY_EDITOR
-                EditorUtility.SetDirty(effectData);
+            EditorUtility.SetDirty(effectData);
 #endif
-            }
+
             // 添加到技能配置
             if (addToConfig)
             {
@@ -238,8 +239,9 @@ namespace SkillEditor
                     var trackItem = track.AddTrackItem(clip.effectPrefab, clip.startFrame, false);
 
                     // 从配置中恢复完整的特效属性
-                    if (trackItem?.ItemData is EffectTrackItemData effectData)
+                    if (trackItem is EffectTrackItem effectTrackItem)
                     {
+                        var effectData = effectTrackItem.EffectData;
                         effectData.durationFrame = clip.durationFrame;
                         effectData.effectPlaySpeed = clip.effectPlaySpeed;
                         effectData.position = clip.position;

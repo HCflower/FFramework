@@ -144,10 +144,10 @@ MonoBehaviour:
   isEnabled: 0
   cameraClips:
   - clipName: Camera Main Camera
-    startFrame: 23
+    startFrame: 29
     durationFrame: 5
     enablePosition: 1
-    enableRotation: 0
+    enableRotation: 1
     enableFieldOfView: 0
     positionOffset: {x: 0, y: 0, z: 0}
     targetRotation: {x: 0, y: 0, z: 0}
@@ -177,7 +177,7 @@ MonoBehaviour:
       m_PreInfinity: 2
       m_PostInfinity: 2
       m_RotationOrder: 4
-    animationStartFrame: 23
+    animationStartFrame: 28
     animationDurationFrame: 5
     shakePreset: {fileID: 11400000, guid: e68b6101fe0610a46a9f69c687d8b5d5, type: 2}
 --- !u!114 &776813478751267645

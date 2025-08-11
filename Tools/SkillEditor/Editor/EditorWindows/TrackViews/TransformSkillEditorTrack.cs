@@ -45,7 +45,7 @@ namespace SkillEditor
         /// <param name="startFrame">起始帧</param>
         /// <param name="addToConfig">是否添加到配置</param>
         /// <returns>创建的轨道项</returns>
-        protected override SkillEditorTrackItem CreateTrackItemFromResource(object resource, int startFrame, bool addToConfig)
+        protected override BaseTrackItemView CreateTrackItemFromResource(object resource, int startFrame, bool addToConfig)
         {
             string itemName = "";
             GameObject targetObject = null;
@@ -68,7 +68,7 @@ namespace SkillEditor
 
             // 变换轨道项默认5帧长度
             int frameCount = 5;
-            var newItem = new SkillEditorTrackItem(trackArea, itemName, trackType, frameCount, startFrame, trackIndex);
+            var newItem = new TransformTrackItem(trackArea, itemName, frameCount, startFrame, trackIndex);
 
             // 添加到技能配置
             if (addToConfig)
@@ -101,9 +101,9 @@ namespace SkillEditor
         /// <param name="frameCount">持续帧数</param>
         /// <param name="addToConfig">是否添加到配置</param>
         /// <returns>创建的变换轨道项</returns>
-        public SkillEditorTrackItem CreateTransformItem(string transformName, GameObject targetObject, int startFrame, int frameCount = 30, bool addToConfig = true)
+        public TransformTrackItem CreateTransformItem(string transformName, GameObject targetObject, int startFrame, int frameCount = 30, bool addToConfig = true)
         {
-            var newItem = new SkillEditorTrackItem(trackArea, transformName, trackType, frameCount, startFrame, trackIndex);
+            var newItem = new TransformTrackItem(trackArea, transformName, frameCount, startFrame, trackIndex);
 
             if (addToConfig)
             {
@@ -215,8 +215,9 @@ namespace SkillEditor
                     var trackItem = track.AddTrackItem(clip.clipName, clip.startFrame, false);
 
                     // 更新轨道项的持续帧数和相关数据
-                    if (trackItem?.ItemData is TransformTrackItemData transformData)
+                    if (trackItem is TransformTrackItem transformTrackItem)
                     {
+                        var transformData = transformTrackItem.TransformData;
                         transformData.durationFrame = clip.durationFrame;
                         // 从配置中恢复完整的变换属性
                         transformData.enablePosition = clip.enablePosition;

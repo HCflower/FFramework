@@ -1,5 +1,6 @@
 using UnityEngine.UIElements;
 using UnityEngine;
+using System.Collections.Generic;
 using System.Linq;
 
 #if UNITY_EDITOR
@@ -14,6 +15,12 @@ namespace SkillEditor
     /// </summary>
     public class AnimationSkillEditorTrack : BaseSkillEditorTrack
     {
+        #region 私有字段
+
+        /// <summary>动画轨道项列表</summary>
+        private List<AnimationTrackItem> animationTrackItems = new List<AnimationTrackItem>();
+
+        #endregion
         /// <summary>
         /// 动画轨道构造函数
         /// </summary>
@@ -44,7 +51,7 @@ namespace SkillEditor
         /// <param name="startFrame">起始帧</param>
         /// <param name="addToConfig">是否添加到配置</param>
         /// <returns>创建的轨道项</returns>
-        protected override SkillEditorTrackItem CreateTrackItemFromResource(object resource, int startFrame, bool addToConfig)
+        protected override BaseTrackItemView CreateTrackItemFromResource(object resource, int startFrame, bool addToConfig)
         {
             if (!(resource is AnimationClip animationClip))
                 return null;
@@ -53,7 +60,8 @@ namespace SkillEditor
             int frameCount = Mathf.RoundToInt(animationClip.length * frameRate);
             string itemName = animationClip.name;
 
-            var newItem = new SkillEditorTrackItem(trackArea, itemName, trackType, frameCount, startFrame, trackIndex);
+            // 创建专门的动画轨道项
+            var animationItem = CreateAnimationTrackItem(itemName, frameCount, startFrame, false);
 
             // 添加到技能配置
             if (addToConfig)
@@ -61,7 +69,34 @@ namespace SkillEditor
                 AddAnimationClipToConfig(animationClip, startFrame, frameCount);
             }
 
-            return newItem;
+            return animationItem;
+        }
+
+        /// <summary>
+        /// 创建动画轨道项
+        /// </summary>
+        /// <param name="animationName">动画名称</param>
+        /// <param name="frameCount">帧数</param>
+        /// <param name="startFrame">起始帧</param>
+        /// <param name="addToConfig">是否添加到配置</param>
+        /// <returns>创建的专门动画轨道项</returns>
+        public AnimationTrackItem CreateAnimationTrackItem(string animationName, int frameCount, int startFrame, bool addToConfig = true)
+        {
+            var animationItem = new AnimationTrackItem(trackArea, animationName, frameCount, startFrame, trackIndex);
+
+            // 添加到动画轨道项列表
+            animationTrackItems.Add(animationItem);
+
+            // 添加到基类的轨道项列表，确保在时间轴缩放时能够被刷新
+            trackItems.Add(animationItem);
+
+            if (addToConfig)
+            {
+                // 这里需要找到对应的AnimationClip来添加到配置
+                // 暂时先不添加到配置，让外部调用者处理
+            }
+
+            return animationItem;
         }
 
         /// <summary>
@@ -71,6 +106,20 @@ namespace SkillEditor
         {
             // 动画轨道特有的样式设置
             // 可以在这里添加动画轨道特有的视觉效果
+        }
+
+        #endregion
+
+        #region 重写基类方法
+
+        /// <summary>
+        /// 刷新动画轨道项的显示
+        /// 重写基类方法以处理动画特有的轨道项类型
+        /// </summary>
+        public override void RefreshTrackItems()
+        {
+            // 直接调用基类方法，因为动画轨道项已经在基类的 trackItems 列表中
+            base.RefreshTrackItems();
         }
 
         #endregion
@@ -136,15 +185,16 @@ namespace SkillEditor
             {
                 if (clip.clip != null)
                 {
-                    // 从配置加载时，设置addToConfig为false，避免重复添加到配置文件
-                    var trackItem = track.AddTrackItem(clip.clip, clip.startFrame, false);
+                    // 创建专门的动画轨道项
+                    var animationTrackItem = track.CreateAnimationTrackItem(clip.clipName, clip.durationFrame, clip.startFrame, false);
 
-                    // 从配置中恢复完整的动画属性
-                    if (trackItem?.ItemData is AnimationTrackItemData animationData)
+                    // 从配置中恢复动画属性
+                    var animationData = animationTrackItem.AnimationData;
+                    if (animationData != null)
                     {
+                        animationData.animationClip = clip.clip;
                         animationData.durationFrame = clip.durationFrame;
                         animationData.animationPlaySpeed = clip.animationPlaySpeed;
-                        animationData.normalizedTransitionTime = clip.normalizedTransitionTime;
                         animationData.isLoop = clip.isLoop;
                         animationData.applyRootMotion = clip.applyRootMotion;
 
@@ -152,12 +202,6 @@ namespace SkillEditor
                         // 标记数据已修改
                         UnityEditor.EditorUtility.SetDirty(animationData);
 #endif
-                    }
-
-                    // 更新轨道项的帧数和宽度显示
-                    if (clip.durationFrame > 0)
-                    {
-                        trackItem?.UpdateFrameCount(clip.durationFrame);
                     }
                 }
             }

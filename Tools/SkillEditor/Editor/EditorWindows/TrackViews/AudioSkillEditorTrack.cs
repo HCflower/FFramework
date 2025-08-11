@@ -43,7 +43,7 @@ namespace SkillEditor
         /// <param name="startFrame">起始帧</param>
         /// <param name="addToConfig">是否添加到配置</param>
         /// <returns>创建的轨道项</returns>
-        protected override SkillEditorTrackItem CreateTrackItemFromResource(object resource, int startFrame, bool addToConfig)
+        protected override BaseTrackItemView CreateTrackItemFromResource(object resource, int startFrame, bool addToConfig)
         {
             if (!(resource is AudioClip audioClip))
                 return null;
@@ -52,19 +52,17 @@ namespace SkillEditor
             int frameCount = Mathf.RoundToInt(audioClip.length * frameRate);
             string itemName = audioClip.name;
 
-            var newItem = new SkillEditorTrackItem(trackArea, itemName, trackType, frameCount, startFrame, trackIndex);
+            var newItem = new AudioTrackItem(trackArea, itemName, frameCount, startFrame, trackIndex);
 
             // 设置音频轨道项的数据
-            if (newItem.ItemData is AudioTrackItemData audioData)
-            {
-                audioData.audioClip = audioClip;
-                audioData.volume = 1.0f;
-                audioData.pitch = 1.0f;
+            var audioData = newItem.AudioData;
+            audioData.audioClip = audioClip;
+            audioData.volume = 1.0f;
+            audioData.pitch = 1.0f;
 
 #if UNITY_EDITOR
-                EditorUtility.SetDirty(audioData);
+            EditorUtility.SetDirty(audioData);
 #endif
-            }
 
             // 添加到技能配置
             if (addToConfig)
@@ -96,7 +94,7 @@ namespace SkillEditor
         /// <param name="startFrame">起始帧</param>
         /// <param name="addToConfig">是否添加到配置</param>
         /// <returns>创建的轨道项</returns>
-        public override SkillEditorTrackItem AddTrackItem(object resource, string itemName, int startFrame, bool addToConfig)
+        public override BaseTrackItemView AddTrackItem(object resource, string itemName, int startFrame, bool addToConfig)
         {
             if (!(resource is AudioClip audioClip))
                 return null;
@@ -104,21 +102,19 @@ namespace SkillEditor
             float frameRate = GetFrameRate();
             int frameCount = Mathf.RoundToInt(audioClip.length * frameRate);
 
-            var newItem = new SkillEditorTrackItem(trackArea, itemName, trackType, frameCount, startFrame, trackIndex);
+            var newItem = new AudioTrackItem(trackArea, itemName, frameCount, startFrame, trackIndex);
 
             // 设置音频轨道项的数据
-            if (newItem.ItemData is AudioTrackItemData audioData)
-            {
-                audioData.audioClip = audioClip;
-                audioData.volume = 1.0f;
-                audioData.pitch = 1.0f;
-                audioData.spatialBlend = 0.0f;
-                audioData.reverbZoneMix = 1.0f;
+            var audioData = newItem.AudioData;
+            audioData.audioClip = audioClip;
+            audioData.volume = 1.0f;
+            audioData.pitch = 1.0f;
+            audioData.spatialBlend = 0.0f;
+            audioData.reverbZoneMix = 1.0f;
 
 #if UNITY_EDITOR
-                EditorUtility.SetDirty(audioData);
+            EditorUtility.SetDirty(audioData);
 #endif
-            }
 
             // 添加到技能配置
             if (addToConfig)
@@ -251,8 +247,9 @@ namespace SkillEditor
                     var trackItem = track.AddTrackItem(clip.clip, clip.clipName, clip.startFrame, false);
 
                     // 从配置中恢复完整的音频属性
-                    if (trackItem?.ItemData is AudioTrackItemData audioData)
+                    if (trackItem is AudioTrackItem audioTrackItem)
                     {
+                        var audioData = audioTrackItem.AudioData;
                         audioData.durationFrame = clip.durationFrame;
                         audioData.volume = clip.volume;
                         audioData.pitch = clip.pitch;

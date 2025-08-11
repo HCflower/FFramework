@@ -45,7 +45,7 @@ namespace SkillEditor
         /// <param name="startFrame">起始帧</param>
         /// <param name="addToConfig">是否添加到配置</param>
         /// <returns>创建的轨道项</returns>
-        protected override SkillEditorTrackItem CreateTrackItemFromResource(object resource, int startFrame, bool addToConfig)
+        protected override BaseTrackItemView CreateTrackItemFromResource(object resource, int startFrame, bool addToConfig)
         {
             if (!(resource is GameObject gameObject))
                 return null;
@@ -54,24 +54,22 @@ namespace SkillEditor
             int frameCount = Mathf.RoundToInt(1f * frameRate); // 默认1秒持续时间
             string itemName = gameObject.name;
 
-            var newItem = new SkillEditorTrackItem(trackArea, itemName, trackType, frameCount, startFrame, trackIndex);
+            var newItem = new GameObjectTrackItem(trackArea, itemName, frameCount, startFrame, trackIndex);
 
             // 设置游戏物体轨道项的数据
-            if (newItem.ItemData is GameObjectTrackItemData gameObjectData)
-            {
-                gameObjectData.prefab = gameObject;
-                gameObjectData.autoDestroy = true;
-                gameObjectData.positionOffset = Vector3.zero;
-                gameObjectData.rotationOffset = Vector3.zero;
-                gameObjectData.scale = Vector3.one;
-                gameObjectData.useParent = false;
-                gameObjectData.parentName = "";
-                gameObjectData.destroyDelay = -1f;
+            var gameObjectData = newItem.GameObjectData;
+            gameObjectData.prefab = gameObject;
+            gameObjectData.autoDestroy = true;
+            gameObjectData.positionOffset = Vector3.zero;
+            gameObjectData.rotationOffset = Vector3.zero;
+            gameObjectData.scale = Vector3.one;
+            gameObjectData.useParent = false;
+            gameObjectData.parentName = "";
+            gameObjectData.destroyDelay = -1f;
 
 #if UNITY_EDITOR
-                EditorUtility.SetDirty(gameObjectData);
+            EditorUtility.SetDirty(gameObjectData);
 #endif
-            }
 
             // 添加到技能配置
             if (addToConfig)
@@ -103,7 +101,7 @@ namespace SkillEditor
         /// <param name="startFrame">起始帧</param>
         /// <param name="addToConfig">是否添加到配置</param>
         /// <returns>创建的轨道项</returns>
-        public override SkillEditorTrackItem AddTrackItem(object resource, string itemName, int startFrame, bool addToConfig)
+        public override BaseTrackItemView AddTrackItem(object resource, string itemName, int startFrame, bool addToConfig)
         {
             if (!(resource is GameObject gameObject))
                 return null;
@@ -111,24 +109,22 @@ namespace SkillEditor
             float frameRate = GetFrameRate();
             int frameCount = Mathf.RoundToInt(1f * frameRate); // 默认1秒持续时间
 
-            var newItem = new SkillEditorTrackItem(trackArea, itemName, trackType, frameCount, startFrame, trackIndex);
+            var newItem = new GameObjectTrackItem(trackArea, itemName, frameCount, startFrame, trackIndex);
 
             // 设置游戏物体轨道项的数据
-            if (newItem.ItemData is GameObjectTrackItemData gameObjectData)
-            {
-                gameObjectData.prefab = gameObject;
-                gameObjectData.autoDestroy = true;
-                gameObjectData.positionOffset = Vector3.zero;
-                gameObjectData.rotationOffset = Vector3.zero;
-                gameObjectData.scale = Vector3.one;
-                gameObjectData.useParent = false;
-                gameObjectData.parentName = "";
-                gameObjectData.destroyDelay = -1f;
+            var gameObjectData = newItem.GameObjectData;
+            gameObjectData.prefab = gameObject;
+            gameObjectData.autoDestroy = true;
+            gameObjectData.positionOffset = Vector3.zero;
+            gameObjectData.rotationOffset = Vector3.zero;
+            gameObjectData.scale = Vector3.one;
+            gameObjectData.useParent = false;
+            gameObjectData.parentName = "";
+            gameObjectData.destroyDelay = -1f;
 
 #if UNITY_EDITOR
-                EditorUtility.SetDirty(gameObjectData);
+            EditorUtility.SetDirty(gameObjectData);
 #endif
-            }
 
             // 添加到技能配置
             if (addToConfig)
@@ -263,8 +259,9 @@ namespace SkillEditor
                     var trackItem = track.AddTrackItem(clip.prefab, clip.clipName, clip.startFrame, false);
 
                     // 从配置中恢复完整的游戏物体属性
-                    if (trackItem?.ItemData is GameObjectTrackItemData gameObjectData)
+                    if (trackItem is GameObjectTrackItem gameObjectTrackItem)
                     {
+                        var gameObjectData = gameObjectTrackItem.GameObjectData;
                         gameObjectData.durationFrame = clip.durationFrame;
                         gameObjectData.autoDestroy = clip.autoDestroy;
                         gameObjectData.positionOffset = clip.positionOffset;

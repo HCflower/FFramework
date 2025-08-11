@@ -61,7 +61,9 @@
     border: 0px;
     padding: 0px;
     justify-content: center;
+    flex-direction: row;
     
+
     transition-property: background-color; /* 背景色过渡动画 */
     transition-duration: 0.15s;           /* 过渡时间 */
     transition-timing-function: ease-out;  /* 缓动函数 */

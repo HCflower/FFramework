@@ -19,9 +19,6 @@ namespace SkillEditor
         private SkillEditorScrollSync skillEditorScrollSync;
         /// <summary>预览器处理器 - 管理所有预览器的生命周期和交互</summary>
         private SkillEditorPreviewerHandler previewerHandler;
-
-        /// <summary>当前选中的轨道项</summary>
-        public static SkillEditorTrackItem CurrentTrackItem;
         #endregion
 
         #region GUI元素

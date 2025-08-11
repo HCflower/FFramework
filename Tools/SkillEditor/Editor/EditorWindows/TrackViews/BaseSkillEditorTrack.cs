@@ -26,7 +26,7 @@ namespace SkillEditor
         protected int trackIndex;
 
         /// <summary>轨道中的所有轨道项列表</summary>
-        protected List<SkillEditorTrackItem> trackItems = new List<SkillEditorTrackItem>();
+        protected List<BaseTrackItemView> trackItems = new List<BaseTrackItemView>();
 
         /// <summary>当前关联的技能配置</summary>
         protected FFramework.Kit.SkillConfig skillConfig;
@@ -74,7 +74,7 @@ namespace SkillEditor
         /// <param name="startFrame">起始帧</param>
         /// <param name="addToConfig">是否添加到配置</param>
         /// <returns>创建的轨道项</returns>
-        protected abstract SkillEditorTrackItem CreateTrackItemFromResource(object resource, int startFrame, bool addToConfig);
+        protected abstract BaseTrackItemView CreateTrackItemFromResource(object resource, int startFrame, bool addToConfig);
 
         /// <summary>
         /// 应用轨道类型特定的样式
@@ -228,7 +228,7 @@ namespace SkillEditor
         /// <param name="resource">资源对象</param>
         /// <param name="startFrame">起始帧</param>
         /// <returns>创建的轨道项</returns>
-        public SkillEditorTrackItem AddTrackItem(object resource, int startFrame = 0)
+        public BaseTrackItemView AddTrackItem(object resource, int startFrame = 0)
         {
             return AddTrackItem(resource, startFrame, true);
         }
@@ -240,7 +240,7 @@ namespace SkillEditor
         /// <param name="startFrame">起始帧</param>
         /// <param name="addToConfig">是否添加到配置</param>
         /// <returns>创建的轨道项</returns>
-        public SkillEditorTrackItem AddTrackItem(object resource, int startFrame, bool addToConfig)
+        public BaseTrackItemView AddTrackItem(object resource, int startFrame, bool addToConfig)
         {
             var newItem = CreateTrackItemFromResource(resource, startFrame, addToConfig);
             if (newItem != null)
@@ -258,7 +258,7 @@ namespace SkillEditor
         /// <param name="startFrame">起始帧</param>
         /// <param name="addToConfig">是否添加到配置</param>
         /// <returns>创建的轨道项</returns>
-        public virtual SkillEditorTrackItem AddTrackItem(object resource, string itemName, int startFrame, bool addToConfig)
+        public virtual BaseTrackItemView AddTrackItem(object resource, string itemName, int startFrame, bool addToConfig)
         {
             // 默认实现，子类可以重写以支持自定义名称
             return AddTrackItem(resource, startFrame, addToConfig);
@@ -278,7 +278,7 @@ namespace SkillEditor
         /// <summary>
         /// 刷新所有轨道项的显示
         /// </summary>
-        public void RefreshTrackItems()
+        public virtual void RefreshTrackItems()
         {
             foreach (var item in trackItems)
             {

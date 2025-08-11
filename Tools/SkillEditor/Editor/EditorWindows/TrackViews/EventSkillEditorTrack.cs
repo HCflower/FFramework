@@ -45,14 +45,17 @@ namespace SkillEditor
         /// <param name="startFrame">起始帧</param>
         /// <param name="addToConfig">是否添加到配置</param>
         /// <returns>创建的轨道项</returns>
-        protected override SkillEditorTrackItem CreateTrackItemFromResource(object resource, int startFrame, bool addToConfig)
+        protected override BaseTrackItemView CreateTrackItemFromResource(object resource, int startFrame, bool addToConfig)
         {
             if (!(resource is string eventName))
                 return null;
 
             // 事件轨道项默认1帧长度
             int frameCount = 1;
-            var newItem = new SkillEditorTrackItem(trackArea, eventName, trackType, frameCount, startFrame, trackIndex);
+            var newItem = new EventTrackItem(trackArea, eventName, frameCount, startFrame, trackIndex);
+
+            // 添加到基类的轨道项列表，确保在时间轴缩放时能够被刷新
+            trackItems.Add(newItem);
 
             // 添加到技能配置
             if (addToConfig)
@@ -83,9 +86,9 @@ namespace SkillEditor
         /// <param name="startFrame">起始帧</param>
         /// <param name="addToConfig">是否添加到配置</param>
         /// <returns>创建的事件轨道项</returns>
-        public SkillEditorTrackItem CreateEventItem(string eventName, int startFrame, bool addToConfig = true)
+        public EventTrackItem CreateEventItem(string eventName, int startFrame, bool addToConfig = true)
         {
-            return AddTrackItem(eventName, startFrame, addToConfig);
+            return (EventTrackItem)AddTrackItem(eventName, startFrame, addToConfig);
         }
 
         #endregion
@@ -190,8 +193,9 @@ namespace SkillEditor
                 var trackItem = track.AddTrackItem(clip.clipName, clip.startFrame, false);
 
                 // 更新轨道项的持续帧数和相关数据
-                if (trackItem?.ItemData is EventTrackItemData eventData)
+                if (trackItem is EventTrackItem eventTrackItem)
                 {
+                    var eventData = eventTrackItem.EventData;
                     eventData.durationFrame = clip.durationFrame;
                     // 从配置中恢复完整的事件属性
                     eventData.eventType = clip.eventType;
