@@ -2,6 +2,7 @@ using UnityEngine.UIElements;
 using UnityEditor;
 using UnityEngine;
 using System.Linq;
+using System;
 
 namespace SkillEditor
 {
@@ -24,8 +25,9 @@ namespace SkillEditor
         {
             // 特效预制体字段
             CreateObjectField<GameObject>("特效预制体:", "effectPrefab", OnEffectPrefabChanged);
-            CreateObjectField<GameObject>("特效预制体:", "hitEffectPrefab", OnHitEffectPrefabChanged);
             CreateFloatField("特效播放速度:", "effectPlaySpeed", OnEffectPlaySpeedChanged);
+            CreateToggleField("是否截断特效:", "isCutEffect", OnIsCutEffectChanged);
+            CreateIntegerField("特效截断帧偏移:", "cutEffectFrameOffset", OnCutEffectFrameChanged);
             // Transform 设置
             CreateVector3Field("特效位置:", "position", OnPositionChanged);
             CreateVector3Field("特效旋转:", "rotation", OnRotationChanged);
@@ -33,6 +35,8 @@ namespace SkillEditor
         }
 
         #region 事件处理方法
+
+
 
         private void OnEffectPrefabChanged(GameObject newPrefab)
         {
@@ -46,17 +50,7 @@ namespace SkillEditor
             }, "特效预制体更新");
         }
 
-        private void OnHitEffectPrefabChanged(GameObject newPrefab)
-        {
-            SafeExecute(() =>
-            {
-                UpdateEffectTrackConfig(configClip =>
-                {
-                    configClip.hitEffectPrefab = newPrefab;
-                }, "击中特效预制体更新");
-
-            }, "击中特效预制体更新");
-        }
+     
 
         private void OnEffectPlaySpeedChanged(float newValue)
         {
@@ -70,6 +64,29 @@ namespace SkillEditor
                     effectTargetData.durationFrame = configClip.durationFrame;
                 }, "特效播放速度更新");
             }, "特效播放速度更新");
+        }
+
+        private void OnIsCutEffectChanged(bool newValue)
+        {
+            SafeExecute(() =>
+            {
+                UpdateEffectTrackConfig(configClip => configClip.isCutEffect = newValue, "是否截断特效更新");
+            }, "是否截断特效更新");
+        }
+
+        private void OnCutEffectFrameChanged(int newValue)
+        {
+            SafeExecute(() =>
+            {
+                if (0 <= newValue && newValue < effectTargetData.startFrame + effectTargetData.durationFrame)
+                {
+                    UpdateEffectTrackConfig(configClip => configClip.cutEffectFrameOffset = newValue, "特效截断帧更新");
+                }
+                else
+                {
+                    Debug.LogError("特效截断帧超出范围");
+                }
+            }, "特效截断帧更新");
         }
 
         private void OnPositionChanged(Vector3 newValue)

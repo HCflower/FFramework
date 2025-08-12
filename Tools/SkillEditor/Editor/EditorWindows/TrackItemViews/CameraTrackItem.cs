@@ -25,6 +25,9 @@ namespace SkillEditor
         /// <summary>摄像机事件标签</summary>
         private Label cameraEvent;
 
+        /// <summary> 还原帧视图/// </summary>
+        private Label restoreFrameView;
+
         #endregion
 
         #region 构造函数
@@ -60,7 +63,9 @@ namespace SkillEditor
             currentCameraData = CreateCameraTrackItemData();
 
             // 设置摄像机事件视图
-            SetEventView(startFrame, currentCameraData.animationStartFrameOffset, currentCameraData.animationDurationFrame, cameraEvent);
+            SetEventFrameView(currentCameraData.animationStartFrameOffset, currentCameraData.animationDurationFrame, cameraEvent);
+            // 设置还原帧视图
+            SetRestoreFrameView(currentCameraData.restoreFrame, restoreFrameView);
 
             // 注册拖拽事件
             RegisterDragEvents();
@@ -156,24 +161,38 @@ namespace SkillEditor
             SetWidth();
             UpdatePosition();
             // 设置摄像机事件视图
-            SetEventView(startFrame, currentCameraData.animationStartFrameOffset, currentCameraData.animationDurationFrame, cameraEvent);
+            SetEventFrameView(currentCameraData.animationStartFrameOffset, currentCameraData.animationDurationFrame, cameraEvent);
+            // 设置还原帧视图
+            SetRestoreFrameView(currentCameraData.restoreFrame, restoreFrameView);
         }
 
         /// <summary>
         /// 设置事件视图的显示
         /// 用于在轨道项中显示特定事件的可视化表示
         /// </summary>
-        /// <param name="leftFrame">相对左边界帧</param>
         /// <param name="startFrame">事件起始帧</param>
         /// <param name="durationFrame">事件持续帧数</param>
         /// <param name="eventElement">要设置的事件元素</param>
-        /// <param name="color">事件显示颜色</param>
-        protected virtual void SetEventView(int leftFrame, int startFrame, int durationFrame, VisualElement eventElement)
+        private void SetEventFrameView(int startFrame, int durationFrame, VisualElement eventElement)
         {
             if (eventElement == null) return;
             eventElement.AddToClassList("CameraEvent");
-            eventElement.style.width = durationFrame * SkillEditorData.FrameUnitWidth;
             eventElement.style.left = startFrame * SkillEditorData.FrameUnitWidth - 2;
+            eventElement.style.width = durationFrame * SkillEditorData.FrameUnitWidth;
+        }
+
+        /// <summary>
+        /// 设置还原帧视图的显示
+        /// 用于在轨道项中显示特定事件的可视化表示
+        /// </summary>
+        /// <param name="startFrame">还原帧起始帧</param>
+        /// <param name="durationFrame">还原帧持续帧数</param>
+        /// <param name="eventElement">要设置的事件元素</param>
+        private void SetRestoreFrameView(int durationFrame, VisualElement eventElement)
+        {
+            if (eventElement == null) return;
+            eventElement.AddToClassList("RestoreFrameView");
+            eventElement.style.width = durationFrame * SkillEditorData.FrameUnitWidth;
         }
 
         #endregion
@@ -248,6 +267,10 @@ namespace SkillEditor
             // 创建摄像机事件标签
             cameraEvent = new Label();
             itemContent.Add(cameraEvent);
+
+            // 创建恢复帧标签
+            restoreFrameView = new Label();
+            itemContent.Add(restoreFrameView);
 
             // 添加标题标签
             AddTitleLabel(itemContent, title);
@@ -353,6 +376,7 @@ namespace SkillEditor
             cameraData.targetFieldOfView = 60f;
             cameraData.shakePreset = null;
             cameraData.customCurve = AnimationCurve.Linear(0, 0, 1, 1);
+            cameraData.restoreFrame = 1;
             cameraData.enableShake = false;
             cameraData.animationStartFrameOffset = startFrame;
             cameraData.animationDurationFrame = frameCount;
@@ -386,6 +410,7 @@ namespace SkillEditor
                 cameraData.targetFieldOfView = configClip.targetFieldOfView;
                 cameraData.shakePreset = configClip.shakePreset;
                 cameraData.customCurve = configClip.customCurve;
+                cameraData.restoreFrame = configClip.restoreFrame;
                 cameraData.enableShake = configClip.enableShake;
                 cameraData.animationStartFrameOffset = configClip.animationStartFrameOffset;
                 cameraData.animationDurationFrame = configClip.animationDurationFrame;

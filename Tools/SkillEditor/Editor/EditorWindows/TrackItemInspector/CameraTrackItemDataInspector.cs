@@ -36,6 +36,7 @@ namespace SkillEditor
             CreateFloatField("目标视野角度:", "targetFieldOfView", OnTargetFieldOfViewChanged);
             CreateCurveTypeField();
             CreateCurveField("自定义曲线:", "customCurve", OnCustomCurveChanged);
+            CreateIntegerField("还原状态所需帧:", "restoreFrame", OnRestoreFrameChanged);
 
             CreateSeparatorTitle("摄像机震动设置");
             CreateToggleField("启用震动:", "enableShake", OnEnableShakeChanged);
@@ -114,6 +115,14 @@ namespace SkillEditor
             {
                 UpdateCameraTrackConfig(configClip => configClip.customCurve = newValue, "自定义曲线更新");
             }, "自定义曲线更新");
+        }
+
+        private void OnRestoreFrameChanged(int newValue)
+        {
+            SafeExecute(() =>
+            {
+                UpdateCameraTrackConfig(configClip => configClip.restoreFrame = newValue, "还原状态所需帧更新");
+            }, "还原状态所需帧更新");
         }
 
         private void OnCurveTypeChanged(FFramework.Kit.AnimationCurveType newValue)

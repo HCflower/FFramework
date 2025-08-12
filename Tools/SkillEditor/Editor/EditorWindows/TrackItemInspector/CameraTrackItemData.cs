@@ -18,9 +18,9 @@ namespace SkillEditor
         public Vector3 positionOffset = Vector3.zero;         // 目标位置
         public Vector3 targetRotation = Vector3.zero;         // 目标旋转
         public float targetFieldOfView = 60f;                 // 目标视野角度
-
         public AnimationCurveType curveType = AnimationCurveType.Linear;        // 动画曲线类型
         public AnimationCurve customCurve = AnimationCurve.Linear(0, 0, 1, 1);  // 自定义动画曲线
+        [Min(1)] public int restoreFrame = 1;                  // 还原状态所需帧
         [Header("动画设置")]
         public bool enableShake = false;                       // 是否启用震动效果
         public int animationStartFrameOffset;                  //动画开始帧

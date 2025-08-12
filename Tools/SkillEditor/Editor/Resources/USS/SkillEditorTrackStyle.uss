@@ -62,7 +62,6 @@
     padding: 0px;
     justify-content: center;
     flex-direction: row;
-    
 
     transition-property: background-color; /* 背景色过渡动画 */
     transition-duration: 0.15s;           /* 过渡时间 */
@@ -72,9 +71,11 @@
 /* 轨道项标题 */
 .TrackItemTitle{
     width: 100%;
+    margin: 0px;
+    padding: 0px;
+    font-size: 10px;
     -unity-text-align: middle-center;
     -unity-font-style: bold;
-    font-size: 10px;
     min-font-size: 8px;          /* 最小字体大小 */
     max-font-size: 14px;         /* 最大字体大小 */
     overflow: hidden;            /* 隐藏超出部分 */
@@ -88,10 +89,35 @@
 /* 摄像机轨道事件 */
 .CameraEvent{
     height: 2px;
+    margin: 0px;
+    padding: 0px;
     align-self: center;
     position: absolute;
     bottom: 0px;
     background-color: rgb(229, 155, 29);
+}
+
+/* 还原帧视图 */
+.RestoreFrameView{
+    height:2px;
+    right: 0px;
+    margin: 0px;
+    padding: 0px;
+    align-self: center;
+    position: absolute;
+    bottom: 0px;
+    background-color: rgba(14, 155, 220, 1);
+}
+
+/* 剪辑帧视图 */
+.CutEffectFrameView{
+    height:100%;
+    width: 2px;
+    margin: 0px;
+    padding: 0px;
+    align-self: center;
+    position: absolute;
+    background-color: rgba(229, 46, 29, 0.5);
 }
 
 /* 轨道项标题 - 鼠标悬停效果 */
@@ -108,7 +134,7 @@
 }
 /* 动画轨道项 - 鼠标悬停效果 */
 .TrackItem-Animation:hover{
-    background-color:  rgba(42, 206, 173, 1);
+    background-color:  rgba(42, 206, 173, 0.8);
 }
 
 /* 音频轨道项 */
@@ -120,7 +146,7 @@
 }
 /* 音频轨道项 - 鼠标悬停效果 */
 .TrackItem-Audio:hover{
-    background-color: rgba(250, 193, 23, 1);
+    background-color: rgba(250, 193, 23, 0.8);
 }
 
 /* 特效轨道项 */
@@ -132,7 +158,7 @@
 }75
 /* 特效轨道项 - 鼠标悬停效果 */
 .TrackItem-Effect:hover{
-    background-color: rgba(190, 42, 206, 1);
+    background-color: rgba(190, 42, 206, 0.8);
 }
 
 /* 攻击检测轨道项 */
@@ -144,7 +170,7 @@
 }
 /* 攻击检测轨道项 - 鼠标悬停效果 */
 .TrackItem-Attack:hover{
-    background-color: rgba(206, 45, 42, 1);
+    background-color: rgba(206, 45, 42, 0.8);
 }
 
 /* 事件轨道项 */
@@ -172,7 +198,7 @@
 }
 /* 变换轨道项 - 鼠标悬停效果 */
 .TrackItem-Transform:hover{
-    background-color: rgba(30, 172, 77, 1);
+    background-color: rgba(30, 172, 77, 0.8);
 }
 
 /* 摄像机轨道项 */
@@ -183,7 +209,7 @@
 }
 /* 摄像机轨道项 - 鼠标悬停效果 */
 .TrackItem-Camera:hover{
-  background-color: rgba(42, 154, 206, 1);
+  background-color: rgba(42, 154, 206, 0.8);
 }
 
 /* 游戏物体轨道项 */
@@ -194,7 +220,7 @@
 }
 /* 游戏物体轨道项 - 鼠标悬停效果 */
 .TrackItem-GameObject:hover{
-  background-color: rgba(42, 154, 206, 1);
+  background-color: rgba(42, 154, 206, 0.8);
 }
 
 

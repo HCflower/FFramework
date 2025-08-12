@@ -504,7 +504,6 @@ namespace FFramework.Kit
                     if (skillAnimator.HasState(0, animationStateHash))
                     {
                         // 使用CrossFadeInFixedTime实现平滑过渡
-                        // normalizedTransitionTime 是过渡时间（秒），normalizedTime 是动画开始的归一化时间
                         skillAnimator.CrossFadeInFixedTime(animationStateHash, animClip.normalizedTransitionTime, 0, normalizedTime);
                     }
 
@@ -617,8 +616,9 @@ namespace FFramework.Kit
             {
                 cameraTrack.ExecuteAtFrame(skillCamera, frame);
 
-                // 处理摄像机震动
-                ExecuteCameraShake(cameraTrack, frame);
+                // 处理摄像机震动 - 转换为运行时轨道
+                var runtimeTrack = cameraTrack.ToRuntimeTrack();
+                ExecuteCameraShake(runtimeTrack, frame);
             }
             else if (cameraTrack != null && cameraTrack.isEnabled && skillCamera == null)
             {
@@ -629,11 +629,11 @@ namespace FFramework.Kit
         /// <summary>
         /// 执行摄像机震动
         /// </summary>
-        /// <param name="cameraTrackSO">摄像机轨道SO</param>
+        /// <param name="cameraTrack">摄像机轨道</param>
         /// <param name="frame">当前帧</param>
-        private void ExecuteCameraShake(CameraTrackSO cameraTrackSO, int frame)
+        private void ExecuteCameraShake(CameraTrack cameraTrack, int frame)
         {
-            if (cameraTrackSO?.cameraClips == null || skillCamera == null) return;
+            if (cameraTrack?.cameraClips == null || skillCamera == null) return;
 
             // 获取或添加震动组件
             SmoothShake shakeComponent = skillCamera.GetComponent<SmoothShake>();
@@ -641,7 +641,7 @@ namespace FFramework.Kit
             {
                 shakeComponent = skillCamera.gameObject.AddComponent<SmoothShake>();
             }
-            foreach (var clip in cameraTrackSO.cameraClips)
+            foreach (var clip in cameraTrack.cameraClips)
             {
                 if (!clip.enableShake || clip.shakePreset == null) continue;
                 // 设置震动的预设

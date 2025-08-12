@@ -161,7 +161,6 @@ namespace FFramework.Kit
         [Serializable]
         public class CameraClip : ClipBase
         {
-
             [Header("摄像机类型")]
             [Tooltip("是否启用位置变换")] public bool enablePosition = true;
             [Tooltip("是否启用旋转变换")] public bool enableRotation = true;
@@ -173,6 +172,7 @@ namespace FFramework.Kit
             [Tooltip("目标视野角度（绝对值）")] public float targetFieldOfView = 60f;
             [Tooltip("动画曲线类型")] public AnimationCurveType curveType = AnimationCurveType.Linear;
             [Tooltip("自定义动画曲线")] public AnimationCurve customCurve = AnimationCurve.Linear(0, 0, 1, 1);
+            [Tooltip("还原状态所需帧"), Min(1)] public int restoreFrame = 1;
 
             [Header("动画设置")]
             [Tooltip("是否启用震动")] public bool enableShake = false;
@@ -237,10 +237,30 @@ namespace FFramework.Kit
                 }
 
                 Vector3 startPos = isInitialized ? runtimeStartPosition : Vector3.zero;
-                float curveValue = GetCurveValue(progress);
-                Vector3 basePosition = Vector3.Lerp(startPos, GetActualEndPosition(), curveValue);
 
-                return basePosition;
+                // 计算变化持续时间和还原持续时间的分界点
+                float changeProgress = GetChangeProgress(progress);
+                float restoreProgress = GetRestoreProgress(progress);
+
+                Vector3 targetPos = GetActualEndPosition();
+
+                if (IsInChangePhase(progress))
+                {
+                    // 变化阶段：从初始状态到目标状态
+                    float curveValue = GetCurveValue(changeProgress);
+                    return Vector3.Lerp(startPos, targetPos, curveValue);
+                }
+                else if (IsInRestorePhase(progress))
+                {
+                    // 还原阶段：从目标状态回到初始状态
+                    float curveValue = GetCurveValue(restoreProgress);
+                    return Vector3.Lerp(targetPos, startPos, curveValue);
+                }
+                else
+                {
+                    // 超出范围，返回初始状态
+                    return startPos;
+                }
             }
 
             /// <summary>
@@ -253,8 +273,30 @@ namespace FFramework.Kit
                 if (!enableRotation) return isInitialized ? runtimeStartRotation : Vector3.zero;
 
                 Vector3 startRot = isInitialized ? runtimeStartRotation : Vector3.zero;
-                float curveValue = GetCurveValue(progress);
-                return Vector3.Lerp(startRot, GetActualEndRotation(), curveValue);
+
+                // 计算变化持续时间和还原持续时间的分界点
+                float changeProgress = GetChangeProgress(progress);
+                float restoreProgress = GetRestoreProgress(progress);
+
+                Vector3 targetRot = GetActualEndRotation();
+
+                if (IsInChangePhase(progress))
+                {
+                    // 变化阶段：从初始状态到目标状态
+                    float curveValue = GetCurveValue(changeProgress);
+                    return Vector3.Lerp(startRot, targetRot, curveValue);
+                }
+                else if (IsInRestorePhase(progress))
+                {
+                    // 还原阶段：从目标状态回到初始状态
+                    float curveValue = GetCurveValue(restoreProgress);
+                    return Vector3.Lerp(targetRot, startRot, curveValue);
+                }
+                else
+                {
+                    // 超出范围，返回初始状态
+                    return startRot;
+                }
             }
 
             /// <summary>
@@ -267,8 +309,30 @@ namespace FFramework.Kit
                 if (!enableFieldOfView) return isInitialized ? runtimeStartFieldOfView : 60f;
 
                 float startFov = isInitialized ? runtimeStartFieldOfView : 60f;
-                float curveValue = GetCurveValue(progress);
-                return Mathf.Lerp(startFov, GetActualEndFieldOfView(), curveValue);
+
+                // 计算变化持续时间和还原持续时间的分界点
+                float changeProgress = GetChangeProgress(progress);
+                float restoreProgress = GetRestoreProgress(progress);
+
+                float targetFov = GetActualEndFieldOfView();
+
+                if (IsInChangePhase(progress))
+                {
+                    // 变化阶段：从初始状态到目标状态
+                    float curveValue = GetCurveValue(changeProgress);
+                    return Mathf.Lerp(startFov, targetFov, curveValue);
+                }
+                else if (IsInRestorePhase(progress))
+                {
+                    // 还原阶段：从目标状态回到初始状态
+                    float curveValue = GetCurveValue(restoreProgress);
+                    return Mathf.Lerp(targetFov, startFov, curveValue);
+                }
+                else
+                {
+                    // 超出范围，返回初始状态
+                    return startFov;
+                }
             }
 
             /// <summary>
@@ -323,6 +387,73 @@ namespace FFramework.Kit
                 fieldOfView = GetInterpolatedFieldOfView(progress);
 
                 return true;
+            }
+
+            /// <summary>
+            /// 判断当前进度是否在变化阶段
+            /// </summary>
+            /// <param name="progress">时间进度 (0-1)</param>
+            /// <returns>是否在变化阶段</returns>
+            private bool IsInChangePhase(float progress)
+            {
+                float changeEndProgress = GetChangeEndProgress();
+                return progress >= 0f && progress <= changeEndProgress;
+            }
+
+            /// <summary>
+            /// 判断当前进度是否在还原阶段
+            /// </summary>
+            /// <param name="progress">时间进度 (0-1)</param>
+            /// <returns>是否在还原阶段</returns>
+            private bool IsInRestorePhase(float progress)
+            {
+                float changeEndProgress = GetChangeEndProgress();
+                return progress > changeEndProgress && progress <= 1f;
+            }
+
+            /// <summary>
+            /// 获取变化阶段结束的进度点
+            /// </summary>
+            /// <returns>变化阶段结束的进度 (0-1)</returns>
+            private float GetChangeEndProgress()
+            {
+                if (durationFrame <= 0 || restoreFrame <= 0) return 1f;
+
+                int changeFrames = durationFrame - restoreFrame;
+                if (changeFrames <= 0) return 0f;
+
+                return (float)changeFrames / durationFrame;
+            }
+
+            /// <summary>
+            /// 获取变化阶段的归一化进度
+            /// </summary>
+            /// <param name="progress">总体进度 (0-1)</param>
+            /// <returns>变化阶段的归一化进度 (0-1)</returns>
+            private float GetChangeProgress(float progress)
+            {
+                float changeEndProgress = GetChangeEndProgress();
+                if (changeEndProgress <= 0f) return 1f;
+
+                return Mathf.Clamp01(progress / changeEndProgress);
+            }
+
+            /// <summary>
+            /// 获取还原阶段的归一化进度
+            /// </summary>
+            /// <param name="progress">总体进度 (0-1)</param>
+            /// <returns>还原阶段的归一化进度 (0-1)</returns>
+            private float GetRestoreProgress(float progress)
+            {
+                float changeEndProgress = GetChangeEndProgress();
+                if (progress <= changeEndProgress) return 0f;
+
+                float restoreStartProgress = changeEndProgress;
+                float restoreDuration = 1f - restoreStartProgress;
+
+                if (restoreDuration <= 0f) return 1f;
+
+                return Mathf.Clamp01((progress - restoreStartProgress) / restoreDuration);
             }
 
             /// <summary>

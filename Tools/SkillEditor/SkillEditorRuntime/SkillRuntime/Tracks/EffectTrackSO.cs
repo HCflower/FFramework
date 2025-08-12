@@ -142,8 +142,9 @@ namespace FFramework.Kit
         {
             [Header("特效设置")]
             [Tooltip("特效资源")] public GameObject effectPrefab;
-            [Tooltip("击中特效")] public GameObject hitEffectPrefab;
             [Tooltip("特效播放速度")] public float effectPlaySpeed = 1f;
+            [Tooltip("是否截断特效")] public bool isCutEffect = false;
+            [Tooltip("截断帧偏移")] public int cutEffectFrameOffset = 0;
             [Header("Transform")]
             [Tooltip("特效位置")] public Vector3 position = Vector3.zero;
             [Tooltip("特效旋转")] public Vector3 rotation = Vector3.zero;

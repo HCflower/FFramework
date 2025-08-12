@@ -607,9 +607,11 @@ namespace SkillEditor
             var indicator = new VisualElement();
             indicator.name = "Current-frame-indicator";
             indicator.AddToClassList("Current-frame-indicator");
+            indicator.pickingMode = PickingMode.Ignore;
             // 创建新指示器Icon
             var indicatorIcon = new Label();
             indicatorIcon.AddToClassList("Current-frame-indicator-icon");
+            indicatorIcon.pickingMode = PickingMode.Ignore;
             indicator.Add(indicatorIcon);
             // 计算指示器位置（考虑滚动偏移）
             float xPosition = SkillEditorData.CurrentFrame * SkillEditorData.FrameUnitWidth;

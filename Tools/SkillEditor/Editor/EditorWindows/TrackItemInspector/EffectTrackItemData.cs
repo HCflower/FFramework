@@ -9,8 +9,9 @@ namespace SkillEditor
     public class EffectTrackItemData : BaseTrackItemData
     {
         public GameObject effectPrefab;             //特效资源
-        public GameObject hitEffectPrefab;          //击中特效
         public float effectPlaySpeed;               //特效播放速度
+        public bool isCutEffect = false;            //是否截断特效
+        public int cutEffectFrameOffset = 0;        //截断帧偏移
         public Vector3 position = Vector3.zero;     //特效位置
         public Vector3 rotation = Vector3.zero;     //特效旋转
         public Vector3 scale = Vector3.one;         //特效缩放

@@ -319,7 +319,7 @@ namespace SkillEditor
             injuryDetectionData.startFrame = startFrame;
             injuryDetectionData.trackIndex = trackIndex; // 设置轨道索引用于多轨道数据定位
             injuryDetectionData.durationFrame = frameCount;
-
+            injuryDetectionData.hitEffectPrefab = null;
             // 设置伤害检测特有的默认属性
             SetDefaultInjuryDetectionProperties(injuryDetectionData);
 
@@ -377,6 +377,7 @@ namespace SkillEditor
                 injuryDetectionData.targetLayers = configClip.targetLayers;
                 injuryDetectionData.enableAllCollisionGroups = configClip.enableAllCollisionGroups;
                 injuryDetectionData.collisionGroupId = configClip.collisionGroupId;
+                injuryDetectionData.hitEffectPrefab = configClip.hitEffectPrefab;
             }
         }
 

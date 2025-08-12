@@ -25,6 +25,7 @@ namespace SkillEditor
         {
             // 检测设置
             CreateSeparatorTitle("碰撞检测设置");
+            CreateObjectField<GameObject>("Hit特效预制体:", "hitEffectPrefab", OnHitEffectPrefabChanged);
             CreateLayerMaskField();
             CreateToggleField("启用所有检测组:", "enableAllCollisionGroups", OnEnableAllColliderChanged);
             CreateIntegerField("碰撞检测组ID:", "collisionGroupId", OnCollisionGroupIdChanged);
@@ -89,6 +90,14 @@ namespace SkillEditor
                     configClip.targetLayers = newValue;
                 }, "目标层级更新");
             }, "目标层级更新");
+        }
+
+        private void OnHitEffectPrefabChanged(GameObject newPrefab)
+        {
+            SafeExecute(() =>
+            {
+                UpdateAttackTrackConfig(configClip => { configClip.hitEffectPrefab = newPrefab; }, "击中特效预制体更新");
+            }, "击中特效预制体更新");
         }
 
         private void OnEnableAllColliderChanged(bool newValue)

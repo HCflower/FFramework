@@ -23,7 +23,7 @@ namespace SkillEditor
         private EffectTrackItemData currentEffectData;
 
         /// <summary>特效事件标签</summary>
-        private Label effectEvent;
+        private Label cutEffectFrameView;
 
         #endregion
 
@@ -74,6 +74,7 @@ namespace SkillEditor
                 if (currentEffectData == null)
                 {
                     currentEffectData = CreateEffectTrackItemData();
+                    SetCutEffectFrameView(currentEffectData.cutEffectFrameOffset, cutEffectFrameView);
                 }
                 return currentEffectData;
             }
@@ -149,36 +150,21 @@ namespace SkillEditor
         {
             SetWidth();
             UpdatePosition();
+            SetCutEffectFrameView(currentEffectData.cutEffectFrameOffset, cutEffectFrameView);
         }
 
-        /// <summary>
-        /// 设置特效事件视图的显示
-        /// 用于显示特效轨道中的事件可视化表示
-        /// </summary>
-        /// <param name="leftFrame">相对左边界帧</param>
-        /// <param name="startFrame">事件起始帧</param>
-        /// <param name="durationFrame">事件持续帧数</param>
-        public void SetEffectEventView(int leftFrame, int startFrame, int durationFrame)
-        {
-            SetEventView(leftFrame, startFrame, durationFrame, effectEvent, Color.magenta);
-        }
 
         /// <summary>
-        /// 设置事件视图的显示
-        /// 用于在轨道项中显示特定事件的可视化表示
+        /// 创建特效轨道项数据对象
         /// </summary>
-        /// <param name="leftFrame">相对左边界帧</param>
         /// <param name="startFrame">事件起始帧</param>
-        /// <param name="durationFrame">事件持续帧数</param>
-        /// <param name="eventElement">要设置的事件元素</param>
-        /// <param name="color">事件显示颜色</param>
-        protected virtual void SetEventView(int leftFrame, int startFrame, int durationFrame, VisualElement eventElement, Color color)
+        /// <param name="cutEffectFrameOffset">特效截断帧偏移</param>
+        /// <param name="visualElement">要设置的事件元素</param>
+        private void SetCutEffectFrameView(int cutEffectFrameOffset, VisualElement visualElement)
         {
-            if (eventElement == null) return;
-
-            eventElement.style.width = durationFrame * SkillEditorData.FrameUnitWidth;
-            eventElement.style.left = (startFrame - leftFrame) * SkillEditorData.FrameUnitWidth;
-            eventElement.style.backgroundColor = color;
+            if (visualElement == null || cutEffectFrameOffset == 0) return;
+            visualElement.AddToClassList("CutEffectFrameView");
+            visualElement.style.left = cutEffectFrameOffset * SkillEditorData.FrameUnitWidth - 3;
         }
 
         #endregion
@@ -251,8 +237,8 @@ namespace SkillEditor
             itemContent.tooltip = title;
 
             // 创建特效事件标签
-            effectEvent = new Label();
-            itemContent.Add(effectEvent);
+            cutEffectFrameView = new Label();
+            itemContent.Add(cutEffectFrameView);
 
             // 添加标题标签
             AddTitleLabel(itemContent, title);
@@ -317,7 +303,8 @@ namespace SkillEditor
             effectData.trackItemName = itemName;
             effectData.frameCount = frameCount;
             effectData.startFrame = startFrame;
-            effectData.trackIndex = trackIndex; // 设置轨道索引用于多轨道数据定位
+            // 设置轨道索引用于多轨道数据定位
+            effectData.trackIndex = trackIndex;
             effectData.durationFrame = frameCount;
 
             // 设置特效特有的默认属性
@@ -348,11 +335,13 @@ namespace SkillEditor
         private void SetDefaultEffectProperties(EffectTrackItemData effectData)
         {
             // 默认特效参数
-            effectData.effectPrefab = null; // 默认特效预制体为空
-            effectData.effectPlaySpeed = 1.0f; // 默认播放速度为1
-            effectData.position = Vector3.zero; // 默认位置为原点
-            effectData.rotation = Vector3.zero; // 默认旋转为零
-            effectData.scale = Vector3.one; // 默认缩放为1
+            effectData.effectPrefab = null;      // 默认特效预制体为空
+            effectData.effectPlaySpeed = 1.0f;   // 默认播放速度为1
+            effectData.isCutEffect = false;      // 默认不裁剪特效
+            effectData.cutEffectFrameOffset = 0;       // 默认裁剪帧为0
+            effectData.position = Vector3.zero;  // 默认位置为原点
+            effectData.rotation = Vector3.zero;  // 默认旋转为零
+            effectData.scale = Vector3.one;      // 默认缩放为1
         }
 
         /// <summary>
@@ -378,6 +367,8 @@ namespace SkillEditor
                 effectData.effectPrefab = configClip.effectPrefab;
                 effectData.durationFrame = configClip.durationFrame;
                 effectData.effectPlaySpeed = configClip.effectPlaySpeed;
+                effectData.isCutEffect = configClip.isCutEffect;
+                effectData.cutEffectFrameOffset = configClip.cutEffectFrameOffset;
                 effectData.position = configClip.position;
                 effectData.rotation = configClip.rotation;
                 effectData.scale = configClip.scale;

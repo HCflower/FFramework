@@ -45,6 +45,13 @@ namespace SkillEditor
         /// <summary>当前帧内活跃的片段集合</summary>
         private HashSet<string> activeClips = new HashSet<string>();
 
+        /// <summary>平滑还原相关字段</summary>
+        private bool isRestoring = false;
+        private float restoreStartTime;
+        private float restoreDuration = 0.3f;
+        private OriginalCameraState restoreFromState;
+        private OriginalCameraState restoreToState;
+
         #endregion
 
         #region 公共属性
@@ -265,9 +272,84 @@ namespace SkillEditor
         {
             if (targetCamera == null) return;
 
-            targetCamera.transform.position = originalCameraState.position;
-            targetCamera.transform.rotation = Quaternion.Euler(originalCameraState.rotation);
-            targetCamera.fieldOfView = originalCameraState.fieldOfView;
+            // 开始平滑还原
+            StartSmoothRestore(targetCamera, originalCameraState);
+        }
+
+        /// <summary>
+        /// 开始平滑还原摄像机状态
+        /// </summary>
+        /// <param name="camera">要还原的摄像机</param>
+        /// <param name="targetState">目标状态</param>
+        private void StartSmoothRestore(Camera camera, OriginalCameraState targetState)
+        {
+            if (camera == null) return;
+
+            // 记录当前状态作为起始状态
+            restoreFromState = new OriginalCameraState
+            {
+                position = camera.transform.position,
+                rotation = camera.transform.rotation.eulerAngles,
+                fieldOfView = camera.fieldOfView
+            };
+
+            restoreToState = targetState;
+            restoreStartTime = (float)EditorApplication.timeSinceStartup;
+            isRestoring = true;
+
+            // 注册更新回调
+            EditorApplication.update += UpdateSmoothRestore;
+        }
+
+        /// <summary>
+        /// 更新平滑还原进度
+        /// </summary>
+        private void UpdateSmoothRestore()
+        {
+            if (!isRestoring || targetCamera == null)
+            {
+                StopSmoothRestore();
+                return;
+            }
+
+            float elapsed = (float)EditorApplication.timeSinceStartup - restoreStartTime;
+            float t = Mathf.Clamp01(elapsed / restoreDuration);
+
+            // 插值计算当前状态
+            Vector3 currentPos = Vector3.Lerp(restoreFromState.position, restoreToState.position, t);
+            Vector3 currentRot = Vector3.Lerp(restoreFromState.rotation, restoreToState.rotation, t);
+            float currentFov = Mathf.Lerp(restoreFromState.fieldOfView, restoreToState.fieldOfView, t);
+
+            // 应用到摄像机
+            targetCamera.transform.position = currentPos;
+            targetCamera.transform.rotation = Quaternion.Euler(currentRot);
+            targetCamera.fieldOfView = currentFov;
+
+            // 强制刷新场景视图
+            SceneView.RepaintAll();
+
+            // 检查是否完成
+            if (t >= 1f)
+            {
+                // 确保精确还原到目标状态
+                targetCamera.transform.position = restoreToState.position;
+                targetCamera.transform.rotation = Quaternion.Euler(restoreToState.rotation);
+                targetCamera.fieldOfView = restoreToState.fieldOfView;
+
+                StopSmoothRestore();
+            }
+        }
+
+        /// <summary>
+        /// 停止平滑还原
+        /// </summary>
+        private void StopSmoothRestore()
+        {
+            if (isRestoring)
+            {
+                isRestoring = false;
+                EditorApplication.update -= UpdateSmoothRestore;
+            }
         }
 
         /// <summary>
@@ -288,11 +370,11 @@ namespace SkillEditor
             Camera camera = FindCameraByClipName(clipName);
             if (camera != null && cameraOriginalStates.ContainsKey(camera))
             {
-                // 恢复摄像机状态
+                // 获取原始状态
                 var originalState = cameraOriginalStates[camera];
-                camera.transform.position = originalState.position;
-                camera.transform.rotation = Quaternion.Euler(originalState.rotation);
-                camera.fieldOfView = originalState.fieldOfView;
+
+                // 使用平滑还原
+                StartSmoothRestore(camera, originalState);
 
                 // 移除已恢复的状态记录
                 cameraOriginalStates.Remove(camera);
@@ -431,6 +513,7 @@ namespace SkillEditor
         /// </summary>
         public void Dispose()
         {
+            StopSmoothRestore();
             StopPreview();
             skillOwner = null;
             skillConfig = null;
