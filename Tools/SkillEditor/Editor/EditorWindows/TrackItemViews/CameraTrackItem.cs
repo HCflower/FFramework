@@ -312,7 +312,8 @@ namespace SkillEditor
             cameraData.trackItemName = itemName;
             cameraData.frameCount = frameCount;
             cameraData.startFrame = startFrame;
-            cameraData.trackIndex = trackIndex; // 设置轨道索引用于多轨道数据定位
+            // 设置轨道索引用于多轨道数据定位
+            cameraData.trackIndex = trackIndex;
             cameraData.durationFrame = frameCount;
 
             // 设置摄像机特有的默认属性

@@ -28,7 +28,7 @@ namespace SkillEditor
         public static float FrameUnitWidth { get; private set; } = 10f;
 
         /// <summary>当前选中的帧数</summary>
-        public static int CurrentFrame { get; private set; } = 1;
+        public static int CurrentFrame { get; private set; } = 0;
 
         /// <summary>时间轴最大帧数</summary>
         public static int MaxFrame { get; private set; } = 100;
@@ -124,7 +124,7 @@ namespace SkillEditor
             IsGlobalControlShow = true;
             tracks.Clear();
             FrameUnitWidth = 10f;
-            CurrentFrame = 1;
+            CurrentFrame = 0;
             MaxFrame = 100;
             TrackViewContentOffsetX = 0f;
             MajorTickInterval = 5;

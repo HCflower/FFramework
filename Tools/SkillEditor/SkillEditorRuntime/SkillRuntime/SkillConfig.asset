@@ -148,11 +148,11 @@ MonoBehaviour:
     durationFrame: 5
     enablePosition: 1
     enableRotation: 1
-    enableFieldOfView: 0
+    enableFieldOfView: 1
     positionOffset: {x: 0, y: 0, z: 0}
     targetRotation: {x: 20, y: 0, z: 0}
     targetFieldOfView: 80
-    curveType: 0
+    curveType: 2
     customCurve:
       serializedVersion: 2
       m_Curve:
