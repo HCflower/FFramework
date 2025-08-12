@@ -2,22 +2,20 @@ using UnityEngine.UIElements;
 using System.Linq;
 using UnityEditor;
 using UnityEngine;
-using System;
 
 namespace SkillEditor
 {
     [CustomEditor(typeof(AudioTrackItemData))]
     public class AudioTrackItemDataInspector : BaseTrackItemDataInspector
     {
-        private AudioTrackItemData audioTargetData;
-
         protected override string TrackItemTypeName => "Audio";
         protected override string TrackItemDisplayTitle => "音频轨道项信息";
         protected override string DeleteButtonText => "删除音频轨道项";
 
         public override VisualElement CreateInspectorGUI()
         {
-            audioTargetData = target as AudioTrackItemData;
+            targetData = target as AudioTrackItemData;
+            lastTrackItemName = targetData?.trackItemName; // 初始化保存的名称
             return base.CreateInspectorGUI();
         }
 
@@ -40,7 +38,7 @@ namespace SkillEditor
         protected override void PerformDelete()
         {
             if (EditorUtility.DisplayDialog("删除确认",
-                $"确定要删除音频轨道项 \"{audioTargetData.trackItemName}\" 吗？\n\n此操作将会：\n• 从界面移除此轨道项\n• 删除对应的配置数据\n• 无法撤销",
+                $"确定要删除音频轨道项 \"{targetData.trackItemName}\" 吗？\n\n此操作将会：\n• 从界面移除此轨道项\n• 删除对应的配置数据\n• 无法撤销",
                 "确认删除", "取消"))
             {
                 DeleteAudioTrackItem();
@@ -53,7 +51,7 @@ namespace SkillEditor
         {
             SafeExecute(() =>
             {
-                UpdateAudioTrackConfig(configClip => configClip.clip = newClip, "音频片段更新");
+                UpdateTrackConfig(configClip => configClip.clip = newClip, "音频片段更新");
             }, "音频片段更新");
         }
 
@@ -61,7 +59,7 @@ namespace SkillEditor
         {
             SafeExecute(() =>
             {
-                UpdateAudioTrackConfig(configClip => configClip.volume = newValue, "音量更新");
+                UpdateTrackConfig(configClip => configClip.volume = newValue, "音量更新");
             }, "音量更新");
         }
 
@@ -69,49 +67,51 @@ namespace SkillEditor
         {
             SafeExecute(() =>
             {
-                UpdateAudioTrackConfig(configClip => configClip.pitch = newValue, "音调更新");
+                UpdateTrackConfig(configClip => configClip.pitch = newValue, "音调更新");
             }, "音调更新");
         }
 
         private void OnSpatialBlendChanged(float newValue)
         {
-
             SafeExecute(() =>
             {
-                UpdateAudioTrackConfig(configClip => configClip.spatialBlend = newValue, "空间混合更新");
+                UpdateTrackConfig(configClip => configClip.spatialBlend = newValue, "空间混合更新");
             }, "空间混合更新");
         }
 
         private void OnReverbZoneMixChanged(float newValue)
         {
-
             SafeExecute(() =>
             {
-                UpdateAudioTrackConfig(configClip => configClip.reverbZoneMix = newValue, "混响区混音更新");
+                UpdateTrackConfig(configClip => configClip.reverbZoneMix = newValue, "混响区混音更新");
             }, "混响区混音更新");
         }
 
-        /// <summary>
-        /// 起始帧变化事件处理
-        /// </summary>
-        /// <param name="newValue">新的起始帧值</param>
+        protected override void OnTrackItemNameChanged(string newValue)
+        {
+            SafeExecute(() =>
+            {
+                // 使用保存的旧名称
+                string oldName = lastTrackItemName ?? targetData.trackItemName;
+                UpdateTrackConfigByName(oldName, configClip => configClip.clipName = newValue, "轨道项名称更新");
+                // 更新保存的名称
+                lastTrackItemName = newValue;
+            }, "轨道项名称更新");
+        }
+
         protected override void OnStartFrameChanged(int newValue)
         {
             SafeExecute(() =>
             {
-                UpdateAudioTrackConfig(configClip => configClip.startFrame = newValue, "起始帧更新");
+                UpdateTrackConfig(configClip => configClip.startFrame = newValue, "起始帧更新");
             }, "起始帧更新");
         }
 
-        /// <summary>
-        /// 持续帧数变化事件处理
-        /// </summary>
-        /// <param name="newValue">新的持续帧数值</param>
         protected override void OnDurationFrameChanged(int newValue)
         {
             SafeExecute(() =>
             {
-                UpdateAudioTrackConfig(configClip => configClip.durationFrame = newValue, "持续帧数更新");
+                UpdateTrackConfig(configClip => configClip.durationFrame = newValue, "持续帧数更新");
             }, "持续帧数更新");
         }
 
@@ -120,46 +120,38 @@ namespace SkillEditor
         #region 数据同步方法
 
         /// <summary>
-        /// 统一的音频配置数据更新方法
+        /// 统一的配置数据更新方法
         /// </summary>
         /// <param name="updateAction">更新操作的委托</param>
         /// <param name="operationName">操作名称，用于调试信息</param>
-        private void UpdateAudioTrackConfig(System.Action<FFramework.Kit.AudioTrack.AudioClip> updateAction, string operationName = "更新配置")
+        private void UpdateTrackConfig(System.Action<FFramework.Kit.AudioTrack.AudioClip> updateAction, string operationName = "更新配置")
+        {
+            UpdateTrackConfigByName(targetData.trackItemName, updateAction, operationName);
+        }
+
+        /// <summary>
+        /// 根据指定名称查找并更新攻击配置数据
+        /// </summary>
+        /// <param name="clipName">要查找的片段名称</param>
+        /// <param name="updateAction">更新操作的委托</param>
+        /// <param name="operationName">操作名称，用于调试信息</param>
+        private void UpdateTrackConfigByName(string clipName, System.Action<FFramework.Kit.AudioTrack.AudioClip> updateAction, string operationName = "更新配置")
         {
             var skillConfig = SkillEditorData.CurrentSkillConfig;
-            if (skillConfig?.trackContainer?.audioTrack == null || audioTargetData == null)
+            if (skillConfig?.trackContainer?.audioTrack == null || targetData == null)
             {
                 Debug.LogWarning($"无法执行 {operationName}：技能配置或音频轨道为空");
                 return;
             }
 
-            // 查找对应的音频片段配置
+            // 只通过名称唯一查找
             FFramework.Kit.AudioTrack.AudioClip targetConfigClip = null;
-
             var audioTrackSO = skillConfig.trackContainer.audioTrack;
-            if (audioTrackSO.audioTracks != null && audioTargetData.trackIndex < audioTrackSO.audioTracks.Count)
+            if (audioTrackSO.audioTracks != null)
             {
-                // 直接通过 trackIndex 定位到对应的音频轨道
-                var targetAudioTrack = audioTrackSO.audioTracks[audioTargetData.trackIndex];
-                if (targetAudioTrack.audioClips != null)
-                {
-                    var candidateClips = targetAudioTrack.audioClips
-                        .Where(clip => clip.clipName == audioTargetData.trackItemName).ToList();
-
-                    if (candidateClips.Count > 0)
-                    {
-                        if (candidateClips.Count == 1)
-                        {
-                            targetConfigClip = candidateClips[0];
-                        }
-                        else
-                        {
-                            // 如果有多个同名片段，尝试通过起始帧匹配
-                            var exactMatch = candidateClips.FirstOrDefault(clip => clip.startFrame == audioTargetData.startFrame);
-                            targetConfigClip = exactMatch ?? candidateClips[0]; // 使用精确匹配或第一个匹配项
-                        }
-                    }
-                }
+                targetConfigClip = audioTrackSO.audioTracks
+                    .SelectMany(track => track.audioClips)
+                    .FirstOrDefault(clip => clip.clipName == clipName);
             }
 
             if (targetConfigClip != null)
@@ -169,7 +161,7 @@ namespace SkillEditor
             }
             else
             {
-                Debug.LogWarning($"无法执行 {operationName}：找不到对应的音频片段配置");
+                Debug.LogWarning($"无法执行 {operationName}：找不到对应的音频片段配置 (片段名: {clipName})");
             }
         }
 
@@ -180,7 +172,7 @@ namespace SkillEditor
         private void DeleteAudioTrackItem()
         {
             var skillConfig = SkillEditorData.CurrentSkillConfig;
-            if (skillConfig?.trackContainer?.audioTrack == null || audioTargetData == null)
+            if (skillConfig?.trackContainer?.audioTrack == null || targetData == null)
             {
                 Debug.LogWarning("无法删除轨道项：技能配置或音频轨道为空");
                 return;
@@ -192,14 +184,14 @@ namespace SkillEditor
 
             // 查找对应的音频片段配置
             var audioTrackSO = skillConfig.trackContainer.audioTrack;
-            if (audioTrackSO?.audioTracks != null && audioTargetData.trackIndex < audioTrackSO.audioTracks.Count)
+            if (audioTrackSO?.audioTracks != null && targetData.trackIndex < audioTrackSO.audioTracks.Count)
             {
                 // 直接通过 trackIndex 定位到对应的音频轨道
-                var targetAudioTrack = audioTrackSO.audioTracks[audioTargetData.trackIndex];
+                var targetAudioTrack = audioTrackSO.audioTracks[targetData.trackIndex];
                 if (targetAudioTrack.audioClips != null)
                 {
                     var candidateClips = targetAudioTrack.audioClips
-                        .Where(clip => clip.clipName == audioTargetData.trackItemName).ToList();
+                        .Where(clip => clip.clipName == targetData.trackItemName).ToList();
 
                     if (candidateClips.Count > 0)
                     {
@@ -211,7 +203,7 @@ namespace SkillEditor
                         else
                         {
                             // 如果有多个同名片段，尝试通过起始帧匹配
-                            var exactMatch = candidateClips.FirstOrDefault(clip => clip.startFrame == audioTargetData.startFrame);
+                            var exactMatch = candidateClips.FirstOrDefault(clip => clip.startFrame == targetData.startFrame);
                             targetConfigClip = exactMatch ?? candidateClips[0]; // 使用精确匹配或第一个匹配项
                             parentAudioTrack = targetAudioTrack;
                         }
@@ -228,9 +220,9 @@ namespace SkillEditor
                 MarkSkillConfigDirty();
 
                 // 删除轨道项的ScriptableObject数据文件
-                if (audioTargetData != null)
+                if (targetData != null)
                 {
-                    UnityEditor.AssetDatabase.DeleteAsset(UnityEditor.AssetDatabase.GetAssetPath(audioTargetData));
+                    UnityEditor.AssetDatabase.DeleteAsset(UnityEditor.AssetDatabase.GetAssetPath(targetData));
                 }
 
                 // 清空Inspector选择
@@ -249,11 +241,11 @@ namespace SkillEditor
                     };
                 }
 
-                Debug.Log($"音频轨道项 \"{audioTargetData.trackItemName}\" 删除成功");
+                Debug.Log($"音频轨道项 \"{targetData.trackItemName}\" 删除成功");
             }
             else
             {
-                Debug.LogWarning($"无法删除轨道项：找不到对应的音频片段配置 \"{audioTargetData.trackItemName}\"");
+                Debug.LogWarning($"无法删除轨道项：找不到对应的音频片段配置 \"{targetData.trackItemName}\"");
             }
         }
 

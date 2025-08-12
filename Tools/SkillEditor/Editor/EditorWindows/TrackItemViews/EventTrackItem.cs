@@ -220,7 +220,7 @@ namespace SkillEditor
             eventItemContent.tooltip = title;
 
             // 添加标题标签
-            // AddTitleLabel(eventItemContent, title);
+            AddTitleLabel(eventItemContent, title);
 
             return eventItemContent;
         }
@@ -234,7 +234,7 @@ namespace SkillEditor
         {
             Label titleLabel = new Label();
             titleLabel.AddToClassList("TrackItemTitle");
-            titleLabel.text = title;
+            // titleLabel.text = title;
             itemContent.Add(titleLabel);
         }
 

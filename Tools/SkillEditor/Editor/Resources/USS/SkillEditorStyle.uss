@@ -226,6 +226,7 @@
     margin: 0px;
     padding: 0px;
     padding-left: 1px;
+    padding-top: 5px;
     align-items: center;
     flex-direction: row;
     flex-shrink: 0;    /* 防止收缩 */

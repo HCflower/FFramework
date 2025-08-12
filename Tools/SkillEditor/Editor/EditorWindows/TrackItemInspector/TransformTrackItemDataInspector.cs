@@ -9,15 +9,14 @@ namespace SkillEditor
     [CustomEditor(typeof(TransformTrackItemData))]
     public class TransformTrackItemDataInspector : BaseTrackItemDataInspector
     {
-        private TransformTrackItemData transformTargetData;
-
         protected override string TrackItemTypeName => "Transform";
         protected override string TrackItemDisplayTitle => "变换轨道项信息";
         protected override string DeleteButtonText => "删除变换轨道项";
 
         public override VisualElement CreateInspectorGUI()
         {
-            transformTargetData = target as TransformTrackItemData;
+            targetData = target as TransformTrackItemData;
+            lastTrackItemName = targetData?.trackItemName; // 初始化保存的名称
             return base.CreateInspectorGUI();
         }
 
@@ -37,15 +36,6 @@ namespace SkillEditor
             CreateCurveTypeField();
             CreateCurveField("自定义曲线:", "customCurve", OnCustomCurveChanged);
         }
-        protected override void PerformDelete()
-        {
-            if (EditorUtility.DisplayDialog("删除确认",
-                $"确定要删除变换轨道项 \"{transformTargetData.trackItemName}\" 吗？\n\n此操作将会：\n• 从界面移除此轨道项\n• 删除对应的配置数据\n• 无法撤销",
-                "确认删除", "取消"))
-            {
-                DeleteTransformTrackItem();
-            }
-        }
 
         /// <summary>
         /// 创建曲线类型选择字段
@@ -53,7 +43,7 @@ namespace SkillEditor
         private void CreateCurveTypeField()
         {
             var curveTypeContent = CreateContentContainer("曲线类型:");
-            var curveTypeField = new EnumField(transformTargetData.curveType);
+            var curveTypeField = new EnumField(((TransformTrackItemData)targetData).curveType);
             curveTypeField.AddToClassList("EnumField");
             curveTypeField.BindProperty(serializedObject.FindProperty("curveType"));
             curveTypeField.RegisterValueChangedCallback(evt => OnCurveTypeChanged((FFramework.Kit.AnimationCurveType)evt.newValue));
@@ -67,7 +57,7 @@ namespace SkillEditor
         {
             SafeExecute(() =>
             {
-                UpdateTransformTrackConfig(configClip => configClip.enablePosition = newValue, "位置变换启用状态更新");
+                UpdateTrackConfig(configClip => configClip.enablePosition = newValue, "位置变换启用状态更新");
             }, "位置变换启用状态更新");
         }
 
@@ -75,7 +65,7 @@ namespace SkillEditor
         {
             SafeExecute(() =>
             {
-                UpdateTransformTrackConfig(configClip => configClip.enableRotation = newValue, "旋转变换启用状态更新");
+                UpdateTrackConfig(configClip => configClip.enableRotation = newValue, "旋转变换启用状态更新");
             }, "旋转变换启用状态更新");
         }
 
@@ -83,7 +73,7 @@ namespace SkillEditor
         {
             SafeExecute(() =>
             {
-                UpdateTransformTrackConfig(configClip => configClip.enableScale = newValue, "缩放变换启用状态更新");
+                UpdateTrackConfig(configClip => configClip.enableScale = newValue, "缩放变换启用状态更新");
             }, "缩放变换启用状态更新");
         }
 
@@ -91,7 +81,7 @@ namespace SkillEditor
         {
             SafeExecute(() =>
             {
-                UpdateTransformTrackConfig(configClip => configClip.positionOffset = newValue, "目标偏移更新");
+                UpdateTrackConfig(configClip => configClip.positionOffset = newValue, "目标偏移更新");
             }, "目标偏移更新");
         }
 
@@ -99,7 +89,7 @@ namespace SkillEditor
         {
             SafeExecute(() =>
             {
-                UpdateTransformTrackConfig(configClip => configClip.targetRotation = newValue, "目标旋转更新");
+                UpdateTrackConfig(configClip => configClip.targetRotation = newValue, "目标旋转更新");
             }, "目标旋转更新");
         }
 
@@ -107,7 +97,7 @@ namespace SkillEditor
         {
             SafeExecute(() =>
             {
-                UpdateTransformTrackConfig(configClip => configClip.targetScale = newValue, "目标缩放更新");
+                UpdateTrackConfig(configClip => configClip.targetScale = newValue, "目标缩放更新");
             }, "目标缩放更新");
         }
 
@@ -115,7 +105,7 @@ namespace SkillEditor
         {
             SafeExecute(() =>
             {
-                UpdateTransformTrackConfig(configClip => configClip.customCurve = newValue, "自定义曲线更新");
+                UpdateTrackConfig(configClip => configClip.customCurve = newValue, "自定义曲线更新");
             }, "自定义曲线更新");
         }
 
@@ -123,73 +113,74 @@ namespace SkillEditor
         {
             SafeExecute(() =>
             {
-                UpdateTransformTrackConfig(configClip => configClip.curveType = newValue, "曲线类型更新");
+                UpdateTrackConfig(configClip => configClip.curveType = newValue, "曲线类型更新");
             }, "曲线类型更新");
         }
 
-        /// <summary>
-        /// 起始帧变化事件处理
-        /// </summary>
-        /// <param name="newValue">新的起始帧值</param>
+        protected override void OnTrackItemNameChanged(string newValue)
+        {
+            SafeExecute(() =>
+            {
+                // 使用保存的旧名称
+                string oldName = lastTrackItemName ?? targetData.trackItemName;
+
+                // 先更新配置中的名称（使用旧名称查找）
+                UpdateTrackConfigByName(oldName, configClip => configClip.clipName = newValue, "轨道项名称更新");
+
+                // 更新保存的名称
+                lastTrackItemName = newValue;
+            }, "轨道项名称更新");
+        }
+
         protected override void OnStartFrameChanged(int newValue)
         {
             SafeExecute(() =>
             {
-                UpdateTransformTrackConfig(configClip => configClip.startFrame = newValue, "起始帧更新");
+                UpdateTrackConfig(configClip => configClip.startFrame = newValue, "起始帧更新");
             }, "起始帧更新");
         }
 
-        /// <summary>
-        /// 持续帧数变化事件处理
-        /// </summary>
-        /// <param name="newValue">新的持续帧数值</param>
         protected override void OnDurationFrameChanged(int newValue)
         {
             SafeExecute(() =>
             {
-                UpdateTransformTrackConfig(configClip => configClip.durationFrame = newValue, "持续帧数更新");
+                UpdateTrackConfig(configClip => configClip.durationFrame = newValue, "持续帧数更新");
             }, "持续帧数更新");
         }
 
         #endregion
 
         #region 数据同步方法
+        /// <summary>
+        /// 统一的配置数据更新方法
+        /// </summary>
+        /// <param name="updateAction">更新操作的委托</param>
+        /// <param name="operationName">操作名称，用于调试信息</param>
+        private void UpdateTrackConfig(System.Action<FFramework.Kit.TransformTrack.TransformClip> updateAction, string operationName = "更新配置")
+        {
+            UpdateTrackConfigByName(targetData.trackItemName, updateAction, operationName);
+        }
 
         /// <summary>
         /// 统一的变换配置数据更新方法
         /// </summary>
         /// <param name="updateAction">更新操作的委托</param>
         /// <param name="operationName">操作名称，用于调试信息</param>
-        private void UpdateTransformTrackConfig(System.Action<FFramework.Kit.TransformTrack.TransformClip> updateAction, string operationName = "更新配置")
+        private void UpdateTrackConfigByName(string clipName, System.Action<FFramework.Kit.TransformTrack.TransformClip> updateAction, string operationName = "更新配置")
         {
             var skillConfig = SkillEditorData.CurrentSkillConfig;
-            if (skillConfig?.trackContainer?.transformTrack == null || transformTargetData == null)
+            if (skillConfig?.trackContainer?.transformTrack == null || targetData == null)
             {
                 Debug.LogWarning($"无法执行 {operationName}：技能配置或变换轨道为空");
                 return;
             }
 
-            // 查找对应的变换片段配置
+            // 只通过名称唯一查找
             FFramework.Kit.TransformTrack.TransformClip targetConfigClip = null;
-
             if (skillConfig.trackContainer.transformTrack.transformClips != null)
             {
-                var candidateClips = skillConfig.trackContainer.transformTrack.transformClips
-                    .Where(clip => clip.clipName == transformTargetData.trackItemName).ToList();
-
-                if (candidateClips.Count > 0)
-                {
-                    if (candidateClips.Count == 1)
-                    {
-                        targetConfigClip = candidateClips[0];
-                    }
-                    else
-                    {
-                        // 如果有多个同名片段，尝试通过起始帧匹配
-                        var exactMatch = candidateClips.FirstOrDefault(clip => clip.startFrame == transformTargetData.startFrame);
-                        targetConfigClip = exactMatch ?? candidateClips[0];
-                    }
-                }
+                targetConfigClip = skillConfig.trackContainer.transformTrack.transformClips
+                    .FirstOrDefault(clip => clip.clipName == clipName);
             }
 
             if (targetConfigClip != null)
@@ -210,6 +201,16 @@ namespace SkillEditor
             }
         }
 
+        protected override void PerformDelete()
+        {
+            if (EditorUtility.DisplayDialog("删除确认",
+                $"确定要删除变换轨道项 \"{targetData.trackItemName}\" 吗？\n\n此操作将会：\n• 从界面移除此轨道项\n• 删除对应的配置数据\n• 无法撤销",
+                "确认删除", "取消"))
+            {
+                DeleteTransformTrackItem();
+            }
+        }
+
         /// <summary>
         /// 删除变换轨道项的完整流程
         /// 包括移除UI元素、删除配置数据和触发界面刷新
@@ -219,7 +220,7 @@ namespace SkillEditor
             SafeExecute(() =>
             {
                 var skillConfig = SkillEditorData.CurrentSkillConfig;
-                if (skillConfig?.trackContainer?.transformTrack == null || transformTargetData == null)
+                if (skillConfig?.trackContainer?.transformTrack == null || targetData == null)
                 {
                     Debug.LogWarning("无法删除轨道项：技能配置或变换轨道为空");
                     return;
@@ -229,9 +230,9 @@ namespace SkillEditor
                 // 由于变换轨道的具体数据结构需要进一步确认，这里保留删除框架
 
                 // 删除ScriptableObject资产
-                if (transformTargetData != null)
+                if (targetData != null)
                 {
-                    UnityEditor.AssetDatabase.DeleteAsset(UnityEditor.AssetDatabase.GetAssetPath(transformTargetData));
+                    UnityEditor.AssetDatabase.DeleteAsset(UnityEditor.AssetDatabase.GetAssetPath(targetData));
                 }
 
                 // 清空Inspector选择
@@ -251,7 +252,7 @@ namespace SkillEditor
                     };
                 }
 
-                Debug.Log($"变换轨道项 \"{transformTargetData.trackItemName}\" 删除成功");
+                Debug.Log($"变换轨道项 \"{targetData.trackItemName}\" 删除成功");
             }, "删除变换轨道项");
         }
 

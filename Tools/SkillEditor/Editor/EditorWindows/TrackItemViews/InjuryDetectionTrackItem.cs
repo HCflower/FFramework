@@ -152,18 +152,6 @@ namespace SkillEditor
         }
 
         /// <summary>
-        /// 设置伤害检测事件视图的显示
-        /// 用于显示伤害检测轨道中的事件可视化表示
-        /// </summary>
-        /// <param name="leftFrame">相对左边界帧</param>
-        /// <param name="startFrame">事件起始帧</param>
-        /// <param name="durationFrame">事件持续帧数</param>
-        public void SetInjuryDetectionEventView(int leftFrame, int startFrame, int durationFrame)
-        {
-            SetEventView(leftFrame, startFrame, durationFrame, injuryDetectionEvent, Color.red);
-        }
-
-        /// <summary>
         /// 设置事件视图的显示
         /// 用于在轨道项中显示特定事件的可视化表示
         /// </summary>
@@ -251,8 +239,8 @@ namespace SkillEditor
             itemContent.tooltip = title;
 
             // 创建伤害检测事件标签
-            injuryDetectionEvent = new Label();
-            itemContent.Add(injuryDetectionEvent);
+            // injuryDetectionEvent = new Label();
+            // itemContent.Add(injuryDetectionEvent);
 
             // 添加标题标签
             AddTitleLabel(itemContent, title);

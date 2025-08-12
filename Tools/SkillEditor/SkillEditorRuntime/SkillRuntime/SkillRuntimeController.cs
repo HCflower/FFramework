@@ -549,6 +549,23 @@ namespace FFramework.Kit
                     // 检查特效是否应该在当前帧激活
                     if (effectClip.IsFrameInRange(frame))
                     {
+                        // 检查是否需要中断特效播放
+                        if (effectClip.isCutEffect)
+                        {
+                            int cutFrame = effectClip.startFrame + effectClip.cutEffectFrameOffset;
+                            if (frame >= cutFrame)
+                            {
+                                // 如果已经到达中断帧，立即停止特效
+                                if (effectInstances.TryGetValue(effectKey, out var cutEffectObj) &&
+                                    cutEffectObj != null && cutEffectObj.activeInHierarchy)
+                                {
+                                    // 立即停止特效播放
+                                    StopEffectImmediately(cutEffectObj);
+                                }
+                                continue;
+                            }
+                        }
+
                         // 创建特效实例（如果不存在）
                         if (!effectInstances.ContainsKey(effectKey))
                         {
@@ -802,6 +819,49 @@ namespace FFramework.Kit
                     ps.Simulate(simulateTime, true, false, true);
                 }
             }
+        }
+
+        /// <summary>
+        /// 立即停止特效播放
+        /// </summary>
+        /// <param name="effectObj">特效对象</param>
+        private void StopEffectImmediately(GameObject effectObj)
+        {
+            if (effectObj == null) return;
+
+            // 停止所有粒子系统
+            var particleSystems = effectObj.GetComponentsInChildren<ParticleSystem>();
+            foreach (var ps in particleSystems)
+            {
+                if (ps.isPlaying)
+                {
+                    ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+                }
+            }
+
+            // 停止所有Animator
+            var animators = effectObj.GetComponentsInChildren<Animator>();
+            foreach (var animator in animators)
+            {
+                if (animator != null && animator.enabled)
+                {
+                    animator.enabled = false;
+                    animator.enabled = true; // 重置状态
+                }
+            }
+
+            // 停止所有Animation
+            var animations = effectObj.GetComponentsInChildren<Animation>();
+            foreach (var animation in animations)
+            {
+                if (animation != null && animation.isPlaying)
+                {
+                    animation.Stop();
+                }
+            }
+
+            // 最后设置为非激活状态
+            effectObj.SetActive(false);
         }
 
         /// <summary>

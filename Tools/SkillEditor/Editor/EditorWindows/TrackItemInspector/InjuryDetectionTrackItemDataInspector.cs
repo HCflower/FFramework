@@ -9,15 +9,14 @@ namespace SkillEditor
     [CustomEditor(typeof(InjuryDetectionTrackItemData))]
     public class InjuryDetectionTrackItemDataInspector : BaseTrackItemDataInspector
     {
-        private InjuryDetectionTrackItemData attackTargetData;
-
         protected override string TrackItemTypeName => "Attack";
         protected override string TrackItemDisplayTitle => "攻击轨道项信息";
         protected override string DeleteButtonText => "删除攻击轨道项";
 
         public override VisualElement CreateInspectorGUI()
         {
-            attackTargetData = target as InjuryDetectionTrackItemData;
+            targetData = target as InjuryDetectionTrackItemData;
+            lastTrackItemName = targetData?.trackItemName; // 初始化保存的名称
             return base.CreateInspectorGUI();
         }
 
@@ -37,7 +36,8 @@ namespace SkillEditor
         private void CreateLayerMaskField()
         {
             var layerMaskContent = CreateContentContainer("目标层级:");
-            var layerMaskField = new LayerMaskField(attackTargetData.targetLayers);
+            var injuryData = targetData as InjuryDetectionTrackItemData;
+            var layerMaskField = new LayerMaskField(injuryData.targetLayers);
             layerMaskField.AddToClassList("LayerMaskField");
             layerMaskField.BindProperty(serializedObject.FindProperty("targetLayers"));
             layerMaskField.RegisterValueChangedCallback(evt => OnTargetLayersChanged(evt.newValue));
@@ -48,7 +48,7 @@ namespace SkillEditor
         protected override void PerformDelete()
         {
             if (EditorUtility.DisplayDialog("删除确认",
-                $"确定要删除攻击轨道项 \"{attackTargetData.trackItemName}\" 吗？\n\n此操作将会：\n• 从界面移除此轨道项\n• 删除对应的配置数据\n• 无法撤销",
+                $"确定要删除攻击轨道项 \"{targetData.trackItemName}\" 吗？\n\n此操作将会：\n• 从界面移除此轨道项\n• 删除对应的配置数据\n• 无法撤销",
                 "确认删除", "取消"))
             {
                 DeleteAttackTrackItem();
@@ -57,27 +57,34 @@ namespace SkillEditor
 
         #region 事件处理方法
 
-        /// <summary>
-        /// 起始帧变化事件处理
-        /// </summary>
-        /// <param name="newValue">新的起始帧值</param>
+        protected override void OnTrackItemNameChanged(string newValue)
+        {
+            SafeExecute(() =>
+            {
+                // 使用保存的旧名称
+                string oldName = lastTrackItemName ?? targetData.trackItemName;
+
+                // 先更新配置中的名称（使用旧名称查找）
+                UpdateTrackConfigByName(oldName, configClip => configClip.clipName = newValue, "轨道项名称更新");
+
+                // 更新保存的名称
+                lastTrackItemName = newValue;
+            }, "轨道项名称更新");
+        }
+
         protected override void OnStartFrameChanged(int newValue)
         {
             SafeExecute(() =>
             {
-                UpdateAttackTrackConfig(configClip => configClip.startFrame = newValue, "起始帧更新");
+                UpdateTrackConfig(configClip => configClip.startFrame = newValue, "起始帧更新");
             }, "起始帧更新");
         }
 
-        /// <summary>
-        /// 持续帧数变化事件处理
-        /// </summary>
-        /// <param name="newValue">新的持续帧数值</param>
         protected override void OnDurationFrameChanged(int newValue)
         {
             SafeExecute(() =>
             {
-                UpdateAttackTrackConfig(configClip => configClip.durationFrame = newValue, "持续帧数更新");
+                UpdateTrackConfig(configClip => configClip.durationFrame = newValue, "持续帧数更新");
             }, "持续帧数更新");
         }
 
@@ -85,7 +92,7 @@ namespace SkillEditor
         {
             SafeExecute(() =>
             {
-                UpdateAttackTrackConfig(configClip =>
+                UpdateTrackConfig(configClip =>
                 {
                     configClip.targetLayers = newValue;
                 }, "目标层级更新");
@@ -96,7 +103,7 @@ namespace SkillEditor
         {
             SafeExecute(() =>
             {
-                UpdateAttackTrackConfig(configClip => { configClip.hitEffectPrefab = newPrefab; }, "击中特效预制体更新");
+                UpdateTrackConfig(configClip => { configClip.hitEffectPrefab = newPrefab; }, "击中特效预制体更新");
             }, "击中特效预制体更新");
         }
 
@@ -104,7 +111,7 @@ namespace SkillEditor
         {
             SafeExecute(() =>
             {
-                UpdateAttackTrackConfig(configClip => configClip.enableAllCollisionGroups = newValue, "启用所有碰撞体更新");
+                UpdateTrackConfig(configClip => configClip.enableAllCollisionGroups = newValue, "启用所有碰撞体更新");
             }, "启用所有碰撞体更新");
         }
 
@@ -113,7 +120,7 @@ namespace SkillEditor
         {
             SafeExecute(() =>
             {
-                UpdateAttackTrackConfig(configClip => configClip.collisionGroupId = newValue, "碰撞检测组ID更新");
+                UpdateTrackConfig(configClip => configClip.collisionGroupId = newValue, "碰撞检测组ID更新");
             }, "碰撞检测组ID更新");
         }
 
@@ -122,51 +129,45 @@ namespace SkillEditor
         #region 数据同步方法
 
         /// <summary>
-        /// 统一的攻击配置数据更新方法
+        /// 统一的配置数据更新方法
         /// </summary>
         /// <param name="updateAction">更新操作的委托</param>
         /// <param name="operationName">操作名称，用于调试信息</param>
-        private void UpdateAttackTrackConfig(System.Action<FFramework.Kit.InjuryDetectionTrack.InjuryDetectionClip> updateAction, string operationName = "更新配置")
+        private void UpdateTrackConfig(System.Action<FFramework.Kit.InjuryDetectionTrack.InjuryDetectionClip> updateAction, string operationName = "更新配置")
+        {
+            UpdateTrackConfigByName(targetData.trackItemName, updateAction, operationName);
+        }
+
+        /// <summary>
+        /// 根据指定名称查找并更新攻击配置数据
+        /// </summary>
+        /// <param name="clipName">要查找的片段名称</param>
+        /// <param name="updateAction">更新操作的委托</param>
+        /// <param name="operationName">操作名称，用于调试信息</param>
+        private void UpdateTrackConfigByName(string clipName, System.Action<FFramework.Kit.InjuryDetectionTrack.InjuryDetectionClip> updateAction, string operationName = "更新配置")
         {
             var skillConfig = SkillEditorData.CurrentSkillConfig;
-            if (skillConfig?.trackContainer?.injuryDetectionTrack == null || attackTargetData == null)
+            if (skillConfig?.trackContainer?.injuryDetectionTrack == null || targetData == null)
             {
                 Debug.LogWarning($"无法执行 {operationName}：技能配置或伤害检测轨道为空");
                 return;
             }
 
-            // 使用trackIndex精确定位对应的轨道
+            // 使用trackIndex精确定位轨道，只通过名称唯一查找
             FFramework.Kit.InjuryDetectionTrack.InjuryDetectionClip targetConfigClip = null;
-
             if (skillConfig.trackContainer.injuryDetectionTrack.injuryDetectionTracks != null)
             {
-                // 根据trackIndex查找对应的轨道
                 var targetTrack = skillConfig.trackContainer.injuryDetectionTrack.injuryDetectionTracks
-                    .FirstOrDefault(track => track.trackIndex == attackTargetData.trackIndex);
+                    .FirstOrDefault(track => track.trackIndex == targetData.trackIndex);
 
-                if (targetTrack?.injuryDetectionClips != null)
+                if (targetTrack.injuryDetectionClips != null)
                 {
-                    // 在指定轨道中查找对应的片段
-                    var candidateClips = targetTrack.injuryDetectionClips
-                        .Where(clip => clip.clipName == attackTargetData.trackItemName).ToList();
-
-                    if (candidateClips.Count > 0)
-                    {
-                        if (candidateClips.Count == 1)
-                        {
-                            targetConfigClip = candidateClips[0];
-                        }
-                        else
-                        {
-                            // 如果有多个同名片段，尝试通过起始帧匹配
-                            var exactMatch = candidateClips.FirstOrDefault(clip => clip.startFrame == attackTargetData.startFrame);
-                            targetConfigClip = exactMatch ?? candidateClips[0];
-                        }
-                    }
+                    targetConfigClip = targetTrack.injuryDetectionClips
+                        .FirstOrDefault(clip => clip.clipName == clipName);
                 }
                 else
                 {
-                    Debug.LogWarning($"无法执行 {operationName}：未找到trackIndex为 {attackTargetData.trackIndex} 的攻击轨道");
+                    Debug.LogWarning($"无法执行 {operationName}：未找到trackIndex为 {targetData.trackIndex} 的攻击轨道");
                 }
             }
 
@@ -177,7 +178,7 @@ namespace SkillEditor
             }
             else
             {
-                Debug.LogWarning($"无法执行 {operationName}：找不到对应的伤害检测片段配置 (轨道索引: {attackTargetData.trackIndex}, 片段名: {attackTargetData.trackItemName})");
+                Debug.LogWarning($"无法执行 {operationName}：找不到对应的伤害检测片段配置 (轨道索引: {targetData.trackIndex}, 片段名: {clipName})");
             }
         }
 
@@ -190,7 +191,7 @@ namespace SkillEditor
             SafeExecute(() =>
             {
                 var skillConfig = SkillEditorData.CurrentSkillConfig;
-                if (skillConfig?.trackContainer?.injuryDetectionTrack == null || attackTargetData == null)
+                if (skillConfig?.trackContainer?.injuryDetectionTrack == null || targetData == null)
                 {
                     Debug.LogWarning("无法删除轨道项：技能配置或伤害检测轨道为空");
                     return;
@@ -201,29 +202,29 @@ namespace SkillEditor
                 if (skillConfig.trackContainer.injuryDetectionTrack.injuryDetectionTracks != null)
                 {
                     var targetTrack = skillConfig.trackContainer.injuryDetectionTrack.injuryDetectionTracks
-                        .FirstOrDefault(track => track.trackIndex == attackTargetData.trackIndex);
+                        .FirstOrDefault(track => track.trackIndex == targetData.trackIndex);
 
                     if (targetTrack?.injuryDetectionClips != null)
                     {
                         // 查找要删除的片段
                         var clipToRemove = targetTrack.injuryDetectionClips.FirstOrDefault(clip =>
-                            clip.clipName == attackTargetData.trackItemName &&
-                            clip.startFrame == attackTargetData.startFrame);
+                            clip.clipName == targetData.trackItemName &&
+                            clip.startFrame == targetData.startFrame);
 
                         if (clipToRemove != null)
                         {
                             targetTrack.injuryDetectionClips.Remove(clipToRemove);
                             deleted = true;
-                            Debug.Log($"从配置中删除攻击片段: {clipToRemove.clipName} (轨道索引: {attackTargetData.trackIndex})");
+                            Debug.Log($"从配置中删除攻击片段: {clipToRemove.clipName} (轨道索引: {targetData.trackIndex})");
                         }
                         else
                         {
-                            Debug.LogWarning($"未找到要删除的攻击片段: {attackTargetData.trackItemName} (轨道索引: {attackTargetData.trackIndex})");
+                            Debug.LogWarning($"未找到要删除的攻击片段: {targetData.trackItemName} (轨道索引: {targetData.trackIndex})");
                         }
                     }
                     else
                     {
-                        Debug.LogWarning($"未找到trackIndex为 {attackTargetData.trackIndex} 的攻击轨道");
+                        Debug.LogWarning($"未找到trackIndex为 {targetData.trackIndex} 的攻击轨道");
                     }
                 }
 
@@ -235,9 +236,9 @@ namespace SkillEditor
                 }
 
                 // 删除ScriptableObject资产
-                if (attackTargetData != null)
+                if (targetData != null)
                 {
-                    UnityEditor.AssetDatabase.DeleteAsset(UnityEditor.AssetDatabase.GetAssetPath(attackTargetData));
+                    UnityEditor.AssetDatabase.DeleteAsset(UnityEditor.AssetDatabase.GetAssetPath(targetData));
                 }
 
                 // 清空Inspector选择
@@ -257,7 +258,7 @@ namespace SkillEditor
                     };
                 }
 
-                Debug.Log($"攻击轨道项 \"{attackTargetData.trackItemName}\" 删除成功");
+                Debug.Log($"攻击轨道项 \"{targetData.trackItemName}\" 删除成功");
             }, "删除攻击轨道项");
         }
 

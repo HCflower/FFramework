@@ -177,8 +177,8 @@ namespace SkillEditor
         {
             if (eventElement == null) return;
             eventElement.AddToClassList("CameraEvent");
-            eventElement.style.left = startFrame * SkillEditorData.FrameUnitWidth - 2;
-            eventElement.style.width = durationFrame * SkillEditorData.FrameUnitWidth;
+            eventElement.style.left = startFrame * SkillEditorData.FrameUnitWidth - 2f;
+            eventElement.style.width = durationFrame * SkillEditorData.FrameUnitWidth - 0.5f;
         }
 
         /// <summary>

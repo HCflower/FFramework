@@ -91,6 +91,7 @@
     height: 2px;
     margin: 0px;
     padding: 0px;
+    border-width: 0px;
     align-self: center;
     position: absolute;
     bottom: 0px;
@@ -103,21 +104,25 @@
     right: 0px;
     margin: 0px;
     padding: 0px;
+    border-width: 0px;
     align-self: center;
     position: absolute;
     bottom: 0px;
-    background-color: rgba(14, 155, 220, 1);
+    background-color: rgba(255, 255, 255, 0.45);
 }
 
 /* 剪辑帧视图 */
 .CutEffectFrameView{
-    height:100%;
-    width: 2px;
+    height:2px;
+    width: auto;
+    left:0px;
+    bottom: 0px;
     margin: 0px;
     padding: 0px;
+    border-width: 0px;
     align-self: center;
     position: absolute;
-    background-color: rgba(229, 46, 29, 0.5);
+    background-color: rgba(255, 255, 255, 0.45);
 }
 
 /* 轨道项标题 - 鼠标悬停效果 */

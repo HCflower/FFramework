@@ -199,6 +199,22 @@ namespace SkillEditor
                                         instance.isActive = true;
                                     }
                                 }
+
+                                // 检查是否需要中断特效播放
+                                if (effectClip.effectPrefab != null && effectClip.isCutEffect)
+                                {
+                                    int cutFrame = effectClip.startFrame + effectClip.cutEffectFrameOffset;
+                                    if (frameIndex == cutFrame)
+                                    {
+                                        string effectKey = GenerateEffectKey(effectClip);
+                                        if (activeEffectInstances.TryGetValue(effectKey, out var instance))
+                                        {
+                                            // 中断特效播放
+                                            instance.isActive = false;
+                                            SetEffectActive(instance.effectObject, false, true); // 强制停止
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
@@ -237,6 +253,19 @@ namespace SkillEditor
                         // 检查特效是否应该在当前帧激活
                         if (frameIndex >= effectClip.startFrame && frameIndex < effectLastFrameIndex)
                         {
+                            // 检查是否需要中断特效播放
+                            if (effectClip.isCutEffect)
+                            {
+                                int cutFrame = effectClip.startFrame + effectClip.cutEffectFrameOffset;
+                                if (frameIndex >= cutFrame)
+                                {
+                                    // 如果已经到达中断帧，立即停止特效
+                                    instance.isActive = false;
+                                    SetEffectActive(instance.effectObject, false, true); // 强制停止
+                                    continue;
+                                }
+                            }
+
                             // 计算播放时间，考虑特效播放速度
                             int offsetFrame = frameIndex - effectClip.startFrame;
                             float basePlayTime = offsetFrame / GetFrameRate();
@@ -492,9 +521,17 @@ namespace SkillEditor
         /// </summary>
         /// <param name="effectObject">特效对象</param>
         /// <param name="active">是否激活</param>
-        private void SetEffectActive(GameObject effectObject, bool active)
+        /// <param name="forceStop">是否强制立即停止（用于中断特效）</param>
+        private void SetEffectActive(GameObject effectObject, bool active, bool forceStop = false)
         {
             if (effectObject == null) return;
+
+            if (!active && forceStop)
+            {
+                // 如果是强制停止（如中断特效），使用立即停止方法
+                StopEffectImmediately(effectObject);
+                return;
+            }
 
             effectObject.SetActive(active);
 
@@ -551,30 +588,6 @@ namespace SkillEditor
         }
 
         /// <summary>
-        /// 检查特效在指定帧是否应该激活
-        /// </summary>
-        /// <param name="effectClip">特效片段</param>
-        /// <param name="frame">当前帧</param>
-        /// <returns>是否应该激活</returns>
-        private bool IsEffectActiveAtFrame(EffectTrack.EffectClip effectClip, int frame)
-        {
-            return frame >= effectClip.startFrame && frame < effectClip.startFrame + effectClip.durationFrame;
-        }
-
-        /// <summary>
-        /// 计算特效播放时间
-        /// </summary>
-        /// <param name="effectClip">特效片段</param>
-        /// <param name="currentFrame">当前帧</param>
-        /// <returns>播放时间（秒）</returns>
-        private float CalculateEffectPlayTime(EffectTrack.EffectClip effectClip, int currentFrame)
-        {
-            int relativeFrame = currentFrame - effectClip.startFrame;
-            float baseTime = Mathf.Max(0, relativeFrame) / GetFrameRate();
-            return baseTime * effectClip.effectPlaySpeed; // 考虑播放速度
-        }
-
-        /// <summary>
         /// 在指定时间播放特效
         /// </summary>
         /// <param name="effectObject">特效对象</param>
@@ -605,6 +618,49 @@ namespace SkillEditor
                     // 如果需要特效内部动画也受播放速度影响，可以在SetEffectPlaySpeed中处理
                 }
             }
+        }
+
+        /// <summary>
+        /// 立即停止特效播放
+        /// </summary>
+        /// <param name="effectObject">特效对象</param>
+        private void StopEffectImmediately(GameObject effectObject)
+        {
+            if (effectObject == null) return;
+
+            // 停止所有粒子系统
+            var particleSystems = effectObject.GetComponentsInChildren<ParticleSystem>();
+            foreach (var ps in particleSystems)
+            {
+                if (ps.isPlaying)
+                {
+                    ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+                }
+            }
+
+            // 停止所有Animator
+            var animators = effectObject.GetComponentsInChildren<Animator>();
+            foreach (var animator in animators)
+            {
+                if (animator != null && animator.enabled)
+                {
+                    animator.enabled = false;
+                    animator.enabled = true; // 重置状态
+                }
+            }
+
+            // 停止所有Animation
+            var animations = effectObject.GetComponentsInChildren<Animation>();
+            foreach (var animation in animations)
+            {
+                if (animation != null && animation.isPlaying)
+                {
+                    animation.Stop();
+                }
+            }
+
+            // 最后设置为非激活状态
+            effectObject.SetActive(false);
         }
 
         /// <summary>

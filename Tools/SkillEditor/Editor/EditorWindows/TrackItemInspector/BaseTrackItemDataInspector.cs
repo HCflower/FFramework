@@ -2,6 +2,7 @@ using UnityEngine.UIElements;
 using UnityEditor.UIElements;
 using UnityEngine;
 using UnityEditor;
+using System;
 
 namespace SkillEditor
 {
@@ -16,7 +17,7 @@ namespace SkillEditor
         protected VisualElement root;
         protected BaseTrackItemData targetData;
         private bool isInitialized = false;
-
+        protected string lastTrackItemName;
         /// <summary>
         /// 获取轨道项类型名称，用于样式类名
         /// </summary>
@@ -262,7 +263,7 @@ namespace SkillEditor
         protected void CreateBasicInfoFields()
         {
             // 轨道项名称
-            CreateReadOnlyField("轨道项名称:", "trackItemName");
+            CreateTextField("轨道项名称:", "trackItemName", OnTrackItemNameChanged);
 
             // 总帧数
             CreateReadOnlyField("基准帧数:", "frameCount");
@@ -354,7 +355,7 @@ namespace SkillEditor
             field.BindProperty(serializedObject.FindProperty(propertyName));
 
             // 注册值变化事件
-            RegisterFieldEvents(field, onValueChanged);
+            RegisterFieldEvents(field, true, onValueChanged);
 
             content.Add(field);
             root.Add(content);
@@ -374,7 +375,40 @@ namespace SkillEditor
             field.BindProperty(serializedObject.FindProperty(propertyName));
 
             // 注册值变化事件
-            RegisterFieldEvents(field, onValueChanged);
+            RegisterFieldEvents(field, true, onValueChanged);
+
+            content.Add(field);
+            root.Add(content);
+        }
+
+
+        /// <summary>
+        /// 创建文本输入字段
+        /// </summary>
+        /// <param name="labelText">标签文本</param>
+        /// <param name="propertyName">属性名称</param>
+        /// <param name="onValueChanged">值变化回调</param>
+        protected void CreateTextField(string labelText, string propertyName, System.Action<string> onValueChanged = null)
+        {
+            var content = CreateContentContainer(labelText);
+            var field = new TextField();
+            field.AddToClassList("TextField");
+            field.BindProperty(serializedObject.FindProperty(propertyName));
+
+            // 只在回车时触发onValueChanged，输入时不自动触发
+            if (onValueChanged != null)
+            {
+                field.RegisterCallback<KeyDownEvent>(evt =>
+                {
+                    if (evt.keyCode == KeyCode.Return || evt.keyCode == KeyCode.KeypadEnter)
+                    {
+                        // 在回车时，field.value 就是新值，但我们需要传递新值给回调
+                        onValueChanged(field.value);
+                        ApplyDataChangesAndRefresh();
+                        evt.StopPropagation();
+                    }
+                });
+            }
 
             content.Add(field);
             root.Add(content);
@@ -386,9 +420,9 @@ namespace SkillEditor
         /// <typeparam name="T">字段值类型</typeparam>
         /// <param name="field">UI字段</param>
         /// <param name="onValueChanged">值变化回调</param>
-        private void RegisterFieldEvents<T>(BaseField<T> field, System.Action<T> onValueChanged = null)
+        private void RegisterFieldEvents<T>(BaseField<T> field, bool isAutoRefresh, System.Action<T> onValueChanged = null)
         {
-            if (onValueChanged != null)
+            if (isAutoRefresh && onValueChanged != null)
             {
                 field.RegisterValueChangedCallback(evt =>
                 {
@@ -407,27 +441,6 @@ namespace SkillEditor
                 }
             });
         }
-
-        /// <summary>
-        /// 创建文本输入字段
-        /// </summary>
-        /// <param name="labelText">标签文本</param>
-        /// <param name="propertyName">属性名称</param>
-        /// <param name="onValueChanged">值变化回调</param>
-        protected void CreateTextField(string labelText, string propertyName, System.Action<string> onValueChanged = null)
-        {
-            var content = CreateContentContainer(labelText);
-            var field = new TextField();
-            field.AddToClassList("TextField");
-            field.BindProperty(serializedObject.FindProperty(propertyName));
-
-            // 注册值变化事件
-            RegisterFieldEvents(field, onValueChanged);
-
-            content.Add(field);
-            root.Add(content);
-        }
-
         /// <summary>
         /// 创建布尔开关字段
         /// </summary>
@@ -671,6 +684,11 @@ namespace SkillEditor
         #endregion
 
         #region 虚方法 - 基础事件处理
+        /// <summary>
+        /// 轨道项名称变化事件处理
+        /// </summary>
+        /// <param name="newValue">新的轨道项名称</param>
+        protected virtual void OnTrackItemNameChanged(string newValue) { }
 
         /// <summary>
         /// 起始帧变化事件处理

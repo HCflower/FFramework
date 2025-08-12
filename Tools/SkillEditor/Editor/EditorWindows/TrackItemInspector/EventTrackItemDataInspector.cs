@@ -51,24 +51,22 @@ namespace SkillEditor
             }, "事件参数更新");
         }
 
-        /// <summary>
-        /// 起始帧变化事件处理
-        /// </summary>
-        /// <param name="newValue">新的起始帧值</param>
+        protected override void OnTrackItemNameChanged(string newValue)
+        {
+            SafeExecute(() =>
+            {
+                UpdateEventTrackConfig(configClip => configClip.clipName = newValue, "轨道项名称更新");
+            }, "轨道项名称更新");
+        }
+
         protected override void OnStartFrameChanged(int newValue)
         {
             SafeExecute(() =>
             {
                 UpdateEventTrackConfig(configClip => configClip.startFrame = newValue, "起始帧更新");
-                // 调用基类方法进行UI刷新
-                base.OnStartFrameChanged(newValue);
             }, "起始帧更新");
         }
 
-        /// <summary>
-        /// 持续帧数变化事件处理
-        /// </summary>
-        /// <param name="newValue">新的持续帧数值</param>
         protected override void OnDurationFrameChanged(int newValue)
         {
             SafeExecute(() =>
@@ -125,32 +123,14 @@ namespace SkillEditor
                 return;
             }
 
-            // 查找对应的事件片段配置
-            FFramework.Kit.EventTrack.EventClip targetConfigClip = null;
-
-            // 首先尝试通过名称精确匹配
-            var candidateClips = targetTrack.eventClips
-                .Where(clip => clip.clipName == eventTargetData.trackItemName).ToList();
-
-            if (candidateClips.Count > 0)
-            {
-                if (candidateClips.Count == 1)
-                {
-                    targetConfigClip = candidateClips[0];
-                }
-                else
-                {
-                    // 如果有多个同名片段，尝试通过起始帧匹配
-                    var exactMatch = candidateClips.FirstOrDefault(clip => clip.startFrame == eventTargetData.startFrame);
-                    targetConfigClip = exactMatch ?? candidateClips[0];
-                }
-            }
+            // 只通过名称唯一查找
+            FFramework.Kit.EventTrack.EventClip targetConfigClip = targetTrack.eventClips
+                .FirstOrDefault(clip => clip.clipName == eventTargetData.trackItemName);
 
             if (targetConfigClip != null)
             {
                 updateAction(targetConfigClip);
                 MarkSkillConfigDirty();
-                // Debug.Log($"{operationName} 成功：轨道 {trackIndex}，事件片段 \"{eventTargetData.trackItemName}\"");
             }
             else
             {

@@ -92,6 +92,55 @@ namespace SkillEditor
 
         #endregion
 
+        #region 重写方法
+
+        /// <summary>
+        /// 支持自定义名称的特效轨道项添加
+        /// </summary>
+        /// <param name="resource">特效GameObject资源</param>
+        /// <param name="itemName">自定义名称</param>
+        /// <param name="startFrame">起始帧</param>
+        /// <param name="addToConfig">是否添加到配置</param>
+        /// <returns>创建的轨道项</returns>
+        public override BaseTrackItemView AddTrackItem(object resource, string itemName, int startFrame, bool addToConfig)
+        {
+            if (!(resource is GameObject gameObject))
+                return null;
+
+            float frameRate = GetFrameRate();
+            float duration = GetEffectDuration(gameObject);
+            int frameCount = Mathf.RoundToInt(duration * frameRate);
+
+            var newItem = new EffectTrackItem(trackArea, itemName, frameCount, startFrame, trackIndex);
+
+            // 设置特效轨道项的数据
+            var effectData = newItem.EffectData;
+            effectData.effectPrefab = gameObject;
+            effectData.effectPlaySpeed = 1.0f;
+            effectData.position = Vector3.zero;
+            effectData.rotation = Vector3.zero;
+            effectData.scale = Vector3.one;
+
+#if UNITY_EDITOR
+            EditorUtility.SetDirty(effectData);
+#endif
+
+            // 添加到技能配置
+            if (addToConfig)
+            {
+                AddEffectToConfig(gameObject, itemName, startFrame, frameCount);
+            }
+
+            if (newItem != null)
+            {
+                trackItems.Add(newItem);
+            }
+
+            return newItem;
+        }
+
+        #endregion
+
         #region 私有方法
 
         /// <summary>
@@ -236,12 +285,13 @@ namespace SkillEditor
                 if (clip.effectPrefab != null)
                 {
                     // 从配置加载时，设置addToConfig为false，避免重复添加到配置文件
-                    var trackItem = track.AddTrackItem(clip.effectPrefab, clip.startFrame, false);
+                    var trackItem = track.AddTrackItem(clip.effectPrefab, clip.clipName, clip.startFrame, false);
 
                     // 从配置中恢复完整的特效属性
                     if (trackItem is EffectTrackItem effectTrackItem)
                     {
                         var effectData = effectTrackItem.EffectData;
+                        effectData.trackItemName = clip.clipName;
                         effectData.durationFrame = clip.durationFrame;
                         effectData.effectPlaySpeed = clip.effectPlaySpeed;
                         effectData.position = clip.position;

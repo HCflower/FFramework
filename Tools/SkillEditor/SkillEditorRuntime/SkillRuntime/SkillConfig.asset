@@ -16,7 +16,7 @@ MonoBehaviour:
   trackIndex: 0
   isEnabled: 0
   transformClips:
-  - clipName: Transform
+  - clipName: Transform-1
     startFrame: 15
     durationFrame: 12
     positionOffset: {x: 0, y: 0, z: 5}
@@ -73,7 +73,7 @@ MonoBehaviour:
       effectPrefab: {fileID: 6389406066330802589, guid: 5ef8d476ac4025a4e85cc5e7c5004889, type: 3}
       effectPlaySpeed: 0.5
       isCutEffect: 1
-      cutEffectFrameOffset: 8
+      cutEffectFrameOffset: 10
       position: {x: 0, y: 2.2, z: 0}
       rotation: {x: -90, y: 0, z: 80.00001}
       scale: {x: 0.5, y: 0.5, z: 0.5}
@@ -121,7 +121,7 @@ MonoBehaviour:
   trackIndex: 0
   isEnabled: 1
   animationClips:
-  - clipName: 2H_Melee_Attack_Spin
+  - clipName: 2H_Melee_Attack_Spin-1
     startFrame: 0
     durationFrame: 48
     clip: {fileID: 7400000, guid: 3a91922c9630cdc4e94e060121e72b00, type: 2}
@@ -144,7 +144,7 @@ MonoBehaviour:
   trackIndex: 0
   isEnabled: 1
   cameraClips:
-  - clipName: Camera Main Camera
+  - clipName: Camera Main Camera-1
     startFrame: 20
     durationFrame: 5
     enablePosition: 0
@@ -200,9 +200,9 @@ MonoBehaviour:
     trackIndex: 0
     isEnabled: 1
     injuryDetectionClips:
-    - clipName: InjuryDetection
+    - clipName: 125
       startFrame: 14
-      durationFrame: 14
+      durationFrame: 5
       hitEffectPrefab: {fileID: 0}
       targetLayers:
         serializedVersion: 2
@@ -226,9 +226,9 @@ MonoBehaviour:
     trackIndex: 0
     isEnabled: 1
     audioClips:
-    - clipName: 074_knife
-      startFrame: 15
-      durationFrame: 10
+    - clipName: 074_knife-1
+      startFrame: 14
+      durationFrame: 17
       clip: {fileID: 8300000, guid: b50e386b9f25be147934ef2cf68d432e, type: 3}
       volume: 1
       pitch: 1
@@ -252,7 +252,7 @@ MonoBehaviour:
     isEnabled: 1
     eventClips:
     - clipName: Event
-      startFrame: 15
+      startFrame: 14
       durationFrame: 1
       eventType: Event
       eventParameters: 

@@ -602,7 +602,7 @@ namespace SkillEditor
             // 移除现有指示器
             var existingIndicator = timelineContainer?.Q("Current-frame-indicator");
             existingIndicator?.RemoveFromHierarchy();
-
+  
             // 创建新指示器
             var indicator = new VisualElement();
             indicator.name = "Current-frame-indicator";

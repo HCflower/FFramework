@@ -2,22 +2,20 @@ using UnityEngine.UIElements;
 using UnityEditor;
 using UnityEngine;
 using System.Linq;
-using System;
 
 namespace SkillEditor
 {
     [CustomEditor(typeof(EffectTrackItemData))]
     public class EffectTrackItemDataInspector : BaseTrackItemDataInspector
     {
-        private EffectTrackItemData effectTargetData;
-
         protected override string TrackItemTypeName => "Effect";
         protected override string TrackItemDisplayTitle => "特效轨道项信息";
         protected override string DeleteButtonText => "删除特效轨道项";
 
         public override VisualElement CreateInspectorGUI()
         {
-            effectTargetData = target as EffectTrackItemData;
+            targetData = target as EffectTrackItemData;
+            lastTrackItemName = targetData?.trackItemName; // 初始化保存的名称
             return base.CreateInspectorGUI();
         }
 
@@ -36,51 +34,41 @@ namespace SkillEditor
 
         #region 事件处理方法
 
-
-
         private void OnEffectPrefabChanged(GameObject newPrefab)
         {
             SafeExecute(() =>
             {
-                UpdateEffectTrackConfig(configClip =>
-                {
-                    configClip.effectPrefab = newPrefab;
-                }, "特效预制体更新");
+                UpdateTrackConfig(configClip => { configClip.effectPrefab = newPrefab; }, "特效预制体更新");
 
             }, "特效预制体更新");
         }
-
-     
 
         private void OnEffectPlaySpeedChanged(float newValue)
         {
             SafeExecute(() =>
             {
-                UpdateEffectTrackConfig(configClip =>
+                UpdateTrackConfig(configClip =>
                 {
                     configClip.effectPlaySpeed = newValue;
                     //刷新持续帧
-                    configClip.durationFrame = (int)(targetData.frameCount / newValue);
-                    effectTargetData.durationFrame = configClip.durationFrame;
+                    configClip.durationFrame = (int)(base.targetData.frameCount / newValue);
+                    targetData.durationFrame = configClip.durationFrame;
                 }, "特效播放速度更新");
             }, "特效播放速度更新");
         }
 
         private void OnIsCutEffectChanged(bool newValue)
         {
-            SafeExecute(() =>
-            {
-                UpdateEffectTrackConfig(configClip => configClip.isCutEffect = newValue, "是否截断特效更新");
-            }, "是否截断特效更新");
+            SafeExecute(() => { UpdateTrackConfig(configClip => configClip.isCutEffect = newValue, "是否截断特效更新"); }, "是否截断特效更新");
         }
 
         private void OnCutEffectFrameChanged(int newValue)
         {
             SafeExecute(() =>
             {
-                if (0 <= newValue && newValue < effectTargetData.startFrame + effectTargetData.durationFrame)
+                if (0 <= newValue && newValue < targetData.startFrame + targetData.durationFrame)
                 {
-                    UpdateEffectTrackConfig(configClip => configClip.cutEffectFrameOffset = newValue, "特效截断帧更新");
+                    UpdateTrackConfig(configClip => configClip.cutEffectFrameOffset = newValue, "特效截断帧更新");
                 }
                 else
                 {
@@ -93,47 +81,46 @@ namespace SkillEditor
         {
             SafeExecute(() =>
             {
-                UpdateEffectTrackConfig(configClip =>
-                {
-                    configClip.position = newValue;
-                }, "特效位置更新");
-
+                UpdateTrackConfig(configClip => { configClip.position = newValue; }, "特效位置更新");
             }, "特效位置更新");
         }
 
         private void OnRotationChanged(Vector3 newValue)
         {
-            SafeExecute(() =>
-            {
-                UpdateEffectTrackConfig(configClip =>
-                {
-                    configClip.rotation = newValue;
-                }, "特效旋转更新");
-
-            }, "特效旋转更新");
+            SafeExecute(() => { UpdateTrackConfig(configClip => { configClip.rotation = newValue; }, "特效旋转更新"); }, "特效旋转更新");
         }
 
         private void OnScaleChanged(Vector3 newValue)
         {
             SafeExecute(() =>
             {
-                UpdateEffectTrackConfig(configClip =>
-                {
-                    configClip.scale = newValue;
-                }, "特效缩放更新");
+                UpdateTrackConfig(configClip => { configClip.scale = newValue; }, "特效缩放更新");
 
             }, "特效缩放更新");
         }
 
-        /// <summary>
-        /// 起始帧变化事件处理
-        /// </summary>
-        /// <param name="newValue">新的起始帧值</param>
+        protected override void OnTrackItemNameChanged(string newValue)
+        {
+            SafeExecute(() =>
+            {
+                // 使用保存的旧名称
+                string oldName = lastTrackItemName ?? targetData.trackItemName;
+
+                // 先更新配置中的名称（使用旧名称查找）
+                UpdateTrackConfigByName(oldName, configClip => configClip.clipName = newValue, "轨道项名称更新");
+
+                // 更新保存的名称
+                lastTrackItemName = newValue;
+                targetData.trackItemName = newValue;
+                Debug.Log($"特效轨道项名称已更新: {oldName} - {lastTrackItemName} - {targetData.trackItemName}");
+            }, "轨道项名称更新");
+        }
+
         protected override void OnStartFrameChanged(int newValue)
         {
             SafeExecute(() =>
             {
-                UpdateEffectTrackConfig(configClip => configClip.startFrame = newValue, "起始帧更新");
+                UpdateTrackConfig(configClip => configClip.startFrame = newValue, "起始帧更新");
             }, "起始帧更新");
         }
 
@@ -145,7 +132,7 @@ namespace SkillEditor
         {
             SafeExecute(() =>
             {
-                UpdateEffectTrackConfig(configClip => configClip.durationFrame = newValue, "持续帧数更新");
+                UpdateTrackConfig(configClip => configClip.durationFrame = newValue, "持续帧数更新");
             }, "持续帧数更新");
         }
 
@@ -194,15 +181,16 @@ namespace SkillEditor
                     euler.y = euler.z;
                     euler.z = temp;
 
-                    effectTargetData.rotation = euler;
+                    var effectTrackData = targetData as EffectTrackItemData;
+                    effectTrackData.rotation = euler;
 
                     // 更新特效轨道项的Transform信息
-                    effectTargetData.position = effectObject.transform.position;
-                    effectTargetData.scale = effectObject.transform.localScale;
+                    effectTrackData.position = effectObject.transform.position;
+                    effectTrackData.scale = effectObject.transform.localScale;
                     // 保存数据
-                    UpdateEffectTrackConfig(configClip => { configClip.position = effectObject.transform.position; }, "特效position更新");
-                    UpdateEffectTrackConfig(configClip => { configClip.rotation = euler; }, "特效rotation更新");
-                    UpdateEffectTrackConfig(configClip => { configClip.scale = effectObject.transform.localScale; }, "特效localScale更新");
+                    UpdateTrackConfig(configClip => { configClip.position = effectObject.transform.position; }, "特效position更新");
+                    UpdateTrackConfig(configClip => { configClip.rotation = euler; }, "特效rotation更新");
+                    UpdateTrackConfig(configClip => { configClip.scale = effectObject.transform.localScale; }, "特效localScale更新");
                 }
             }, "获取特效Transform信息");
         }
@@ -213,19 +201,18 @@ namespace SkillEditor
         /// <returns>找到的特效物体，如果未找到返回null</returns>
         private GameObject FindEffectObjectInScene()
         {
-            if (effectTargetData == null) return null;
+            if (targetData == null) return null;
 
             // 直接通过轨道项名称查找
-            GameObject effectObject = GameObject.Find(effectTargetData.trackItemName);
+            GameObject effectObject = GameObject.Find(targetData.trackItemName);
             if (effectObject != null) return effectObject;
 
             // 通过预制体名称查找
-            if (effectTargetData.effectPrefab != null)
+            var effectTrackData = targetData as EffectTrackItemData;
+            if (effectTrackData?.effectPrefab != null)
             {
-                string prefabName = effectTargetData.effectPrefab.name;
+                string prefabName = effectTrackData.effectPrefab.name;
                 effectObject = GameObject.Find(prefabName);
-                if (effectObject != null) return effectObject;
-
                 if (effectObject != null) return effectObject;
             }
             return null;
@@ -240,7 +227,7 @@ namespace SkillEditor
             SafeExecute(() =>
             {
                 var skillConfig = SkillEditorData.CurrentSkillConfig;
-                if (skillConfig?.trackContainer?.effectTrack == null || effectTargetData == null)
+                if (skillConfig?.trackContainer?.effectTrack == null || targetData == null)
                 {
                     Debug.LogWarning("无法删除轨道项：技能配置或特效轨道为空");
                     return;
@@ -251,29 +238,29 @@ namespace SkillEditor
                 if (skillConfig.trackContainer.effectTrack.effectTracks != null)
                 {
                     var targetTrack = skillConfig.trackContainer.effectTrack.effectTracks
-                        .FirstOrDefault(track => track.trackIndex == effectTargetData.trackIndex);
+                        .FirstOrDefault(track => track.trackIndex == targetData.trackIndex);
 
                     if (targetTrack?.effectClips != null)
                     {
                         // 查找要删除的片段
                         var clipToRemove = targetTrack.effectClips.FirstOrDefault(clip =>
-                            clip.clipName == effectTargetData.trackItemName &&
-                            clip.startFrame == effectTargetData.startFrame);
+                            clip.clipName == targetData.trackItemName &&
+                            clip.startFrame == targetData.startFrame);
 
                         if (clipToRemove != null)
                         {
                             targetTrack.effectClips.Remove(clipToRemove);
                             deleted = true;
-                            Debug.Log($"从配置中删除特效片段: {clipToRemove.clipName} (轨道索引: {effectTargetData.trackIndex})");
+                            Debug.Log($"从配置中删除特效片段: {clipToRemove.clipName} (轨道索引: {targetData.trackIndex})");
                         }
                         else
                         {
-                            Debug.LogWarning($"未找到要删除的特效片段: {effectTargetData.trackItemName} (轨道索引: {effectTargetData.trackIndex})");
+                            Debug.LogWarning($"未找到要删除的特效片段: {targetData.trackItemName} (轨道索引: {targetData.trackIndex})");
                         }
                     }
                     else
                     {
-                        Debug.LogWarning($"未找到trackIndex为 {effectTargetData.trackIndex} 的特效轨道");
+                        Debug.LogWarning($"未找到trackIndex为 {targetData.trackIndex} 的特效轨道");
                     }
                 }
 
@@ -285,9 +272,9 @@ namespace SkillEditor
                 }
 
                 // 删除ScriptableObject资产
-                if (effectTargetData != null)
+                if (targetData != null)
                 {
-                    UnityEditor.AssetDatabase.DeleteAsset(UnityEditor.AssetDatabase.GetAssetPath(effectTargetData));
+                    UnityEditor.AssetDatabase.DeleteAsset(UnityEditor.AssetDatabase.GetAssetPath(targetData));
                 }
 
                 // 清空Inspector选择
@@ -307,66 +294,59 @@ namespace SkillEditor
                     };
                 }
 
-                Debug.Log($"特效轨道项 \"{effectTargetData.trackItemName}\" 删除成功");
+                Debug.Log($"特效轨道项 \"{targetData.trackItemName}\" 删除成功");
             }, "删除特效轨道项");
         }
 
         protected override void PerformDelete()
         {
             if (EditorUtility.DisplayDialog("删除确认",
-                $"确定要删除特效轨道项 \"{effectTargetData.trackItemName}\" 吗？\n\n此操作将会：\n• 从界面移除此轨道项\n• 删除对应的配置数据\n• 无法撤销",
+                $"确定要删除特效轨道项 \"{targetData.trackItemName}\" 吗？\n\n此操作将会：\n• 从界面移除此轨道项\n• 删除对应的配置数据\n• 无法撤销",
                 "确认删除", "取消"))
             {
                 DeleteEffectTrackItem();
             }
         }
-
         /// <summary>
-        /// 统一的特效配置数据更新方法
+        /// 统一的配置数据更新方法
         /// </summary>
         /// <param name="updateAction">更新操作的委托</param>
         /// <param name="operationName">操作名称，用于调试信息</param>
-        private void UpdateEffectTrackConfig(System.Action<FFramework.Kit.EffectTrack.EffectClip> updateAction, string operationName = "更新配置")
+        private void UpdateTrackConfig(System.Action<FFramework.Kit.EffectTrack.EffectClip> updateAction, string operationName = "更新配置")
+        {
+            UpdateTrackConfigByName(targetData.trackItemName, updateAction, operationName);
+        }
+
+        /// <summary>
+        /// 根据指定名称查找并更新攻击配置数据
+        /// </summary>
+        /// <param name="clipName">要查找的片段名称</param>
+        /// <param name="updateAction">更新操作的委托</param>
+        /// <param name="operationName">操作名称，用于调试信息</param>
+        private void UpdateTrackConfigByName(string clipName, System.Action<FFramework.Kit.EffectTrack.EffectClip> updateAction, string operationName = "更新配置")
         {
             var skillConfig = SkillEditorData.CurrentSkillConfig;
-            if (skillConfig?.trackContainer?.effectTrack == null || effectTargetData == null)
+            if (skillConfig?.trackContainer?.injuryDetectionTrack == null || targetData == null)
             {
-                Debug.LogWarning($"无法执行 {operationName}：技能配置或特效轨道为空");
+                Debug.LogWarning($"无法执行 {operationName}：技能配置或伤害检测轨道为空");
                 return;
             }
 
-            // 使用trackIndex精确定位对应的轨道
+            // 使用trackIndex精确定位轨道，只通过名称唯一查找
             FFramework.Kit.EffectTrack.EffectClip targetConfigClip = null;
-
-            if (skillConfig.trackContainer.effectTrack.effectTracks != null)
+            if (skillConfig.trackContainer.effectTrack != null)
             {
-                // 根据trackIndex查找对应的轨道
                 var targetTrack = skillConfig.trackContainer.effectTrack.effectTracks
-                    .FirstOrDefault(track => track.trackIndex == effectTargetData.trackIndex);
+                    .FirstOrDefault(track => track.trackIndex == targetData.trackIndex);
 
-                if (targetTrack?.effectClips != null)
+                if (targetTrack.effectClips != null)
                 {
-                    // 在指定轨道中查找对应的片段
-                    var candidateClips = targetTrack.effectClips
-                        .Where(clip => clip.clipName == effectTargetData.trackItemName).ToList();
-
-                    if (candidateClips.Count > 0)
-                    {
-                        if (candidateClips.Count == 1)
-                        {
-                            targetConfigClip = candidateClips[0];
-                        }
-                        else
-                        {
-                            // 如果有多个同名片段，尝试通过起始帧匹配
-                            var exactMatch = candidateClips.FirstOrDefault(clip => clip.startFrame == effectTargetData.startFrame);
-                            targetConfigClip = exactMatch ?? candidateClips[0];
-                        }
-                    }
+                    targetConfigClip = targetTrack.effectClips
+                        .FirstOrDefault(clip => clip.clipName == clipName);
                 }
                 else
                 {
-                    Debug.LogWarning($"无法执行 {operationName}：未找到trackIndex为 {effectTargetData.trackIndex} 的特效轨道");
+                    Debug.LogWarning($"无法执行 {operationName}：未找到trackIndex为 {targetData.trackIndex} 的攻击轨道");
                 }
             }
 
@@ -374,11 +354,10 @@ namespace SkillEditor
             {
                 updateAction(targetConfigClip);
                 MarkSkillConfigDirty();
-                // Debug.Log($"{operationName} 成功同步到配置文件 (轨道索引: {effectTargetData.trackIndex})");
             }
             else
             {
-                Debug.LogWarning($"无法执行 {operationName}：找不到对应的特效片段配置 (轨道索引: {effectTargetData.trackIndex}, 片段名: {effectTargetData.trackItemName})");
+                Debug.LogWarning($"无法执行 {operationName}：找不到对应的伤害检测片段配置 (轨道索引: {targetData.trackIndex}, 片段名: {clipName})");
             }
         }
 

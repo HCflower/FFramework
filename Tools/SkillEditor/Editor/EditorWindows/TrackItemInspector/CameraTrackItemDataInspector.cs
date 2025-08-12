@@ -3,22 +3,20 @@ using UnityEditor.UIElements;
 using UnityEditor;
 using UnityEngine;
 using System.Linq;
-using System;
 
 namespace SkillEditor
 {
     [CustomEditor(typeof(CameraTrackItemData))]
     public class CameraTrackItemDataInspector : BaseTrackItemDataInspector
     {
-        private CameraTrackItemData cameraTargetData;
-
         protected override string TrackItemTypeName => "Camera";
         protected override string TrackItemDisplayTitle => "摄像机轨道项信息";
         protected override string DeleteButtonText => "删除摄像机轨道项";
 
         public override VisualElement CreateInspectorGUI()
         {
-            cameraTargetData = target as CameraTrackItemData;
+            targetData = target as CameraTrackItemData;
+            lastTrackItemName = targetData?.trackItemName; // 初始化保存的名称
             return base.CreateInspectorGUI();
         }
 
@@ -51,7 +49,7 @@ namespace SkillEditor
         private void CreateCurveTypeField()
         {
             var curveTypeContent = CreateContentContainer("动画曲线类型:");
-            var curveTypeField = new EnumField(cameraTargetData.curveType);
+            var curveTypeField = new EnumField(((CameraTrackItemData)targetData).curveType);
             curveTypeField.AddToClassList("EnumField");
             curveTypeField.BindProperty(serializedObject.FindProperty("curveType"));
             curveTypeField.RegisterValueChangedCallback(evt => OnCurveTypeChanged((FFramework.Kit.AnimationCurveType)evt.newValue));
@@ -65,7 +63,7 @@ namespace SkillEditor
         {
             SafeExecute(() =>
             {
-                UpdateCameraTrackConfig(configClip => configClip.enablePosition = newValue, "位置变换启用状态更新");
+                UpdateTrackConfig(configClip => configClip.enablePosition = newValue, "位置变换启用状态更新");
             }, "位置变换启用状态更新");
         }
 
@@ -73,7 +71,7 @@ namespace SkillEditor
         {
             SafeExecute(() =>
             {
-                UpdateCameraTrackConfig(configClip => configClip.enableRotation = newValue, "旋转变换启用状态更新");
+                UpdateTrackConfig(configClip => configClip.enableRotation = newValue, "旋转变换启用状态更新");
             }, "旋转变换启用状态更新");
         }
 
@@ -81,7 +79,7 @@ namespace SkillEditor
         {
             SafeExecute(() =>
             {
-                UpdateCameraTrackConfig(configClip => configClip.enableFieldOfView = newValue, "视野变换启用状态更新");
+                UpdateTrackConfig(configClip => configClip.enableFieldOfView = newValue, "视野变换启用状态更新");
             }, "视野变换启用状态更新");
         }
 
@@ -89,7 +87,7 @@ namespace SkillEditor
         {
             SafeExecute(() =>
             {
-                UpdateCameraTrackConfig(configClip => configClip.positionOffset = newValue, "位置偏移更新");
+                UpdateTrackConfig(configClip => configClip.positionOffset = newValue, "位置偏移更新");
             }, "位置偏移更新");
         }
 
@@ -97,7 +95,7 @@ namespace SkillEditor
         {
             SafeExecute(() =>
             {
-                UpdateCameraTrackConfig(configClip => configClip.targetRotation = newValue, "目标旋转更新");
+                UpdateTrackConfig(configClip => configClip.targetRotation = newValue, "目标旋转更新");
             }, "目标旋转更新");
         }
 
@@ -105,7 +103,7 @@ namespace SkillEditor
         {
             SafeExecute(() =>
             {
-                UpdateCameraTrackConfig(configClip => configClip.targetFieldOfView = newValue, "目标视野角度更新");
+                UpdateTrackConfig(configClip => configClip.targetFieldOfView = newValue, "目标视野角度更新");
             }, "目标视野角度更新");
         }
 
@@ -113,7 +111,7 @@ namespace SkillEditor
         {
             SafeExecute(() =>
             {
-                UpdateCameraTrackConfig(configClip => configClip.customCurve = newValue, "自定义曲线更新");
+                UpdateTrackConfig(configClip => configClip.customCurve = newValue, "自定义曲线更新");
             }, "自定义曲线更新");
         }
 
@@ -121,7 +119,7 @@ namespace SkillEditor
         {
             SafeExecute(() =>
             {
-                UpdateCameraTrackConfig(configClip => configClip.restoreFrame = newValue, "还原状态所需帧更新");
+                UpdateTrackConfig(configClip => configClip.restoreFrame = newValue, "还原状态所需帧更新");
             }, "还原状态所需帧更新");
         }
 
@@ -129,7 +127,7 @@ namespace SkillEditor
         {
             SafeExecute(() =>
             {
-                UpdateCameraTrackConfig(configClip => configClip.curveType = newValue, "曲线类型更新");
+                UpdateTrackConfig(configClip => configClip.curveType = newValue, "曲线类型更新");
             }, "曲线类型更新");
         }
 
@@ -137,7 +135,7 @@ namespace SkillEditor
         {
             SafeExecute(() =>
           {
-              UpdateCameraTrackConfig(configClip => configClip.enableShake = newValue, "是否启用震动更新");
+              UpdateTrackConfig(configClip => configClip.enableShake = newValue, "是否启用震动更新");
           }, "是否启用震动更新");
         }
 
@@ -145,9 +143,10 @@ namespace SkillEditor
         {
             SafeExecute(() =>
             {
-                if (newValue >= 0 && newValue <= cameraTargetData.durationFrame - cameraTargetData.animationDurationFrame)
+                var cameraTrackItemData = targetData as CameraTrackItemData;
+                if (cameraTrackItemData != null && newValue >= 0 && newValue <= cameraTrackItemData.durationFrame - cameraTrackItemData.animationDurationFrame)
                 {
-                    UpdateCameraTrackConfig(configClip => configClip.animationStartFrameOffset = newValue, "动画开始帧更新");
+                    UpdateTrackConfig(configClip => configClip.animationStartFrameOffset = newValue, "动画开始帧更新");
                 }
                 else
                 {
@@ -161,9 +160,9 @@ namespace SkillEditor
             SafeExecute(() =>
             {
 
-                if (newValue >= 0 && newValue <= cameraTargetData.durationFrame)
+                if (newValue >= 0 && newValue <= targetData.durationFrame)
                 {
-                    UpdateCameraTrackConfig(configClip => configClip.animationDurationFrame = newValue, "动画持续时间更新");
+                    UpdateTrackConfig(configClip => configClip.animationDurationFrame = newValue, "动画持续时间更新");
                 }
                 else
                 {
@@ -176,7 +175,7 @@ namespace SkillEditor
         {
             SafeExecute(() =>
             {
-                UpdateCameraTrackConfig(configClip =>
+                UpdateTrackConfig(configClip =>
                 {
                     configClip.shakePreset = shakePreset;
                 }, "震动预设更新");
@@ -184,27 +183,34 @@ namespace SkillEditor
             }, "震动预设更新");
         }
 
-        /// <summary>
-        /// 起始帧变化事件处理
-        /// </summary>
-        /// <param name="newValue">新的起始帧值</param>
+        protected override void OnTrackItemNameChanged(string newValue)
+        {
+            SafeExecute(() =>
+            {
+                // 使用保存的旧名称
+                string oldName = lastTrackItemName ?? targetData.trackItemName;
+
+                // 先更新配置中的名称（使用旧名称查找）
+                UpdateTrackConfigByName(oldName, configClip => configClip.clipName = newValue, "轨道项名称更新");
+
+                // 更新保存的名称
+                lastTrackItemName = newValue;
+            }, "轨道项名称更新");
+        }
+
         protected override void OnStartFrameChanged(int newValue)
         {
             SafeExecute(() =>
             {
-                UpdateCameraTrackConfig(configClip => configClip.startFrame = newValue, "起始帧更新");
+                UpdateTrackConfig(configClip => configClip.startFrame = newValue, "起始帧更新");
             }, "起始帧更新");
         }
 
-        /// <summary>
-        /// 持续帧数变化事件处理
-        /// </summary>
-        /// <param name="newValue">新的持续帧数值</param>
         protected override void OnDurationFrameChanged(int newValue)
         {
             SafeExecute(() =>
             {
-                UpdateCameraTrackConfig(configClip => configClip.durationFrame = newValue, "持续帧数更新");
+                UpdateTrackConfig(configClip => configClip.durationFrame = newValue, "持续帧数更新");
             }, "持续帧数更新");
         }
 
@@ -223,70 +229,51 @@ namespace SkillEditor
             openShakePresetButton.clicked += () =>
             {
                 // 打开预设SO面板
-                if (cameraTargetData.shakePreset != null)
+                var cameraTrackItemData = targetData as CameraTrackItemData;
+                if (cameraTrackItemData != null && cameraTrackItemData.shakePreset != null)
                 {
-                    UnityEditor.Selection.activeObject = cameraTargetData.shakePreset;
-                    UnityEditor.EditorGUIUtility.PingObject(cameraTargetData.shakePreset);
+                    UnityEditor.Selection.activeObject = cameraTrackItemData.shakePreset;
+                    UnityEditor.EditorGUIUtility.PingObject(cameraTrackItemData.shakePreset);
                 }
             };
             openShakePresetButton.AddToClassList("CustomButton");
             openShakePresetContent.Add(openShakePresetButton);
             root.Add(openShakePresetContent);
         }
-
         /// <summary>
-        /// 统一的摄像机配置数据更新方法
+        /// 统一的配置数据更新方法
         /// </summary>
         /// <param name="updateAction">更新操作的委托</param>
         /// <param name="operationName">操作名称，用于调试信息</param>
-        private void UpdateCameraTrackConfig(System.Action<FFramework.Kit.CameraTrack.CameraClip> updateAction, string operationName = "更新配置")
+        private void UpdateTrackConfig(System.Action<FFramework.Kit.CameraTrack.CameraClip> updateAction, string operationName = "更新配置")
+        {
+            UpdateTrackConfigByName(targetData.trackItemName, updateAction, operationName);
+        }
+
+        /// <summary>
+        /// 根据指定名称查找并更新攻击配置数据
+        /// </summary>
+        /// <param name="clipName">要查找的片段名称</param>
+        /// <param name="updateAction">更新操作的委托</param>
+        /// <param name="operationName">操作名称，用于调试信息</param>
+        private void UpdateTrackConfigByName(string clipName, System.Action<FFramework.Kit.CameraTrack.CameraClip> updateAction, string operationName = "更新配置")
         {
             var skillConfig = SkillEditorData.CurrentSkillConfig;
-            if (skillConfig?.trackContainer?.cameraTrack == null || cameraTargetData == null)
+            if (skillConfig?.trackContainer?.cameraTrack == null || targetData == null)
             {
                 return;
             }
 
-            // 摄像机轨道是单轨道，直接在cameraClips中查找对应的片段
+            // 只通过名称唯一查找
             FFramework.Kit.CameraTrack.CameraClip targetConfigClip = null;
-
             if (skillConfig.trackContainer.cameraTrack.cameraClips != null)
             {
-                // 首先尝试精确匹配（名称和起始帧都匹配）
-                var exactMatches = skillConfig.trackContainer.cameraTrack.cameraClips
-                    .Where(clip => clip.clipName == cameraTargetData.trackItemName &&
-                                   clip.startFrame == cameraTargetData.startFrame)
-                    .ToList();
-
-                if (exactMatches.Count > 0)
-                {
-                    targetConfigClip = exactMatches[0];
-                    if (exactMatches.Count > 1)
-                    {
-                        Debug.LogWarning($"找到多个匹配的摄像机片段配置，使用第一个。名称: {cameraTargetData.trackItemName}, 起始帧: {cameraTargetData.startFrame}");
-                    }
-                }
-                else
-                {
-                    // 如果精确匹配失败，尝试只匹配名称
-                    var nameMatches = skillConfig.trackContainer.cameraTrack.cameraClips
-                        .Where(clip => clip.clipName == cameraTargetData.trackItemName)
-                        .ToList();
-
-                    if (nameMatches.Count > 0)
-                    {
-                        targetConfigClip = nameMatches[0];
-                    }
-                    else
-                    {
-                        Debug.LogWarning($"未找到名称匹配的摄像机片段: {cameraTargetData.trackItemName}");
-                    }
-                }
+                targetConfigClip = skillConfig.trackContainer.cameraTrack.cameraClips
+                    .FirstOrDefault(clip => clip.clipName == clipName);
             }
 
             if (targetConfigClip != null)
             {
-                // 执行更新操作
                 try
                 {
                     updateAction(targetConfigClip);
@@ -299,14 +286,14 @@ namespace SkillEditor
             }
             else
             {
-                Debug.LogWarning($"无法执行 {operationName}：找不到对应的摄像机片段配置 (片段名: {cameraTargetData.trackItemName}, 起始帧: {cameraTargetData.startFrame})");
+                Debug.LogWarning($"无法执行 {operationName}：找不到对应的摄像机片段配置 (片段名: {clipName})");
             }
         }
 
         protected override void PerformDelete()
         {
             if (EditorUtility.DisplayDialog("删除确认",
-                $"确定要删除摄像机轨道项 \"{cameraTargetData.trackItemName}\" 吗？\n\n此操作将会：\n• 从界面移除此轨道项\n• 删除对应的配置数据\n• 无法撤销",
+                $"确定要删除摄像机轨道项 \"{targetData.trackItemName}\" 吗？\n\n此操作将会：\n• 从界面移除此轨道项\n• 删除对应的配置数据\n• 无法撤销",
                 "确认删除", "取消"))
             {
                 DeleteCameraTrackItem();
@@ -322,7 +309,7 @@ namespace SkillEditor
             SafeExecute(() =>
             {
                 var skillConfig = SkillEditorData.CurrentSkillConfig;
-                if (skillConfig?.trackContainer?.cameraTrack == null || cameraTargetData == null)
+                if (skillConfig?.trackContainer?.cameraTrack == null || targetData == null)
                 {
                     Debug.LogWarning("无法删除轨道项：技能配置或摄像机轨道为空");
                     return;
@@ -334,8 +321,8 @@ namespace SkillEditor
                 if (cameraTrack?.cameraClips != null)
                 {
                     var clipToRemove = cameraTrack.cameraClips.FirstOrDefault(clip =>
-                        clip.clipName == cameraTargetData.trackItemName &&
-                        clip.startFrame == cameraTargetData.startFrame);
+                        clip.clipName == targetData.trackItemName &&
+                        clip.startFrame == targetData.startFrame);
 
                     if (clipToRemove != null)
                     {
@@ -345,7 +332,7 @@ namespace SkillEditor
                     }
                     else
                     {
-                        Debug.LogWarning($"未找到要删除的摄像机片段: {cameraTargetData.trackItemName}");
+                        Debug.LogWarning($"未找到要删除的摄像机片段: {targetData.trackItemName}");
                     }
                 }
 
@@ -357,9 +344,9 @@ namespace SkillEditor
                 }
 
                 // 删除ScriptableObject资产
-                if (cameraTargetData != null)
+                if (targetData != null)
                 {
-                    UnityEditor.AssetDatabase.DeleteAsset(UnityEditor.AssetDatabase.GetAssetPath(cameraTargetData));
+                    UnityEditor.AssetDatabase.DeleteAsset(UnityEditor.AssetDatabase.GetAssetPath(targetData));
                 }
 
                 // 清空Inspector选择
@@ -379,7 +366,7 @@ namespace SkillEditor
                     };
                 }
 
-                Debug.Log($"摄像机轨道项 \"{cameraTargetData.trackItemName}\" 删除成功");
+                Debug.Log($"摄像机轨道项 \"{targetData.trackItemName}\" 删除成功");
             }, "删除摄像机轨道项");
         }
 

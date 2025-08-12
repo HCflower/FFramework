@@ -198,6 +198,7 @@ namespace SkillEditor
                     var eventData = eventTrackItem.EventData;
                     eventData.durationFrame = clip.durationFrame;
                     // 从配置中恢复完整的事件属性
+                    eventData.trackItemName = clip.clipName;
                     eventData.eventType = clip.eventType;
                     eventData.eventParameters = clip.eventParameters;
 

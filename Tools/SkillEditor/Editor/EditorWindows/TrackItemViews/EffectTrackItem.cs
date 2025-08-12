@@ -74,6 +74,7 @@ namespace SkillEditor
                 if (currentEffectData == null)
                 {
                     currentEffectData = CreateEffectTrackItemData();
+                    // 设置特效截断帧视图
                     SetCutEffectFrameView(currentEffectData.cutEffectFrameOffset, cutEffectFrameView);
                 }
                 return currentEffectData;
@@ -164,7 +165,7 @@ namespace SkillEditor
         {
             if (visualElement == null || cutEffectFrameOffset == 0) return;
             visualElement.AddToClassList("CutEffectFrameView");
-            visualElement.style.left = cutEffectFrameOffset * SkillEditorData.FrameUnitWidth - 3;
+            visualElement.style.right = (currentEffectData.durationFrame - cutEffectFrameOffset) * SkillEditorData.FrameUnitWidth;
         }
 
         #endregion
@@ -338,7 +339,7 @@ namespace SkillEditor
             effectData.effectPrefab = null;      // 默认特效预制体为空
             effectData.effectPlaySpeed = 1.0f;   // 默认播放速度为1
             effectData.isCutEffect = false;      // 默认不裁剪特效
-            effectData.cutEffectFrameOffset = 0;       // 默认裁剪帧为0
+            effectData.cutEffectFrameOffset = 0; // 默认裁剪帧为0
             effectData.position = Vector3.zero;  // 默认位置为原点
             effectData.rotation = Vector3.zero;  // 默认旋转为零
             effectData.scale = Vector3.one;      // 默认缩放为1
@@ -364,6 +365,7 @@ namespace SkillEditor
             if (configClip != null)
             {
                 // 从配置中恢复特效属性
+                effectData.trackItemName = configClip.clipName;
                 effectData.effectPrefab = configClip.effectPrefab;
                 effectData.durationFrame = configClip.durationFrame;
                 effectData.effectPlaySpeed = configClip.effectPlaySpeed;
