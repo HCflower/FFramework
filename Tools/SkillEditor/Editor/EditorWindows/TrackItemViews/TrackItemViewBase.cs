@@ -7,7 +7,7 @@ namespace SkillEditor
     /// 轨道项视图基类
     /// 提供轨道项的基础视图设置功能，包括拖拽交互
     /// </summary>
-    public abstract class BaseTrackItemView : VisualElement
+    public abstract class TrackItemViewBase : VisualElement
     {
         #region 受保护字段
 
@@ -213,7 +213,7 @@ namespace SkillEditor
         }
 
         /// <summary>
-        /// 将位置限制在轨道边界内
+        /// TODO将位置限制在轨道边界内
         /// 确保轨道项不会拖拽到轨道区域之外
         /// </summary>
         /// <param name="newLeft">计算得到的新左边距位置</param>

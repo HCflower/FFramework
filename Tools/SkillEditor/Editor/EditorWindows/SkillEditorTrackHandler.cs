@@ -1192,7 +1192,7 @@ namespace SkillEditor
         /// <param name="track">轨道实例</param>
         /// <param name="trackType">轨道类型</param>
         /// <param name="trackIndex">轨道索引</param>
-        private void CreateTrackItemsFromConfigByIndex(BaseSkillEditorTrack track, TrackType trackType, int trackIndex)
+        private void CreateTrackItemsFromConfigByIndex(SkillEditorTrackBase track, TrackType trackType, int trackIndex)
         {
             var skillConfig = SkillEditorData.CurrentSkillConfig;
             if (skillConfig?.trackContainer == null) return;

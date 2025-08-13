@@ -7,7 +7,7 @@ using System.Linq;
 namespace SkillEditor
 {
     [CustomEditor(typeof(TransformTrackItemData))]
-    public class TransformTrackItemDataInspector : BaseTrackItemDataInspector
+    public class TransformTrackItemDataInspector : TrackItemDataInspectorBase
     {
         protected override string TrackItemTypeName => "Transform";
         protected override string TrackItemDisplayTitle => "变换轨道项信息";
@@ -201,59 +201,72 @@ namespace SkillEditor
             }
         }
 
-        protected override void PerformDelete()
-        {
-            if (EditorUtility.DisplayDialog("删除确认",
-                $"确定要删除变换轨道项 \"{targetData.trackItemName}\" 吗？\n\n此操作将会：\n• 从界面移除此轨道项\n• 删除对应的配置数据\n• 无法撤销",
-                "确认删除", "取消"))
-            {
-                DeleteTransformTrackItem();
-            }
-        }
-
         /// <summary>
         /// 删除变换轨道项的完整流程
         /// 包括移除UI元素、删除配置数据和触发界面刷新
         /// </summary>
-        private void DeleteTransformTrackItem()
+        protected override void DeleteTrackItem()
         {
-            SafeExecute(() =>
+            var skillConfig = SkillEditorData.CurrentSkillConfig;
+            if (skillConfig?.trackContainer?.transformTrack == null || targetData == null)
             {
-                var skillConfig = SkillEditorData.CurrentSkillConfig;
-                if (skillConfig?.trackContainer?.transformTrack == null || targetData == null)
+                Debug.LogWarning("无法删除轨道项：技能配置或变换轨道为空");
+                return;
+            }
+
+            // 查找并删除变换轨道项（仅通过名称查找，名称已保证唯一性）
+            bool deleted = false;
+            if (skillConfig.trackContainer.transformTrack.transformClips != null)
+            {
+                var clipToRemove = skillConfig.trackContainer.transformTrack.transformClips
+                    .FirstOrDefault(clip => clip.clipName == targetData.trackItemName);
+
+                if (clipToRemove != null)
                 {
-                    Debug.LogWarning("无法删除轨道项：技能配置或变换轨道为空");
-                    return;
+                    skillConfig.trackContainer.transformTrack.transformClips.Remove(clipToRemove);
+                    deleted = true;
+                    Debug.Log($"从配置中删除变换片段: {clipToRemove.clipName}");
                 }
-
-                // TODO: 实现变换轨道项的配置数据删除逻辑
-                // 由于变换轨道的具体数据结构需要进一步确认，这里保留删除框架
-
-                // 删除ScriptableObject资产
-                if (targetData != null)
+                else
                 {
-                    UnityEditor.AssetDatabase.DeleteAsset(UnityEditor.AssetDatabase.GetAssetPath(targetData));
+                    Debug.LogWarning($"未找到要删除的变换片段: {targetData.trackItemName}");
                 }
+            }
 
-                // 清空Inspector选择
-                UnityEditor.Selection.activeObject = null;
+            if (deleted)
+            {
+                // 标记配置文件为已修改
+                MarkSkillConfigDirty();
+                UnityEditor.AssetDatabase.SaveAssets();
+            }
 
-                // 触发界面刷新以移除UI元素
-                var window = UnityEditor.EditorWindow.GetWindow<SkillEditor>();
-                if (window != null)
+            // 删除ScriptableObject资产
+            if (targetData != null)
+            {
+                UnityEditor.AssetDatabase.DeleteAsset(UnityEditor.AssetDatabase.GetAssetPath(targetData));
+            }
+
+            // 清空Inspector选择
+            UnityEditor.Selection.activeObject = null;
+
+            // 触发界面刷新以移除UI元素
+            var window = UnityEditor.EditorWindow.GetWindow<SkillEditor>();
+            if (window != null)
+            {
+                // 使用EditorApplication.delayCall确保在下一帧执行刷新
+                UnityEditor.EditorApplication.delayCall += () =>
                 {
-                    // 使用EditorApplication.delayCall确保在下一帧执行刷新
-                    UnityEditor.EditorApplication.delayCall += () =>
-                    {
-                        window.Repaint();
+                    window.Repaint();
 
-                        // 直接调用静态事件方法
-                        SkillEditorEvent.TriggerRefreshRequested();
-                    };
-                }
+                    // 直接调用静态事件方法
+                    SkillEditorEvent.TriggerRefreshRequested();
+                };
+            }
 
-                Debug.Log($"变换轨道项 \"{targetData.trackItemName}\" 删除成功");
-            }, "删除变换轨道项");
+            // 清空Inspector选择
+            UnityEditor.Selection.activeObject = null;
+
+            Debug.Log($"删除变换轨道项: {targetData.trackItemName}");
         }
 
         #endregion

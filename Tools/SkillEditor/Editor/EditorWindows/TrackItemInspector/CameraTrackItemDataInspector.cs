@@ -7,7 +7,7 @@ using System.Linq;
 namespace SkillEditor
 {
     [CustomEditor(typeof(CameraTrackItemData))]
-    public class CameraTrackItemDataInspector : BaseTrackItemDataInspector
+    public class CameraTrackItemDataInspector : TrackItemDataInspectorBase
     {
         protected override string TrackItemTypeName => "Camera";
         protected override string TrackItemDisplayTitle => "摄像机轨道项信息";
@@ -290,60 +290,40 @@ namespace SkillEditor
             }
         }
 
-        protected override void PerformDelete()
-        {
-            if (EditorUtility.DisplayDialog("删除确认",
-                $"确定要删除摄像机轨道项 \"{targetData.trackItemName}\" 吗？\n\n此操作将会：\n• 从界面移除此轨道项\n• 删除对应的配置数据\n• 无法撤销",
-                "确认删除", "取消"))
-            {
-                DeleteCameraTrackItem();
-            }
-        }
-
         /// <summary>
         /// 删除摄像机轨道项的完整流程
         /// 包括移除UI元素、删除配置数据和触发界面刷新
         /// </summary>
-        private void DeleteCameraTrackItem()
+        protected override void DeleteTrackItem()
         {
-            SafeExecute(() =>
+            var skillConfig = SkillEditorData.CurrentSkillConfig;
+            if (skillConfig?.trackContainer?.cameraTrack == null || targetData == null)
             {
-                var skillConfig = SkillEditorData.CurrentSkillConfig;
-                if (skillConfig?.trackContainer?.cameraTrack == null || targetData == null)
-                {
-                    Debug.LogWarning("无法删除轨道项：技能配置或摄像机轨道为空");
-                    return;
-                }
+                Debug.LogWarning("无法删除轨道项：技能配置或摄像机轨道为空");
+                return;
+            }
 
-                // 摄像机轨道是单轨道，需要从cameraClips列表中移除对应的片段
-                bool deleted = false;
-                var cameraTrack = skillConfig.trackContainer.cameraTrack;
-                if (cameraTrack?.cameraClips != null)
-                {
-                    var clipToRemove = cameraTrack.cameraClips.FirstOrDefault(clip =>
-                        clip.clipName == targetData.trackItemName &&
-                        clip.startFrame == targetData.startFrame);
+            // 标记要删除的摄像机片段配置
+            FFramework.Kit.CameraTrack.CameraClip targetConfigClip = null;
+            var cameraTrack = skillConfig.trackContainer.cameraTrack;
 
-                    if (clipToRemove != null)
-                    {
-                        cameraTrack.cameraClips.Remove(clipToRemove);
-                        deleted = true;
-                        Debug.Log($"从配置中删除摄像机片段: {clipToRemove.clipName}");
-                    }
-                    else
-                    {
-                        Debug.LogWarning($"未找到要删除的摄像机片段: {targetData.trackItemName}");
-                    }
-                }
+            // 查找对应的摄像机片段配置
+            if (cameraTrack.cameraClips != null)
+            {
+                // 直接通过唯一名称查找目标配置
+                targetConfigClip = cameraTrack.cameraClips
+                    .FirstOrDefault(clip => clip.clipName == targetData.trackItemName);
+            }
 
-                if (deleted)
-                {
-                    // 标记配置文件为已修改
-                    MarkSkillConfigDirty();
-                    UnityEditor.AssetDatabase.SaveAssets();
-                }
+            if (targetConfigClip != null)
+            {
+                // 从配置中移除摄像机片段数据
+                cameraTrack.cameraClips.Remove(targetConfigClip);
 
-                // 删除ScriptableObject资产
+                // 标记技能配置为已修改
+                MarkSkillConfigDirty();
+
+                // 删除轨道项的ScriptableObject数据文件
                 if (targetData != null)
                 {
                     UnityEditor.AssetDatabase.DeleteAsset(UnityEditor.AssetDatabase.GetAssetPath(targetData));
@@ -360,14 +340,17 @@ namespace SkillEditor
                     UnityEditor.EditorApplication.delayCall += () =>
                     {
                         window.Repaint();
-
                         // 直接调用静态事件方法
                         SkillEditorEvent.TriggerRefreshRequested();
                     };
                 }
 
                 Debug.Log($"摄像机轨道项 \"{targetData.trackItemName}\" 删除成功");
-            }, "删除摄像机轨道项");
+            }
+            else
+            {
+                Debug.LogWarning($"无法删除轨道项：找不到对应的摄像机片段配置 \"{targetData.trackItemName}\"");
+            }
         }
 
         #endregion

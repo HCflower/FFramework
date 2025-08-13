@@ -10,12 +10,12 @@ namespace SkillEditor
     /// 轨道项检查器基类
     /// 提供通用的UI创建方法和数据绑定功能
     /// </summary>
-    public abstract class BaseTrackItemDataInspector : Editor
+    public abstract class TrackItemDataInspectorBase : Editor
     {
         #region 字段和属性
 
         protected VisualElement root;
-        protected BaseTrackItemData targetData;
+        protected TrackItemDataBase targetData;
         private bool isInitialized = false;
         protected string lastTrackItemName;
         /// <summary>
@@ -42,7 +42,7 @@ namespace SkillEditor
         /// </summary>
         public override VisualElement CreateInspectorGUI()
         {
-            targetData = target as BaseTrackItemData;
+            targetData = target as TrackItemDataBase;
             root = new VisualElement();
 
             if (targetData == null)
@@ -221,13 +221,14 @@ namespace SkillEditor
         /// </summary>
         protected virtual void OnDeleteButtonClicked()
         {
-            PerformDelete();
+            SafeExecute(() =>
+              {
+                  if (EditorUtility.DisplayDialog("删除确认", $"确定要删除此轨道项 \"{targetData.trackItemName}\" 吗？\n\n此操作将会：\n• 从界面移除此轨道项\n• 删除对应的配置数据\n• 无法撤销", "确认删除", "取消"))
+                      DeleteTrackItem();
+              }, "删除游戏物体轨道项");
         }
 
-        /// <summary>
-        /// 执行实际的删除操作，子类应重写此方法
-        /// </summary>
-        protected abstract void PerformDelete();
+        protected abstract void DeleteTrackItem();
 
         #endregion
 

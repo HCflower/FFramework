@@ -6,7 +6,7 @@ namespace SkillEditor
     /// 游戏物体轨道项数据
     /// 存储游戏物体轨道项的所有配置信息
     /// </summary>
-    public class GameObjectTrackItemData : BaseTrackItemData
+    public class GameObjectTrackItemData : TrackItemDataBase
     {
         public GameObject prefab;                   // 预制体
         public bool autoDestroy = true;             // 是否自动销毁

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine.UIElements;
 using UnityEngine;
 using System.Linq;
@@ -12,8 +13,10 @@ namespace SkillEditor
     /// 事件轨道实现
     /// 专门处理事件的创建、显示和配置管理
     /// </summary>
-    public class EventSkillEditorTrack : BaseSkillEditorTrack
+    public class EventSkillEditorTrack : SkillEditorTrackBase
     {
+        #region 构造函数
+
         /// <summary>
         /// 事件轨道构造函数
         /// </summary>
@@ -25,6 +28,8 @@ namespace SkillEditor
             : base(visual, TrackType.EventTrack, width, skillConfig, trackIndex)
         { }
 
+        #endregion
+
         #region 抽象方法实现
 
         /// <summary>
@@ -34,8 +39,7 @@ namespace SkillEditor
         /// <returns>始终返回false，事件轨道不接受拖拽</returns>
         protected override bool CanAcceptDraggedObject(Object obj)
         {
-            // 事件轨道通常不接受拖拽，而是通过UI菜单创建
-            return false;
+            return false; // 事件轨道不接受拖拽
         }
 
         /// <summary>
@@ -45,22 +49,17 @@ namespace SkillEditor
         /// <param name="startFrame">起始帧</param>
         /// <param name="addToConfig">是否添加到配置</param>
         /// <returns>创建的轨道项</returns>
-        protected override BaseTrackItemView CreateTrackItemFromResource(object resource, int startFrame, bool addToConfig)
+        protected override TrackItemViewBase CreateTrackItemFromResource(object resource, int startFrame, bool addToConfig)
         {
             if (!(resource is string eventName))
                 return null;
 
-            // 事件轨道项默认1帧长度
-            int frameCount = 1;
-            var newItem = new EventTrackItem(trackArea, eventName, frameCount, startFrame, trackIndex);
+            var newItem = CreateEventTrackItem(eventName, startFrame, 1, addToConfig);
 
-            // 添加到基类的轨道项列表，确保在时间轴缩放时能够被刷新
-            trackItems.Add(newItem);
-
-            // 添加到技能配置
             if (addToConfig)
             {
-                AddEventToConfig(eventName, startFrame, frameCount);
+                AddTrackItemDataToConfig(eventName, startFrame, 1);
+                SkillEditorEvent.OnRefreshRequested();
             }
 
             return newItem;
@@ -72,7 +71,7 @@ namespace SkillEditor
         protected override void ApplySpecificTrackStyle()
         {
             // 事件轨道特有的样式设置
-            // 可以在这里添加事件轨道特有的视觉效果
+            trackArea.AddToClassList("TrackArea-Event");
         }
 
         #endregion
@@ -86,91 +85,28 @@ namespace SkillEditor
         /// <param name="startFrame">起始帧</param>
         /// <param name="addToConfig">是否添加到配置</param>
         /// <returns>创建的事件轨道项</returns>
-        public EventTrackItem CreateEventItem(string eventName, int startFrame, bool addToConfig = true)
+        public EventTrackItem CreateEventTrackItem(string eventName, int startFrame, int frameCount, bool addToConfig = true)
         {
-            return (EventTrackItem)AddTrackItem(eventName, startFrame, addToConfig);
+            var eventItem = new EventTrackItem(trackArea, eventName, frameCount, startFrame, trackIndex);
+
+            trackItems.Add(eventItem);
+
+            if (addToConfig)
+            {
+                AddTrackItemDataToConfig(eventName, startFrame, frameCount);
+                SkillEditorEvent.OnRefreshRequested();
+            }
+
+            return eventItem;
         }
-
-        #endregion
-
-        #region 私有方法
 
         /// <summary>
-        /// 将事件添加到技能配置的事件轨道中
+        /// 刷新轨道项
         /// </summary>
-        /// <param name="eventName">事件名称</param>
-        /// <param name="startFrame">起始帧</param>
-        /// <param name="frameCount">总帧数</param>
-        private void AddEventToConfig(string eventName, int startFrame, int frameCount)
+        public override void RefreshTrackItems()
         {
-            if (skillConfig?.trackContainer == null) return;
-
-            // 确保事件轨道存在
-            if (skillConfig.trackContainer.eventTrack == null)
-            {
-                // 创建事件轨道ScriptableObject
-                var newEventTrackSO = ScriptableObject.CreateInstance<FFramework.Kit.EventTrackSO>();
-                skillConfig.trackContainer.eventTrack = newEventTrackSO;
-
-#if UNITY_EDITOR
-                // 将ScriptableObject作为子资产添加到技能配置文件中
-                UnityEditor.AssetDatabase.AddObjectToAsset(newEventTrackSO, skillConfig);
-                UnityEditor.AssetDatabase.SaveAssets();
-#endif
-            }
-
-            // 获取事件轨道SO
-            var eventTrackSO = skillConfig.trackContainer.eventTrack;
-
-            // 确保至少有一个轨道存在
-            eventTrackSO.EnsureTrackExists();
-
-            // 确保指定索引的轨道存在
-            while (eventTrackSO.eventTracks.Count <= trackIndex)
-            {
-                eventTrackSO.AddTrack($"Event Track {eventTrackSO.eventTracks.Count}");
-            }
-
-            // 获取指定索引的事件轨道
-            var eventTrack = eventTrackSO.eventTracks[trackIndex];
-
-            // 确保事件片段列表存在
-            if (eventTrack.eventClips == null)
-            {
-                eventTrack.eventClips = new System.Collections.Generic.List<FFramework.Kit.EventTrack.EventClip>();
-            }
-
-            // 创建技能配置中的事件片段数据
-            var configEventClip = new FFramework.Kit.EventTrack.EventClip
-            {
-                clipName = eventName,
-                startFrame = startFrame,
-                durationFrame = frameCount,
-                eventType = eventName,
-                eventParameters = ""
-            };
-
-            // 添加到对应索引的事件轨道
-            eventTrack.eventClips.Add(configEventClip);
-
-            Debug.Log($"AddEventToConfig: 添加事件 '{eventName}' 到轨道索引 {trackIndex}");
-
-#if UNITY_EDITOR
-            // 标记轨道数据和技能配置为已修改
-            if (eventTrackSO != null)
-            {
-                EditorUtility.SetDirty(eventTrackSO);
-            }
-            if (skillConfig != null)
-            {
-                EditorUtility.SetDirty(skillConfig);
-            }
-#endif
+            base.RefreshTrackItems();
         }
-
-        #endregion
-
-        #region 配置恢复方法
 
         /// <summary>
         /// 根据索引从配置创建事件轨道项
@@ -189,31 +125,103 @@ namespace SkillEditor
 
             foreach (var clip in targetTrack.eventClips)
             {
-                // 从配置加载时，设置addToConfig为false，避免重复添加到配置文件
-                var trackItem = track.AddTrackItem(clip.clipName, clip.startFrame, false);
+                var trackItem = track.CreateEventTrackItem(clip.clipName, clip.startFrame, clip.durationFrame, false);
 
-                // 更新轨道项的持续帧数和相关数据
                 if (trackItem is EventTrackItem eventTrackItem)
                 {
-                    var eventData = eventTrackItem.EventData;
-                    eventData.durationFrame = clip.durationFrame;
-                    // 从配置中恢复完整的事件属性
-                    eventData.trackItemName = clip.clipName;
-                    eventData.eventType = clip.eventType;
-                    eventData.eventParameters = clip.eventParameters;
-
-#if UNITY_EDITOR
-                    // 标记数据已修改
-                    UnityEditor.EditorUtility.SetDirty(eventData);
-#endif
-                }
-
-                // 更新轨道项的帧数和宽度显示
-                if (clip.durationFrame > 0)
-                {
-                    trackItem?.UpdateFrameCount(clip.durationFrame);
+                    RestoreEventData(eventTrackItem, clip);
                 }
             }
+        }
+
+        #endregion
+
+        #region 私有方法
+
+        /// <summary>
+        /// 将事件添加到技能配置的事件轨道中
+        /// </summary>
+        /// <param name="eventName">事件名称</param>
+        /// <param name="startFrame">起始帧</param>
+        /// <param name="frameCount">总帧数</param>
+        private void AddTrackItemDataToConfig(string eventName, int startFrame, int frameCount)
+        {
+            if (skillConfig?.trackContainer == null) return;
+
+            EnsureEventTrackExists();
+
+            var eventTrackSO = skillConfig.trackContainer.eventTrack;
+
+            while (eventTrackSO.eventTracks.Count <= trackIndex)
+            {
+                eventTrackSO.AddTrack($"Event Track {eventTrackSO.eventTracks.Count}");
+            }
+
+            var eventTrack = eventTrackSO.eventTracks[trackIndex];
+
+            if (eventTrack.eventClips == null)
+            {
+                eventTrack.eventClips = new List<FFramework.Kit.EventTrack.EventClip>();
+            }
+
+            string finalName = eventName;
+            int suffix = 1;
+            while (eventTrack.eventClips.Any(c => c.clipName == finalName))
+            {
+                finalName = $"{eventName}_{suffix++}";
+            }
+
+            var configEventClip = new FFramework.Kit.EventTrack.EventClip
+            {
+                clipName = finalName,
+                startFrame = startFrame,
+                durationFrame = frameCount,
+                eventType = finalName,
+                eventParameters = ""
+            };
+
+            eventTrack.eventClips.Add(configEventClip);
+
+#if UNITY_EDITOR
+            EditorUtility.SetDirty(eventTrackSO);
+            EditorUtility.SetDirty(skillConfig);
+#endif
+        }
+
+        /// <summary>
+        /// 确保事件轨道存在
+        /// </summary>
+        private void EnsureEventTrackExists()
+        {
+            if (skillConfig.trackContainer.eventTrack != null) return;
+
+            var newEventTrackSO = ScriptableObject.CreateInstance<FFramework.Kit.EventTrackSO>();
+            skillConfig.trackContainer.eventTrack = newEventTrackSO;
+
+#if UNITY_EDITOR
+            UnityEditor.AssetDatabase.AddObjectToAsset(newEventTrackSO, skillConfig);
+            UnityEditor.AssetDatabase.SaveAssets();
+#endif
+        }
+
+        /// <summary>
+        /// 从配置恢复事件数据
+        /// </summary>
+        /// <param name="trackItem">轨道项</param>
+        /// <param name="clip">事件片段</param>
+        private static void RestoreEventData(EventTrackItem trackItem, FFramework.Kit.EventTrack.EventClip clip)
+        {
+            if (trackItem?.EventData == null) return;
+
+            var eventData = trackItem.EventData;
+            eventData.trackItemName = clip.clipName;
+            eventData.durationFrame = clip.durationFrame;
+            eventData.eventType = clip.eventType;
+            eventData.eventParameters = clip.eventParameters;
+
+#if UNITY_EDITOR
+            EditorUtility.SetDirty(eventData);
+#endif
         }
 
         #endregion

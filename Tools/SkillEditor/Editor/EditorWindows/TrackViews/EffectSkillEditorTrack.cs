@@ -1,5 +1,7 @@
+using System.Collections.Generic;
 using UnityEngine.UIElements;
 using UnityEngine;
+using System.Linq;
 
 #if UNITY_EDITOR
 using UnityEditor;
@@ -11,8 +13,10 @@ namespace SkillEditor
     /// 特效轨道实现
     /// 专门处理特效GameObject的拖拽、显示和配置管理
     /// </summary>
-    public class EffectSkillEditorTrack : BaseSkillEditorTrack
+    public class EffectSkillEditorTrack : SkillEditorTrackBase
     {
+        #region 构造函数
+
         /// <summary>
         /// 特效轨道构造函数
         /// </summary>
@@ -23,6 +27,8 @@ namespace SkillEditor
         public EffectSkillEditorTrack(VisualElement visual, float width, FFramework.Kit.SkillConfig skillConfig, int trackIndex = 0)
             : base(visual, TrackType.EffectTrack, width, skillConfig, trackIndex)
         { }
+
+        #endregion
 
         #region 抽象方法实现
 
@@ -43,7 +49,7 @@ namespace SkillEditor
         /// <param name="startFrame">起始帧</param>
         /// <param name="addToConfig">是否添加到配置</param>
         /// <returns>创建的轨道项</returns>
-        protected override BaseTrackItemView CreateTrackItemFromResource(object resource, int startFrame, bool addToConfig)
+        protected override TrackItemViewBase CreateTrackItemFromResource(object resource, int startFrame, bool addToConfig)
         {
             if (!(resource is GameObject gameObject))
             {
@@ -51,33 +57,15 @@ namespace SkillEditor
                 return null;
             }
 
-            float frameRate = GetFrameRate();
-            float duration = GetEffectDuration(gameObject);
-            int frameCount = Mathf.RoundToInt(duration * frameRate);
-            string itemName = gameObject.name;
+            var frameCount = CalculateFrameCount(gameObject);
+            var newItem = CreateEffectTrackItem(gameObject.name, startFrame, frameCount, addToConfig);
 
-            var newItem = new EffectTrackItem(trackArea, itemName, frameCount, startFrame, trackIndex);
-
-            // 添加到基类的轨道项列表，确保在时间轴缩放时能够被刷新
-            trackItems.Add(newItem);
-
-            // 设置特效轨道项的数据
-            var effectData = newItem.EffectData;
-            effectData.effectPrefab = gameObject;
-            effectData.effectPlaySpeed = 1.0f;
-            effectData.position = Vector3.zero;
-            effectData.rotation = Vector3.zero;
-            effectData.scale = Vector3.one;
-
-#if UNITY_EDITOR
-            EditorUtility.SetDirty(effectData);
-#endif
-
-            // 添加到技能配置
             if (addToConfig)
             {
-                AddEffectToConfig(gameObject, itemName, startFrame, frameCount);
+                AddTrackItemDataToConfig(gameObject, gameObject.name, startFrame, frameCount);
+                SkillEditorEvent.OnRefreshRequested();
             }
+
             return newItem;
         }
 
@@ -87,61 +75,81 @@ namespace SkillEditor
         protected override void ApplySpecificTrackStyle()
         {
             // 特效轨道特有的样式设置
-            // 可以在这里添加特效轨道特有的视觉效果
+            trackArea.AddToClassList("TrackArea-Effect");
         }
 
         #endregion
 
-        #region 重写方法
+        #region 公共方法
 
         /// <summary>
-        /// 支持自定义名称的特效轨道项添加
+        /// 创建特效轨道项
         /// </summary>
-        /// <param name="resource">特效GameObject资源</param>
-        /// <param name="itemName">自定义名称</param>
+        /// <param name="itemName">轨道项名称</param>
         /// <param name="startFrame">起始帧</param>
+        /// <param name="frameCount">总帧数</param>
         /// <param name="addToConfig">是否添加到配置</param>
-        /// <returns>创建的轨道项</returns>
-        public override BaseTrackItemView AddTrackItem(object resource, string itemName, int startFrame, bool addToConfig)
+        /// <returns>创建的特效轨道项</returns>
+        public EffectTrackItem CreateEffectTrackItem(string itemName, int startFrame, int frameCount, bool addToConfig = true)
         {
-            if (!(resource is GameObject gameObject))
-                return null;
+            var effectItem = new EffectTrackItem(trackArea, itemName, frameCount, startFrame, trackIndex);
 
-            float frameRate = GetFrameRate();
-            float duration = GetEffectDuration(gameObject);
-            int frameCount = Mathf.RoundToInt(duration * frameRate);
-
-            var newItem = new EffectTrackItem(trackArea, itemName, frameCount, startFrame, trackIndex);
-
-            // 设置特效轨道项的数据
-            var effectData = newItem.EffectData;
-            effectData.effectPrefab = gameObject;
-            effectData.effectPlaySpeed = 1.0f;
-            effectData.position = Vector3.zero;
-            effectData.rotation = Vector3.zero;
-            effectData.scale = Vector3.one;
-
-#if UNITY_EDITOR
-            EditorUtility.SetDirty(effectData);
-#endif
-
-            // 添加到技能配置
             if (addToConfig)
             {
-                AddEffectToConfig(gameObject, itemName, startFrame, frameCount);
+                // 外部调用者处理配置逻辑
             }
 
-            if (newItem != null)
+            trackItems.Add(effectItem);
+            return effectItem;
+        }
+
+        /// <summary>
+        /// 刷新轨道项
+        /// </summary>
+        public override void RefreshTrackItems()
+        {
+            base.RefreshTrackItems();
+        }
+
+        /// <summary>
+        /// 根据配置创建特效轨道项
+        /// </summary>
+        /// <param name="track">特效轨道实例</param>
+        /// <param name="skillConfig">技能配置</param>
+        /// <param name="trackIndex">轨道索引</param>
+        public static void CreateTrackItemsFromConfig(EffectSkillEditorTrack track, FFramework.Kit.SkillConfig skillConfig, int trackIndex)
+        {
+            var effectTrackSO = skillConfig.trackContainer.effectTrack;
+            if (effectTrackSO?.effectTracks == null || trackIndex >= effectTrackSO.effectTracks.Count) return;
+
+            var effectTrack = effectTrackSO.effectTracks[trackIndex];
+            if (effectTrack.effectClips == null) return;
+
+            foreach (var clip in effectTrack.effectClips)
             {
-                trackItems.Add(newItem);
+                if (clip.effectPrefab != null)
+                {
+                    var trackItem = track.CreateEffectTrackItem(clip.clipName, clip.startFrame, clip.durationFrame, false);
+                    RestoreEffectData(trackItem as EffectTrackItem, clip);
+                }
             }
-
-            return newItem;
         }
 
         #endregion
 
         #region 私有方法
+
+        /// <summary>
+        /// 计算特效的帧数
+        /// </summary>
+        /// <param name="gameObject">特效GameObject</param>
+        /// <returns>帧数</returns>
+        private int CalculateFrameCount(GameObject gameObject)
+        {
+            float frameRate = GetFrameRate();
+            float duration = GetEffectDuration(gameObject);
+            return Mathf.RoundToInt(duration * frameRate);
+        }
 
         /// <summary>
         /// 获取特效GameObject的持续时间
@@ -175,40 +183,15 @@ namespace SkillEditor
         /// <param name="itemName">轨道项名称</param>
         /// <param name="startFrame">起始帧</param>
         /// <param name="frameCount">总帧数</param>
-        private void AddEffectToConfig(GameObject effectGameObject, string itemName, int startFrame, int frameCount)
+        private void AddTrackItemDataToConfig(GameObject effectGameObject, string itemName, int startFrame, int frameCount)
         {
-            Debug.Log($"AddEffectToConfig: 开始添加特效 '{itemName}' (GameObject: {effectGameObject?.name})");
+            Debug.Log($"EffectTrack: 添加轨道项数据 - 名称: {itemName}, 起始帧: {startFrame}, 持续帧数: {frameCount}");
+            if (skillConfig?.trackContainer == null) return;
 
-            if (skillConfig?.trackContainer == null)
-            {
-                Debug.LogError("AddEffectToConfig: skillConfig 或 trackContainer 为空");
-                return;
-            }
+            EnsureEffectTrackExists();
 
-            // 确保特效轨道存在
-            if (skillConfig.trackContainer.effectTrack == null)
-            {
-                Debug.Log("AddEffectToConfig: 创建新的 EffectTrackSO");
-
-                // 创建特效轨道ScriptableObject
-                var newEffectTrackSO = ScriptableObject.CreateInstance<FFramework.Kit.EffectTrackSO>();
-                newEffectTrackSO.effectTracks = new System.Collections.Generic.List<FFramework.Kit.EffectTrack>();
-                newEffectTrackSO.name = "EffectTracks";
-                skillConfig.trackContainer.effectTrack = newEffectTrackSO;
-
-#if UNITY_EDITOR
-                // 将轨道SO作为子资产添加到技能配置文件中
-                UnityEditor.AssetDatabase.AddObjectToAsset(newEffectTrackSO, skillConfig);
-                UnityEditor.EditorUtility.SetDirty(skillConfig);
-                UnityEditor.AssetDatabase.SaveAssets();
-                Debug.Log($"创建特效轨道数据作为子资产嵌套到 {skillConfig.name}");
-#endif
-            }
-
-            // 获取特效轨道SO
             var effectTrackSO = skillConfig.trackContainer.effectTrack;
 
-            // 确保对应索引的轨道存在
             while (effectTrackSO.effectTracks.Count <= trackIndex)
             {
                 var newTrack = new FFramework.Kit.EffectTrack
@@ -216,24 +199,28 @@ namespace SkillEditor
                     trackName = SkillEditorTrackFactory.GetDefaultTrackName(TrackType.EffectTrack, effectTrackSO.effectTracks.Count),
                     isEnabled = true,
                     trackIndex = effectTrackSO.effectTracks.Count,
-                    effectClips = new System.Collections.Generic.List<FFramework.Kit.EffectTrack.EffectClip>()
+                    effectClips = new List<FFramework.Kit.EffectTrack.EffectClip>()
                 };
                 effectTrackSO.effectTracks.Add(newTrack);
             }
 
-            // 获取指定索引的特效轨道
             var effectTrack = effectTrackSO.effectTracks[trackIndex];
 
-            // 确保特效片段列表存在
             if (effectTrack.effectClips == null)
             {
-                effectTrack.effectClips = new System.Collections.Generic.List<FFramework.Kit.EffectTrack.EffectClip>();
+                effectTrack.effectClips = new List<FFramework.Kit.EffectTrack.EffectClip>();
             }
 
-            // 创建技能配置中的特效片段数据
+            string finalName = itemName;
+            int suffix = 1;
+            while (effectTrack.effectClips.Any(c => c.clipName == finalName))
+            {
+                finalName = $"{itemName}_{suffix++}";
+            }
+
             var configEffectClip = new FFramework.Kit.EffectTrack.EffectClip
             {
-                clipName = itemName,
+                clipName = finalName,
                 startFrame = startFrame,
                 durationFrame = frameCount,
                 effectPrefab = effectGameObject,
@@ -243,74 +230,59 @@ namespace SkillEditor
                 position = Vector3.zero
             };
 
-            // 添加到对应索引的特效轨道
             effectTrack.effectClips.Add(configEffectClip);
 
 #if UNITY_EDITOR
-            // 标记轨道数据和技能配置为已修改
-            if (effectTrackSO != null)
-            {
-                EditorUtility.SetDirty(effectTrackSO);
-            }
-            if (skillConfig != null)
-            {
-                EditorUtility.SetDirty(skillConfig);
-            }
+            EditorUtility.SetDirty(effectTrackSO);
+            EditorUtility.SetDirty(skillConfig);
+#endif
+        }
 
-            // 强制保存资产
+        /// <summary>
+        /// 确保特效轨道存在
+        /// </summary>
+        private void EnsureEffectTrackExists()
+        {
+            if (skillConfig.trackContainer.effectTrack != null) return;
+
+            var effectTrackSO = ScriptableObject.CreateInstance<FFramework.Kit.EffectTrackSO>();
+            effectTrackSO.effectTracks = new List<FFramework.Kit.EffectTrack>();
+            skillConfig.trackContainer.effectTrack = effectTrackSO;
+
+#if UNITY_EDITOR
+            UnityEditor.AssetDatabase.AddObjectToAsset(effectTrackSO, skillConfig);
             UnityEditor.AssetDatabase.SaveAssets();
 #endif
         }
 
-        #endregion
-
-        #region 配置恢复方法
-
         /// <summary>
-        /// 根据索引从配置创建特效轨道项
+        /// 恢复特效数据
         /// </summary>
-        /// <param name="track">特效轨道实例</param>
-        /// <param name="skillConfig">技能配置</param>
-        /// <param name="trackIndex">轨道索引</param>
-        public static void CreateTrackItemsFromConfig(EffectSkillEditorTrack track, FFramework.Kit.SkillConfig skillConfig, int trackIndex)
+        /// <param name="trackItem">轨道项</param>
+        /// <param name="clip">特效片段</param>
+        private static void RestoreEffectData(EffectTrackItem trackItem, FFramework.Kit.EffectTrack.EffectClip clip)
         {
-            var effectTrackSO = skillConfig.trackContainer.effectTrack;
-            if (effectTrackSO?.effectTracks == null || trackIndex >= effectTrackSO.effectTracks.Count) return;
+            if (trackItem?.EffectData == null) return;
 
-            var effectTrack = effectTrackSO.effectTracks[trackIndex];
-            if (effectTrack.effectClips == null) return;
+            var effectData = trackItem.EffectData;
+            effectData.trackItemName = clip.clipName;
+            effectData.durationFrame = clip.durationFrame;
+            effectData.effectPlaySpeed = clip.effectPlaySpeed;
 
-            foreach (var clip in effectTrack.effectClips)
+            // 重要修复：根据durationFrame和effectPlaySpeed计算正确的frameCount
+            // frameCount应该是特效的原始帧数（播放速度为1.0时的帧数）
+            if (clip.effectPlaySpeed > 0)
             {
-                if (clip.effectPrefab != null)
-                {
-                    // 从配置加载时，设置addToConfig为false，避免重复添加到配置文件
-                    var trackItem = track.AddTrackItem(clip.effectPrefab, clip.clipName, clip.startFrame, false);
+                effectData.frameCount = (int)(clip.durationFrame * clip.effectPlaySpeed);
+            }
 
-                    // 从配置中恢复完整的特效属性
-                    if (trackItem is EffectTrackItem effectTrackItem)
-                    {
-                        var effectData = effectTrackItem.EffectData;
-                        effectData.trackItemName = clip.clipName;
-                        effectData.durationFrame = clip.durationFrame;
-                        effectData.effectPlaySpeed = clip.effectPlaySpeed;
-                        effectData.position = clip.position;
-                        effectData.rotation = clip.rotation;
-                        effectData.scale = clip.scale;
+            effectData.position = clip.position;
+            effectData.rotation = clip.rotation;
+            effectData.scale = clip.scale;
 
 #if UNITY_EDITOR
-                        // 标记数据已修改
-                        UnityEditor.EditorUtility.SetDirty(effectData);
+            EditorUtility.SetDirty(effectData);
 #endif
-                    }
-
-                    // 更新轨道项的帧数和宽度显示
-                    if (clip.durationFrame > 0)
-                    {
-                        trackItem?.UpdateFrameCount(clip.durationFrame);
-                    }
-                }
-            }
         }
 
         #endregion

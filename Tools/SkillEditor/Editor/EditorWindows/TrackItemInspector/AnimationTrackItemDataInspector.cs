@@ -6,7 +6,7 @@ using System.Linq;
 namespace SkillEditor
 {
     [CustomEditor(typeof(AnimationTrackItemData))]
-    public class AnimationTrackItemDataInspector : BaseTrackItemDataInspector
+    public class AnimationTrackItemDataInspector : TrackItemDataInspectorBase
     {
         protected override string TrackItemTypeName => "Animation";
         protected override string TrackItemDisplayTitle => "动画轨道项信息";
@@ -32,16 +32,6 @@ namespace SkillEditor
 
             // 应用根运动
             CreateToggleField("应用根运动:", "applyRootMotion", OnApplyRootMotionChanged);
-        }
-
-        protected override void PerformDelete()
-        {
-            if (EditorUtility.DisplayDialog("删除确认",
-                $"确定要删除动画轨道项 \"{targetData.trackItemName}\" 吗？\n\n此操作将会：\n• 从界面移除此轨道项\n• 删除对应的配置数据\n• 无法撤销",
-                "确认删除", "取消"))
-            {
-                DeleteAnimationTrackItem();
-            }
         }
 
         #region 事件处理方法
@@ -164,7 +154,7 @@ namespace SkillEditor
         /// 删除动画轨道项的完整流程
         /// 包括移除UI元素、删除配置数据和触发界面刷新
         /// </summary>
-        private void DeleteAnimationTrackItem()
+        protected override void DeleteTrackItem()
         {
             var skillConfig = SkillEditorData.CurrentSkillConfig;
             if (skillConfig?.trackContainer?.animationTrack == null || targetData == null)
@@ -173,29 +163,9 @@ namespace SkillEditor
                 return;
             }
 
-            // 标记要删除的动画片段配置
-            FFramework.Kit.AnimationTrack.AnimationClip targetConfigClip = null;
-
-            // 查找对应的动画片段配置
-            if (skillConfig.trackContainer.animationTrack.animationClips != null)
-            {
-                var candidateClips = skillConfig.trackContainer.animationTrack.animationClips
-                    .Where(clip => clip.clipName == targetData.trackItemName).ToList();
-
-                if (candidateClips.Count > 0)
-                {
-                    if (candidateClips.Count == 1)
-                    {
-                        targetConfigClip = candidateClips[0];
-                    }
-                    else
-                    {
-                        // 如果有多个同名片段，尝试通过起始帧匹配
-                        var exactMatch = candidateClips.FirstOrDefault(clip => clip.startFrame == targetData.startFrame);
-                        targetConfigClip = exactMatch ?? candidateClips[0];
-                    }
-                }
-            }
+            // 直接通过唯一名称查找目标配置
+            var targetConfigClip = skillConfig.trackContainer.animationTrack.animationClips
+                ?.FirstOrDefault(clip => clip.clipName == targetData.trackItemName);
 
             if (targetConfigClip != null)
             {
@@ -216,12 +186,9 @@ namespace SkillEditor
                 var window = UnityEditor.EditorWindow.GetWindow<SkillEditor>();
                 if (window != null)
                 {
-                    // 使用EditorApplication.delayCall确保在下一帧执行刷新
                     UnityEditor.EditorApplication.delayCall += () =>
                     {
                         window.Repaint();
-
-                        // 直接调用静态事件方法
                         SkillEditorEvent.TriggerRefreshRequested();
                     };
                 }

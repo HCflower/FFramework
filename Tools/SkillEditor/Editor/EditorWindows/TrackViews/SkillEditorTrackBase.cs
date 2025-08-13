@@ -12,7 +12,7 @@ namespace SkillEditor
     /// 技能编辑器轨道基类
     /// 定义所有轨道类型的通用行为和接口
     /// </summary>
-    public abstract class BaseSkillEditorTrack : VisualElement
+    public abstract class SkillEditorTrackBase : VisualElement
     {
         #region 受保护字段
 
@@ -26,7 +26,7 @@ namespace SkillEditor
         protected int trackIndex;
 
         /// <summary>轨道中的所有轨道项列表</summary>
-        protected List<BaseTrackItemView> trackItems = new List<BaseTrackItemView>();
+        protected List<TrackItemViewBase> trackItems = new List<TrackItemViewBase>();
 
         /// <summary>当前关联的技能配置</summary>
         protected FFramework.Kit.SkillConfig skillConfig;
@@ -43,14 +43,15 @@ namespace SkillEditor
         /// <param name="width">轨道初始宽度</param>
         /// <param name="skillConfig">技能配置对象</param>
         /// <param name="trackIndex">轨道索引</param>
-        protected BaseSkillEditorTrack(VisualElement visual, TrackType trackType, float width, FFramework.Kit.SkillConfig skillConfig, int trackIndex = 0)
+        protected SkillEditorTrackBase(VisualElement visual, TrackType trackType, float width, FFramework.Kit.SkillConfig skillConfig, int trackIndex = 0)
         {
             this.trackType = trackType;
             this.skillConfig = skillConfig;
             this.trackIndex = trackIndex;
 
             InitializeTrackArea(visual, width);
-            ApplyTrackTypeStyle();
+            // 应用特定样式
+            ApplySpecificTrackStyle();
             RegisterDragEvents();
         }
 
@@ -74,7 +75,7 @@ namespace SkillEditor
         /// <param name="startFrame">起始帧</param>
         /// <param name="addToConfig">是否添加到配置</param>
         /// <returns>创建的轨道项</returns>
-        protected abstract BaseTrackItemView CreateTrackItemFromResource(object resource, int startFrame, bool addToConfig);
+        protected abstract TrackItemViewBase CreateTrackItemFromResource(object resource, int startFrame, bool addToConfig);
 
         /// <summary>
         /// 应用轨道类型特定的样式
@@ -111,44 +112,6 @@ namespace SkillEditor
             trackArea.AddToClassList("TrackArea");
             trackArea.style.width = width;
             visual.Add(trackArea);
-        }
-
-        /// <summary>
-        /// 应用轨道类型样式
-        /// </summary>
-        private void ApplyTrackTypeStyle()
-        {
-            // 应用通用样式
-            switch (trackType)
-            {
-                case TrackType.AnimationTrack:
-                    trackArea.AddToClassList("TrackArea-Animation");
-                    break;
-                case TrackType.AudioTrack:
-                    trackArea.AddToClassList("TrackArea-Audio");
-                    break;
-                case TrackType.EffectTrack:
-                    trackArea.AddToClassList("TrackArea-Effect");
-                    break;
-                case TrackType.EventTrack:
-                    trackArea.AddToClassList("TrackArea-Event");
-                    break;
-                case TrackType.InjuryDetectionTrack:
-                    trackArea.AddToClassList("TrackArea-Attack");
-                    break;
-                case TrackType.TransformTrack:
-                    trackArea.AddToClassList("TrackArea-Transform");
-                    break;
-                case TrackType.CameraTrack:
-                    trackArea.AddToClassList("TrackArea-Camera");
-                    break;
-                case TrackType.GameObjectTrack:
-                    trackArea.AddToClassList("TrackArea-GameObject");
-                    break;
-            }
-
-            // 应用特定样式
-            ApplySpecificTrackStyle();
         }
 
         /// <summary>
@@ -228,7 +191,7 @@ namespace SkillEditor
         /// <param name="resource">资源对象</param>
         /// <param name="startFrame">起始帧</param>
         /// <returns>创建的轨道项</returns>
-        public BaseTrackItemView AddTrackItem(object resource, int startFrame = 0)
+        public TrackItemViewBase AddTrackItem(object resource, int startFrame = 0)
         {
             return AddTrackItem(resource, startFrame, true);
         }
@@ -240,7 +203,7 @@ namespace SkillEditor
         /// <param name="startFrame">起始帧</param>
         /// <param name="addToConfig">是否添加到配置</param>
         /// <returns>创建的轨道项</returns>
-        public BaseTrackItemView AddTrackItem(object resource, int startFrame, bool addToConfig)
+        public TrackItemViewBase AddTrackItem(object resource, int startFrame, bool addToConfig)
         {
             var newItem = CreateTrackItemFromResource(resource, startFrame, addToConfig);
             if (newItem != null)
@@ -258,7 +221,7 @@ namespace SkillEditor
         /// <param name="startFrame">起始帧</param>
         /// <param name="addToConfig">是否添加到配置</param>
         /// <returns>创建的轨道项</returns>
-        public virtual BaseTrackItemView AddTrackItem(object resource, string itemName, int startFrame, bool addToConfig)
+        public virtual TrackItemViewBase AddTrackItem(object resource, string itemName, int startFrame, bool addToConfig)
         {
             // 默认实现，子类可以重写以支持自定义名称
             return AddTrackItem(resource, startFrame, addToConfig);

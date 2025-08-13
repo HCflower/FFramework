@@ -1,5 +1,6 @@
 using UnityEngine.UIElements;
 using UnityEngine;
+using System.Linq;
 
 #if UNITY_EDITOR
 using UnityEditor;
@@ -11,8 +12,10 @@ namespace SkillEditor
     /// 音频轨道实现
     /// 专门处理音频剪辑的拖拽、显示和配置管理
     /// </summary>
-    public class AudioSkillEditorTrack : BaseSkillEditorTrack
+    public class AudioSkillEditorTrack : SkillEditorTrackBase
     {
+        #region 构造函数
+
         /// <summary>
         /// 音频轨道构造函数
         /// </summary>
@@ -23,6 +26,8 @@ namespace SkillEditor
         public AudioSkillEditorTrack(VisualElement visual, float width, FFramework.Kit.SkillConfig skillConfig, int trackIndex = 0)
             : base(visual, TrackType.AudioTrack, width, skillConfig, trackIndex)
         { }
+
+        #endregion
 
         #region 抽象方法实现
 
@@ -43,31 +48,18 @@ namespace SkillEditor
         /// <param name="startFrame">起始帧</param>
         /// <param name="addToConfig">是否添加到配置</param>
         /// <returns>创建的轨道项</returns>
-        protected override BaseTrackItemView CreateTrackItemFromResource(object resource, int startFrame, bool addToConfig)
+        protected override TrackItemViewBase CreateTrackItemFromResource(object resource, int startFrame, bool addToConfig)
         {
             if (!(resource is AudioClip audioClip))
                 return null;
 
-            float frameRate = GetFrameRate();
-            int frameCount = Mathf.RoundToInt(audioClip.length * frameRate);
-            string itemName = audioClip.name;
+            var frameCount = CalculateFrameCount(audioClip);
+            var newItem = CreateAudioTrackItem(audioClip.name, frameCount, startFrame, addToConfig);
 
-            var newItem = new AudioTrackItem(trackArea, itemName, frameCount, startFrame, trackIndex);
-
-            // 设置音频轨道项的数据
-            var audioData = newItem.AudioData;
-            audioData.audioClip = audioClip;
-            audioData.volume = 1.0f;
-            audioData.pitch = 1.0f;
-
-#if UNITY_EDITOR
-            EditorUtility.SetDirty(audioData);
-#endif
-
-            // 添加到技能配置
             if (addToConfig)
             {
-                AddAudioClipToConfig(audioClip, itemName, startFrame, frameCount);
+                AddTrackItemDataToConfig(audioClip, audioClip.name, startFrame, frameCount);
+                SkillEditorEvent.OnRefreshRequested();
             }
 
             return newItem;
@@ -79,60 +71,75 @@ namespace SkillEditor
         protected override void ApplySpecificTrackStyle()
         {
             // 音频轨道特有的样式设置
-            // 可以在这里添加音频轨道特有的视觉效果
+            trackArea.AddToClassList("TrackArea-Audio");
         }
 
         #endregion
 
-        #region 重写方法
+        #region 公共方法
 
         /// <summary>
-        /// 支持自定义名称的音频轨道项添加
+        /// 创建音频轨道项
         /// </summary>
-        /// <param name="resource">音频剪辑资源</param>
-        /// <param name="itemName">自定义名称</param>
+        /// <param name="itemName">轨道项名称</param>
+        /// <param name="frameCount">帧数</param>
         /// <param name="startFrame">起始帧</param>
         /// <param name="addToConfig">是否添加到配置</param>
         /// <returns>创建的轨道项</returns>
-        public override BaseTrackItemView AddTrackItem(object resource, string itemName, int startFrame, bool addToConfig)
+        public TrackItemViewBase CreateAudioTrackItem(string itemName, int frameCount, int startFrame, bool addToConfig = true)
         {
-            if (!(resource is AudioClip audioClip))
-                return null;
-
-            float frameRate = GetFrameRate();
-            int frameCount = Mathf.RoundToInt(audioClip.length * frameRate);
-
             var newItem = new AudioTrackItem(trackArea, itemName, frameCount, startFrame, trackIndex);
 
-            // 设置音频轨道项的数据
-            var audioData = newItem.AudioData;
-            audioData.audioClip = audioClip;
-            audioData.volume = 1.0f;
-            audioData.pitch = 1.0f;
-            audioData.spatialBlend = 0.0f;
-            audioData.reverbZoneMix = 1.0f;
-
-#if UNITY_EDITOR
-            EditorUtility.SetDirty(audioData);
-#endif
-
-            // 添加到技能配置
             if (addToConfig)
             {
-                AddAudioClipToConfig(audioClip, itemName, startFrame, frameCount);
+                // 外部调用者处理配置逻辑
             }
 
-            if (newItem != null)
-            {
-                trackItems.Add(newItem);
-            }
-
+            trackItems.Add(newItem);
             return newItem;
+        }
+
+        /// <summary>
+        /// 根据索引从配置创建音频轨道项
+        /// </summary>
+        /// <param name="track">音频轨道实例</param>
+        /// <param name="skillConfig">技能配置</param>
+        /// <param name="trackIndex">轨道索引</param>
+        public static void CreateTrackItemsFromConfig(AudioSkillEditorTrack track, FFramework.Kit.SkillConfig skillConfig, int trackIndex)
+        {
+            var audioTrackSO = skillConfig.trackContainer.audioTrack;
+            if (audioTrackSO?.audioTracks == null || trackIndex >= audioTrackSO.audioTracks.Count)
+            {
+                Debug.Log($"CreateAudioTrackItemsFromConfig: 没有找到索引 {trackIndex} 的音频轨道数据");
+                return;
+            }
+
+            var audioTrack = audioTrackSO.audioTracks[trackIndex];
+            if (audioTrack.audioClips == null) return;
+
+            foreach (var clip in audioTrack.audioClips)
+            {
+                if (clip.clip != null)
+                {
+                    var trackItem = track.CreateAudioTrackItem(clip.clipName, clip.durationFrame, clip.startFrame, false);
+                    RestoreAudioData(trackItem as AudioTrackItem, clip);
+                }
+            }
         }
 
         #endregion
 
         #region 私有方法
+
+        /// <summary>
+        /// 计算音频剪辑的帧数
+        /// </summary>
+        /// <param name="audioClip">音频剪辑</param>
+        /// <returns>帧数</returns>
+        private int CalculateFrameCount(AudioClip audioClip)
+        {
+            return Mathf.RoundToInt(audioClip.length * GetFrameRate());
+        }
 
         /// <summary>
         /// 将音频片段添加到技能配置的音频轨道中
@@ -141,7 +148,7 @@ namespace SkillEditor
         /// <param name="itemName">轨道项名称</param>
         /// <param name="startFrame">起始帧</param>
         /// <param name="frameCount">总帧数</param>
-        private void AddAudioClipToConfig(AudioClip audioClip, string itemName, int startFrame, int frameCount)
+        private void AddTrackItemDataToConfig(AudioClip audioClip, string itemName, int startFrame, int frameCount)
         {
             if (skillConfig?.trackContainer == null) return;
 
@@ -186,10 +193,23 @@ namespace SkillEditor
             if (audioTrack.audioClips == null)
             {
                 audioTrack.audioClips = new System.Collections.Generic.List<FFramework.Kit.AudioTrack.AudioClip>();
-            }            // 创建技能配置中的音频片段数据
+            }
+
+            // 检查名称是否已存在，如果存在则添加后缀
+            string finalName = itemName;
+            if (audioTrack.audioClips != null)
+            {
+                int suffix = 1;
+                while (audioTrack.audioClips.Exists(clip => clip.clipName == finalName))
+                {
+                    finalName = $"{itemName}_{suffix++}";
+                }
+            }
+
+            // 创建技能配置中的音频片段数据
             var configAudioClip = new FFramework.Kit.AudioTrack.AudioClip
             {
-                clipName = itemName,
+                clipName = finalName,
                 startFrame = startFrame,
                 durationFrame = frameCount,
                 clip = audioClip,
@@ -201,8 +221,6 @@ namespace SkillEditor
 
             // 添加到对应索引的音频轨道
             audioTrack.audioClips.Add(configAudioClip);
-
-            Debug.Log($"AddAudioClipToConfig: 添加音频片段 '{itemName}' 到轨道索引 {trackIndex}");
 
 #if UNITY_EDITOR
             // 标记轨道数据和技能配置为已修改
@@ -217,55 +235,30 @@ namespace SkillEditor
 #endif
         }
 
-        #endregion
-
-        #region 配置恢复方法
-
         /// <summary>
-        /// 根据索引从配置创建音频轨道项
+        /// 从配置恢复音频数据
         /// </summary>
-        /// <param name="track">音频轨道实例</param>
-        /// <param name="skillConfig">技能配置</param>
-        /// <param name="trackIndex">轨道索引</param>
-        public static void CreateTrackItemsFromConfig(AudioSkillEditorTrack track, FFramework.Kit.SkillConfig skillConfig, int trackIndex)
+        /// <param name="trackItem">轨道项</param>
+        /// <param name="clip">音频片段配置</param>
+        private static void RestoreAudioData(AudioTrackItem trackItem, FFramework.Kit.AudioTrack.AudioClip clip)
         {
-            var audioTrackSO = skillConfig.trackContainer.audioTrack;
-            if (audioTrackSO?.audioTracks == null || trackIndex >= audioTrackSO.audioTracks.Count)
+            if (trackItem?.AudioData == null)
             {
-                Debug.Log($"CreateAudioTrackItemsFromConfig: 没有找到索引 {trackIndex} 的音频轨道数据");
+                Debug.LogWarning("RestoreAudioData: 音频数据为空");
                 return;
             }
 
-            var audioTrack = audioTrackSO.audioTracks[trackIndex];
-            if (audioTrack.audioClips == null) return;
+            var audioData = trackItem.AudioData;
+            audioData.audioClip = clip.clip;
+            audioData.durationFrame = clip.durationFrame;
+            audioData.volume = clip.volume;
+            audioData.pitch = clip.pitch;
+            audioData.spatialBlend = clip.spatialBlend;
+            audioData.reverbZoneMix = clip.reverbZoneMix;
 
-            foreach (var clip in audioTrack.audioClips)
-            {
-                if (clip.clip != null)
-                {
-                    // 从配置加载时，使用配置中的名称，并设置addToConfig为false，避免重复添加到配置文件
-                    var trackItem = track.AddTrackItem(clip.clip, clip.clipName, clip.startFrame, false);
-
-                    // 从配置中恢复完整的音频属性
-                    if (trackItem is AudioTrackItem audioTrackItem)
-                    {
-                        var audioData = audioTrackItem.AudioData;
-                        audioData.durationFrame = clip.durationFrame;
-                        audioData.volume = clip.volume;
-                        audioData.pitch = clip.pitch;
 #if UNITY_EDITOR
-                        // 标记数据已修改
-                        UnityEditor.EditorUtility.SetDirty(audioData);
+            UnityEditor.EditorUtility.SetDirty(audioData);
 #endif
-                    }
-
-                    // 更新轨道项的帧数和宽度显示
-                    if (clip.durationFrame > 0)
-                    {
-                        trackItem?.UpdateFrameCount(clip.durationFrame);
-                    }
-                }
-            }
         }
 
         #endregion

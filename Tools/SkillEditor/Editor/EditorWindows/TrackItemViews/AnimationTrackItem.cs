@@ -9,12 +9,12 @@ namespace SkillEditor
     /// 专门处理动画轨道项的显示、交互和数据管理
     /// 提供动画特有的事件视图和Inspector数据功能
     /// </summary>
-    public class AnimationTrackItem : BaseTrackItemView
+    public class AnimationTrackItem : TrackItemViewBase
     {
         #region 私有字段
 
         /// <summary>轨道项持续帧数</summary>
-        private int frameCount;
+        private int durationFrame;
 
         /// <summary>轨道索引，用于多轨道数据定位</summary>
         private int trackIndex;
@@ -35,12 +35,12 @@ namespace SkillEditor
         /// </summary>
         /// <param name="visual">父容器，轨道项将添加到此容器中</param>
         /// <param name="title">轨道项显示标题</param>
-        /// <param name="frameCount">轨道项持续帧数，影响宽度显示</param>
+        /// <param name="durationFrame">轨道项持续帧数，影响宽度显示</param>
         /// <param name="startFrame">轨道项的起始帧位置，默认为0</param>
         /// <param name="trackIndex">轨道索引，用于多轨道数据定位，默认为0</param>
-        public AnimationTrackItem(VisualElement visual, string title, int frameCount, int startFrame = 0, int trackIndex = 0)
+        public AnimationTrackItem(VisualElement visual, string title, int durationFrame, int startFrame = 0, int trackIndex = 0)
         {
-            this.frameCount = frameCount;
+            this.durationFrame = durationFrame;
             this.startFrame = startFrame;
             this.trackIndex = trackIndex;
 
@@ -110,7 +110,7 @@ namespace SkillEditor
         /// </summary>
         public override void SetWidth()
         {
-            itemContent.style.width = frameCount * SkillEditorData.FrameUnitWidth;
+            itemContent.style.width = durationFrame * SkillEditorData.FrameUnitWidth;
         }
 
         /// <summary>
@@ -119,7 +119,7 @@ namespace SkillEditor
         /// <param name="newFrameCount">新的帧数</param>
         public override void UpdateFrameCount(int newFrameCount)
         {
-            frameCount = newFrameCount;
+            durationFrame = newFrameCount;
             SetWidth();
         }
 
@@ -138,7 +138,7 @@ namespace SkillEditor
         /// <returns>结束帧位置</returns>
         public float GetEndFrame()
         {
-            return startFrame + frameCount;
+            return startFrame + durationFrame;
         }
 
         /// <summary>
@@ -298,7 +298,7 @@ namespace SkillEditor
             // 这样确保基准帧数反映的是动画的原始长度
             if (animationData.frameCount <= 0)
             {
-                animationData.frameCount = frameCount;
+                animationData.frameCount = durationFrame;
             }
 
             // 如果持续帧数还没有设置，则使用基准帧数

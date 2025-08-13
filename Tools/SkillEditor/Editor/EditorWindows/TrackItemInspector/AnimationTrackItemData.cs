@@ -6,7 +6,7 @@ namespace SkillEditor
     /// 动画轨道项数据类
     /// 用于存储动画轨道项的相关数据
     /// </summary>
-    public class AnimationTrackItemData : BaseTrackItemData
+    public class AnimationTrackItemData : TrackItemDataBase
     {
         public AnimationClip animationClip;     // 动画片段
         public float animationPlaySpeed = 1f;            // 播放速度

@@ -7,7 +7,7 @@ namespace SkillEditor
     /// 摄像机轨道项数据类
     /// 用于存储摄像机轨道项的相关数据，与SkillConfig中的CameraClip结构对应
     /// </summary>
-    public class CameraTrackItemData : BaseTrackItemData
+    public class CameraTrackItemData : TrackItemDataBase
     {
         [Header("摄像机类型")]
         public bool enablePosition = true;          // 是否启用位置变换

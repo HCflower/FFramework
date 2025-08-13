@@ -188,7 +188,7 @@ namespace SkillEditor
         public SkillEditorTrackController Control { get; set; }
 
         /// <summary>轨道显示组件，负责轨道的视觉呈现</summary>
-        public BaseSkillEditorTrack Track { get; set; }
+        public SkillEditorTrackBase Track { get; set; }
 
         /// <summary>轨道类型</summary>
         public TrackType TrackType { get; set; }
@@ -209,7 +209,7 @@ namespace SkillEditor
         /// <param name="track">轨道显示组件</param>
         /// <param name="type">轨道类型</param>
         /// <param name="name">轨道名称</param>
-        public SkillEditorTrackInfo(SkillEditorTrackController control, BaseSkillEditorTrack track, TrackType type, string name)
+        public SkillEditorTrackInfo(SkillEditorTrackController control, SkillEditorTrackBase track, TrackType type, string name)
         {
             Control = control;
             Track = track;

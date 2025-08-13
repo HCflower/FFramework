@@ -6,7 +6,7 @@ using System.Linq;
 namespace SkillEditor
 {
     [CustomEditor(typeof(EventTrackItemData))]
-    public class EventTrackItemDataInspector : BaseTrackItemDataInspector
+    public class EventTrackItemDataInspector : TrackItemDataInspectorBase
     {
         private EventTrackItemData eventTargetData;
 
@@ -77,16 +77,6 @@ namespace SkillEditor
 
         #endregion
 
-        protected override void PerformDelete()
-        {
-            if (EditorUtility.DisplayDialog("删除确认",
-                $"确定要删除事件轨道项 \"{eventTargetData.trackItemName}\" 吗？\n\n此操作将会：\n• 从界面移除此轨道项\n• 删除对应的配置数据\n• 无法撤销",
-                "确认删除", "取消"))
-            {
-                DeleteEventTrackItem();
-            }
-        }
-
         #region 数据同步方法
 
         /// <summary>
@@ -142,109 +132,82 @@ namespace SkillEditor
         /// 删除事件轨道项的完整流程
         /// 包括移除UI元素、删除配置数据和触发界面刷新
         /// </summary>
-        private void DeleteEventTrackItem()
+        protected override void DeleteTrackItem()
         {
-            SafeExecute(() =>
+            var skillConfig = SkillEditorData.CurrentSkillConfig;
+            if (skillConfig?.trackContainer?.eventTrack == null || eventTargetData == null)
             {
-                var skillConfig = SkillEditorData.CurrentSkillConfig;
-                if (skillConfig?.trackContainer?.eventTrack == null || eventTargetData == null)
+                Debug.LogWarning("无法删除轨道项：技能配置或事件轨道为空");
+                return;
+            }
+
+            // 获取轨道索引
+            int trackIndex = eventTargetData.trackIndex;
+
+            // 验证轨道索引的有效性
+            if (skillConfig.trackContainer.eventTrack.eventTracks == null ||
+                trackIndex < 0 ||
+                trackIndex >= skillConfig.trackContainer.eventTrack.eventTracks.Count)
+            {
+                Debug.LogWarning($"无法删除轨道项：轨道索引 {trackIndex} 超出范围或事件轨道列表为空");
+                return;
+            }
+
+            // 获取指定轨道
+            var targetTrack = skillConfig.trackContainer.eventTrack.eventTracks[trackIndex];
+            if (targetTrack?.eventClips == null)
+            {
+                Debug.LogWarning($"无法删除轨道项：轨道 {trackIndex} 的事件片段列表为空");
+                return;
+            }
+
+            // 直接通过唯一名称查找要删除的事件片段
+            var targetClip = targetTrack.eventClips
+                .FirstOrDefault(clip => clip.clipName == eventTargetData.trackItemName);
+
+            if (targetClip != null)
+            {
+                // 从配置中移除事件片段
+                targetTrack.eventClips.Remove(targetClip);
+                Debug.Log($"从轨道 {trackIndex} 移除事件片段 \"{eventTargetData.trackItemName}\"");
+            }
+            else
+            {
+                Debug.LogWarning($"无法在轨道 {trackIndex} 中找到要删除的事件片段 \"{eventTargetData.trackItemName}\"");
+            }
+
+            // 删除UI数据的ScriptableObject资产
+            if (eventTargetData != null)
+            {
+                var dataAssetPath = UnityEditor.AssetDatabase.GetAssetPath(eventTargetData);
+                if (!string.IsNullOrEmpty(dataAssetPath))
                 {
-                    Debug.LogWarning("无法删除轨道项：技能配置或事件轨道为空");
-                    return;
+                    UnityEditor.AssetDatabase.RemoveObjectFromAsset(eventTargetData);
                 }
+            }
 
-                // 获取轨道索引
-                int trackIndex = eventTargetData.trackIndex;
+            // 保存资产变更
+            UnityEditor.AssetDatabase.SaveAssets();
 
-                // 验证轨道索引的有效性
-                if (skillConfig.trackContainer.eventTrack.eventTracks == null ||
-                    trackIndex < 0 ||
-                    trackIndex >= skillConfig.trackContainer.eventTrack.eventTracks.Count)
+            // 标记配置为脏数据
+            MarkSkillConfigDirty();
+
+            // 清空Inspector选择
+            UnityEditor.Selection.activeObject = null;
+
+            // 触发界面刷新以移除UI元素
+            var window = UnityEditor.EditorWindow.GetWindow<SkillEditor>();
+            if (window != null)
+            {
+                // 使用EditorApplication.delayCall确保在下一帧执行刷新
+                UnityEditor.EditorApplication.delayCall += () =>
                 {
-                    Debug.LogWarning($"无法删除轨道项：轨道索引 {trackIndex} 超出范围或事件轨道列表为空");
-                    return;
-                }
+                    window.Repaint();
 
-                // 获取指定轨道
-                var targetTrack = skillConfig.trackContainer.eventTrack.eventTracks[trackIndex];
-                if (targetTrack?.eventClips == null)
-                {
-                    Debug.LogWarning($"无法删除轨道项：轨道 {trackIndex} 的事件片段列表为空");
-                    return;
-                }
-
-                // 查找要删除的事件片段
-                FFramework.Kit.EventTrack.EventClip targetClip = null;
-                int clipIndex = -1;
-
-                for (int i = 0; i < targetTrack.eventClips.Count; i++)
-                {
-                    var clip = targetTrack.eventClips[i];
-                    if (clip.clipName == eventTargetData.trackItemName)
-                    {
-                        // 如果有多个同名片段，通过起始帧精确匹配
-                        if (clip.startFrame == eventTargetData.startFrame)
-                        {
-                            targetClip = clip;
-                            clipIndex = i;
-                            break;
-                        }
-                        // 如果只有名称匹配但没有找到起始帧匹配的，使用第一个匹配项
-                        else if (targetClip == null)
-                        {
-                            targetClip = clip;
-                            clipIndex = i;
-                        }
-                    }
-                }
-
-                if (targetClip != null && clipIndex >= 0)
-                {
-                    // 从配置中移除事件片段
-                    targetTrack.eventClips.RemoveAt(clipIndex);
-
-                    Debug.Log($"从轨道 {trackIndex} 移除事件片段 \"{eventTargetData.trackItemName}\"");
-                }
-                else
-                {
-                    Debug.LogWarning($"无法在轨道 {trackIndex} 中找到要删除的事件片段 \"{eventTargetData.trackItemName}\"");
-                }
-
-                // 删除UI数据的ScriptableObject资产
-                if (eventTargetData != null)
-                {
-                    var dataAssetPath = UnityEditor.AssetDatabase.GetAssetPath(eventTargetData);
-                    if (!string.IsNullOrEmpty(dataAssetPath))
-                    {
-                        UnityEditor.AssetDatabase.RemoveObjectFromAsset(eventTargetData);
-                    }
-                }
-
-                // 保存资产变更
-                UnityEditor.AssetDatabase.SaveAssets();
-
-                // 标记配置为脏数据
-                MarkSkillConfigDirty();
-
-                // 清空Inspector选择
-                UnityEditor.Selection.activeObject = null;
-
-                // 触发界面刷新以移除UI元素
-                var window = UnityEditor.EditorWindow.GetWindow<SkillEditor>();
-                if (window != null)
-                {
-                    // 使用EditorApplication.delayCall确保在下一帧执行刷新
-                    UnityEditor.EditorApplication.delayCall += () =>
-                    {
-                        window.Repaint();
-
-                        // 直接调用静态事件方法
-                        SkillEditorEvent.TriggerRefreshRequested();
-                    };
-                }
-
-                Debug.Log($"事件轨道项 \"{eventTargetData.trackItemName}\" 删除成功");
-            }, "删除事件轨道项");
+                    // 直接调用静态事件方法
+                    SkillEditorEvent.TriggerRefreshRequested();
+                };
+            }
         }
 
         #endregion

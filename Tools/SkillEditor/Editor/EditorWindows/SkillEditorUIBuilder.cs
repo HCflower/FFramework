@@ -17,7 +17,7 @@ namespace SkillEditor
         #region 私有字段
 
         /// <summary>轨道管理器</summary>
-        private readonly SkillEditorTrackHandler trackManager;
+        private readonly SkillEditorTrackHandler trackHandler;
 
         /// <summary>所有轨道内容容器</summary>
         private VisualElement allTrackContent;
@@ -35,7 +35,7 @@ namespace SkillEditor
         /// </summary>
         public SkillEditorUIBuilder()
         {
-            this.trackManager = new SkillEditorTrackHandler();
+            this.trackHandler = new SkillEditorTrackHandler();
 
             // 订阅刷新事件
             SkillEditorEvent.OnRefreshRequested += OnRefreshRequested;
@@ -103,7 +103,7 @@ namespace SkillEditor
             trackContent.style.width = SkillEditorData.CalculateTimelineWidth();
 
             // 初始化轨道管理器
-            trackManager.Initialize(this.trackControlContent, this.allTrackContent);
+            trackHandler.Initialize(this.trackControlContent, this.allTrackContent);
 
             return new TrackStructureResult
             {
@@ -204,7 +204,7 @@ namespace SkillEditor
                 if (SkillEditorData.CurrentSkillConfig == null)
                 {
                     Debug.Log("配置文件设置为null,清理所有轨道数据");
-                    trackManager.ClearAllTracks();
+                    trackHandler.ClearAllTracks();
                 }
 
                 SkillEditorEvent.TriggerSkillConfigChanged(SkillEditorData.CurrentSkillConfig);
@@ -571,7 +571,7 @@ namespace SkillEditor
         {
             var addButton = new Button();
             addButton.AddToClassList("AddTrackButton");
-            addButton.clicked += () => trackManager.ShowTrackCreationMenu(addButton);
+            addButton.clicked += () => trackHandler.ShowTrackCreationMenu(addButton);
             parent.Add(addButton);
         }
 
@@ -585,7 +585,7 @@ namespace SkillEditor
         /// </summary>
         public void OnRefreshRequested()
         {
-            trackManager.OnRefreshRequested();
+            trackHandler.OnRefreshRequested();
         }
 
         /// <summary>
@@ -594,7 +594,7 @@ namespace SkillEditor
         /// </summary>
         public void CreateTracksFromConfig()
         {
-            trackManager.CreateTracksFromConfigPublic();
+            trackHandler.CreateTracksFromConfigPublic();
         }
 
         #endregion

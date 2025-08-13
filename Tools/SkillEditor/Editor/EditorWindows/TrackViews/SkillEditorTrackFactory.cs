@@ -18,7 +18,7 @@ namespace SkillEditor
         /// <param name="skillConfig">技能配置对象</param>
         /// <param name="trackIndex">轨道索引</param>
         /// <returns>创建的轨道实例</returns>
-        public static BaseSkillEditorTrack CreateTrack(TrackType trackType, VisualElement visual, float width, SkillConfig skillConfig, int trackIndex = 0)
+        public static SkillEditorTrackBase CreateTrack(TrackType trackType, VisualElement visual, float width, SkillConfig skillConfig, int trackIndex = 0)
         {
             switch (trackType)
             {

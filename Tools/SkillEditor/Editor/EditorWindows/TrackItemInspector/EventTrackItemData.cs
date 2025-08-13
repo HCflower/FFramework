@@ -8,7 +8,7 @@ namespace SkillEditor
     /// 事件轨道项数据类
     /// 用于存储事件轨道项的相关数据，与SkillConfig中的EventClip结构对应
     /// </summary>
-    public class EventTrackItemData : BaseTrackItemData
+    public class EventTrackItemData : TrackItemDataBase
     {
         public string eventType;          //事件类型
         public string eventParameters;    //事件参数

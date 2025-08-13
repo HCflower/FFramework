@@ -7,7 +7,7 @@ namespace SkillEditor
     /// 变换轨道项数据类
     /// 用于存储变换轨道项的相关数据，与SkillConfig中的TransformClip结构对应
     /// </summary>
-    public class TransformTrackItemData : BaseTrackItemData
+    public class TransformTrackItemData : TrackItemDataBase
     {
         public Vector3 positionOffset = Vector3.zero;      // 目标位置  
         public Vector3 targetRotation = Vector3.zero;      // 目标旋转

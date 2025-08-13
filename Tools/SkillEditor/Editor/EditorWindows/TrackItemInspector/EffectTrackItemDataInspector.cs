@@ -6,7 +6,7 @@ using System.Linq;
 namespace SkillEditor
 {
     [CustomEditor(typeof(EffectTrackItemData))]
-    public class EffectTrackItemDataInspector : BaseTrackItemDataInspector
+    public class EffectTrackItemDataInspector : TrackItemDataInspectorBase
     {
         protected override string TrackItemTypeName => "Effect";
         protected override string TrackItemDisplayTitle => "特效轨道项信息";
@@ -47,12 +47,22 @@ namespace SkillEditor
         {
             SafeExecute(() =>
             {
+                var effectData = targetData as EffectTrackItemData;
                 UpdateTrackConfig(configClip =>
                 {
                     configClip.effectPlaySpeed = newValue;
-                    //刷新持续帧
-                    configClip.durationFrame = (int)(base.targetData.frameCount / newValue);
+
+                    // 重要修复：始终使用frameCount作为基准来计算持续帧数
+                    int newDurationFrame = (int)(base.targetData.frameCount / newValue);
+
+                    configClip.durationFrame = newDurationFrame;
                     targetData.durationFrame = configClip.durationFrame;
+
+                    // 确保effectPlaySpeed也同步到targetData
+                    if (effectData != null)
+                    {
+                        effectData.effectPlaySpeed = newValue;
+                    }
                 }, "特效播放速度更新");
             }, "特效播放速度更新");
         }
@@ -219,95 +229,6 @@ namespace SkillEditor
         }
 
         /// <summary>
-        /// 删除特效轨道项的完整流程
-        /// 包括移除UI元素、删除配置数据和触发界面刷新
-        /// </summary>
-        private void DeleteEffectTrackItem()
-        {
-            SafeExecute(() =>
-            {
-                var skillConfig = SkillEditorData.CurrentSkillConfig;
-                if (skillConfig?.trackContainer?.effectTrack == null || targetData == null)
-                {
-                    Debug.LogWarning("无法删除轨道项：技能配置或特效轨道为空");
-                    return;
-                }
-
-                // 根据trackIndex查找对应的特效轨道并删除片段
-                bool deleted = false;
-                if (skillConfig.trackContainer.effectTrack.effectTracks != null)
-                {
-                    var targetTrack = skillConfig.trackContainer.effectTrack.effectTracks
-                        .FirstOrDefault(track => track.trackIndex == targetData.trackIndex);
-
-                    if (targetTrack?.effectClips != null)
-                    {
-                        // 查找要删除的片段
-                        var clipToRemove = targetTrack.effectClips.FirstOrDefault(clip =>
-                            clip.clipName == targetData.trackItemName &&
-                            clip.startFrame == targetData.startFrame);
-
-                        if (clipToRemove != null)
-                        {
-                            targetTrack.effectClips.Remove(clipToRemove);
-                            deleted = true;
-                            Debug.Log($"从配置中删除特效片段: {clipToRemove.clipName} (轨道索引: {targetData.trackIndex})");
-                        }
-                        else
-                        {
-                            Debug.LogWarning($"未找到要删除的特效片段: {targetData.trackItemName} (轨道索引: {targetData.trackIndex})");
-                        }
-                    }
-                    else
-                    {
-                        Debug.LogWarning($"未找到trackIndex为 {targetData.trackIndex} 的特效轨道");
-                    }
-                }
-
-                if (deleted)
-                {
-                    // 标记配置文件为已修改
-                    MarkSkillConfigDirty();
-                    UnityEditor.AssetDatabase.SaveAssets();
-                }
-
-                // 删除ScriptableObject资产
-                if (targetData != null)
-                {
-                    UnityEditor.AssetDatabase.DeleteAsset(UnityEditor.AssetDatabase.GetAssetPath(targetData));
-                }
-
-                // 清空Inspector选择
-                UnityEditor.Selection.activeObject = null;
-
-                // 触发界面刷新以移除UI元素
-                var window = UnityEditor.EditorWindow.GetWindow<SkillEditor>();
-                if (window != null)
-                {
-                    // 使用EditorApplication.delayCall确保在下一帧执行刷新
-                    UnityEditor.EditorApplication.delayCall += () =>
-                    {
-                        window.Repaint();
-
-                        // 直接调用静态事件方法
-                        SkillEditorEvent.TriggerRefreshRequested();
-                    };
-                }
-
-                Debug.Log($"特效轨道项 \"{targetData.trackItemName}\" 删除成功");
-            }, "删除特效轨道项");
-        }
-
-        protected override void PerformDelete()
-        {
-            if (EditorUtility.DisplayDialog("删除确认",
-                $"确定要删除特效轨道项 \"{targetData.trackItemName}\" 吗？\n\n此操作将会：\n• 从界面移除此轨道项\n• 删除对应的配置数据\n• 无法撤销",
-                "确认删除", "取消"))
-            {
-                DeleteEffectTrackItem();
-            }
-        }
-        /// <summary>
         /// 统一的配置数据更新方法
         /// </summary>
         /// <param name="updateAction">更新操作的委托</param>
@@ -358,6 +279,80 @@ namespace SkillEditor
             else
             {
                 Debug.LogWarning($"无法执行 {operationName}：找不到对应的伤害检测片段配置 (轨道索引: {targetData.trackIndex}, 片段名: {clipName})");
+            }
+        }
+
+        /// <summary>
+        /// 删除特效轨道项的完整流程
+        /// 包括移除UI元素、删除配置数据和触发界面刷新
+        /// </summary>
+        protected override void DeleteTrackItem()
+        {
+            var skillConfig = SkillEditorData.CurrentSkillConfig;
+            if (skillConfig?.trackContainer?.effectTrack == null || targetData == null)
+            {
+                Debug.LogWarning("无法删除轨道项：技能配置或特效轨道为空");
+                return;
+            }
+
+            // 根据trackIndex查找对应的特效轨道并删除片段
+            bool deleted = false;
+            if (skillConfig.trackContainer.effectTrack.effectTracks != null)
+            {
+                var targetTrack = skillConfig.trackContainer.effectTrack.effectTracks
+                    .FirstOrDefault(track => track.trackIndex == targetData.trackIndex);
+
+                if (targetTrack?.effectClips != null)
+                {
+                    // 直接通过唯一名称查找要删除的片段
+                    var clipToRemove = targetTrack.effectClips
+                        .FirstOrDefault(clip => clip.clipName == targetData.trackItemName);
+
+                    if (clipToRemove != null)
+                    {
+                        targetTrack.effectClips.Remove(clipToRemove);
+                        deleted = true;
+                        Debug.Log($"从配置中删除特效片段: {clipToRemove.clipName} (轨道索引: {targetData.trackIndex})");
+                    }
+                    else
+                    {
+                        Debug.LogWarning($"未找到要删除的特效片段: {targetData.trackItemName} (轨道索引: {targetData.trackIndex})");
+                    }
+                }
+                else
+                {
+                    Debug.LogWarning($"未找到trackIndex为 {targetData.trackIndex} 的特效轨道");
+                }
+            }
+
+            if (deleted)
+            {
+                // 标记配置文件为已修改
+                MarkSkillConfigDirty();
+                UnityEditor.AssetDatabase.SaveAssets();
+            }
+
+            // 删除ScriptableObject资产
+            if (targetData != null)
+            {
+                UnityEditor.AssetDatabase.DeleteAsset(UnityEditor.AssetDatabase.GetAssetPath(targetData));
+            }
+
+            // 清空Inspector选择
+            UnityEditor.Selection.activeObject = null;
+
+            // 触发界面刷新以移除UI元素
+            var window = UnityEditor.EditorWindow.GetWindow<SkillEditor>();
+            if (window != null)
+            {
+                // 使用EditorApplication.delayCall确保在下一帧执行刷新
+                UnityEditor.EditorApplication.delayCall += () =>
+                {
+                    window.Repaint();
+
+                    // 直接调用静态事件方法
+                    SkillEditorEvent.TriggerRefreshRequested();
+                };
             }
         }
 

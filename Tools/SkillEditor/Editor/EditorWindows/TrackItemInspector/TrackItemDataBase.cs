@@ -6,7 +6,7 @@ namespace SkillEditor
     /// 轨道项数据基类
     /// 包含所有轨道项类型的公共属性
     /// </summary>
-    public abstract class BaseTrackItemData : ScriptableObject
+    public abstract class TrackItemDataBase : ScriptableObject
     {
         public string trackItemName;            // 轨道项名称
         public int frameCount;                  // 帧数

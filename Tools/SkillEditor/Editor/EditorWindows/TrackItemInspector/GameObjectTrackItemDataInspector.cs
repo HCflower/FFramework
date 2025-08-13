@@ -6,7 +6,7 @@ using System.Linq;
 namespace SkillEditor
 {
     [CustomEditor(typeof(GameObjectTrackItemData))]
-    public class GameObjectTrackItemDataInspector : BaseTrackItemDataInspector
+    public class GameObjectTrackItemDataInspector : TrackItemDataInspectorBase
     {
         protected override string TrackItemTypeName => "GameObject";
         protected override string TrackItemDisplayTitle => "游戏物体轨道项信息";
@@ -200,19 +200,11 @@ namespace SkillEditor
             }
         }
 
-        protected override void PerformDelete()
-        {
-            SafeExecute(() =>
-            {
-                DeleteGameObjectTrackItem();
-            }, "删除游戏物体轨道项");
-        }
-
         /// <summary>
         /// 删除游戏物体轨道项的完整流程
         /// 包括移除UI元素、删除配置数据和触发界面刷新
         /// </summary>
-        private void DeleteGameObjectTrackItem()
+        protected override void DeleteTrackItem()
         {
             var skillConfig = SkillEditorData.CurrentSkillConfig;
             if (skillConfig?.trackContainer?.gameObjectTrack == null || targetData == null)
@@ -230,10 +222,9 @@ namespace SkillEditor
                 {
                     if (track.gameObjectClips != null)
                     {
-                        // 查找要删除的片段
-                        var clipToRemove = track.gameObjectClips.FirstOrDefault(clip =>
-                            clip.clipName == targetData.trackItemName &&
-                            clip.startFrame == targetData.startFrame);
+                        // 直接通过唯一名称查找要删除的片段
+                        var clipToRemove = track.gameObjectClips
+                            .FirstOrDefault(clip => clip.clipName == targetData.trackItemName);
 
                         if (clipToRemove != null)
                         {
@@ -272,6 +263,7 @@ namespace SkillEditor
 
             Debug.Log($"删除游戏物体轨道项: {targetData.trackItemName}");
         }
+
 
         #endregion
     }

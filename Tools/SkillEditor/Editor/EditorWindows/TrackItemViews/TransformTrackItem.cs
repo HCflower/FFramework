@@ -9,12 +9,12 @@ namespace SkillEditor
     /// 专门处理变换轨道项的显示、交互和数据管理
     /// 提供变换特有的位置、旋转、缩放控制和Inspector数据功能
     /// </summary>
-    public class TransformTrackItem : BaseTrackItemView
+    public class TransformTrackItem : TrackItemViewBase
     {
         #region 私有字段
 
         /// <summary>轨道项持续帧数</summary>
-        private int frameCount;
+        private int durationFrame;
 
         /// <summary>轨道索引，用于多轨道数据定位</summary>
         private int trackIndex;
@@ -32,12 +32,12 @@ namespace SkillEditor
         /// </summary>
         /// <param name="visual">父容器，轨道项将添加到此容器中</param>
         /// <param name="title">轨道项显示标题</param>
-        /// <param name="frameCount">轨道项持续帧数，影响宽度显示</param>
+        /// <param name="durationFrame">轨道项持续帧数，影响宽度显示</param>
         /// <param name="startFrame">轨道项的起始帧位置，默认为0</param>
         /// <param name="trackIndex">轨道索引，用于多轨道数据定位，默认为0</param>
-        public TransformTrackItem(VisualElement visual, string title, int frameCount, int startFrame = 0, int trackIndex = 0)
+        public TransformTrackItem(VisualElement visual, string title, int durationFrame, int startFrame = 0, int trackIndex = 0)
         {
-            this.frameCount = frameCount;
+            this.durationFrame = durationFrame;
             this.startFrame = startFrame;
             this.trackIndex = trackIndex;
 
@@ -107,7 +107,7 @@ namespace SkillEditor
         /// </summary>
         public override void SetWidth()
         {
-            itemContent.style.width = frameCount * SkillEditorData.FrameUnitWidth;
+            itemContent.style.width = durationFrame * SkillEditorData.FrameUnitWidth;
         }
 
         /// <summary>
@@ -116,7 +116,7 @@ namespace SkillEditor
         /// <param name="newFrameCount">新的帧数</param>
         public override void UpdateFrameCount(int newFrameCount)
         {
-            frameCount = newFrameCount;
+            durationFrame = newFrameCount;
             SetWidth();
         }
 
@@ -135,7 +135,7 @@ namespace SkillEditor
         /// <returns>结束帧位置</returns>
         public float GetEndFrame()
         {
-            return startFrame + frameCount;
+            return startFrame + durationFrame;
         }
 
         /// <summary>
@@ -278,10 +278,10 @@ namespace SkillEditor
 
             var transformData = ScriptableObject.CreateInstance<TransformTrackItemData>();
             transformData.trackItemName = itemName;
-            transformData.frameCount = frameCount;
+            transformData.frameCount = durationFrame;
             transformData.startFrame = startFrame;
             transformData.trackIndex = trackIndex; // 设置轨道索引用于多轨道数据定位
-            transformData.durationFrame = frameCount;
+            transformData.durationFrame = durationFrame;
 
             // 设置变换特有的默认属性
             SetDefaultTransformProperties(transformData);

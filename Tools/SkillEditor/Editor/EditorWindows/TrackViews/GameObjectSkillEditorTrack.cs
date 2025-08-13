@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine.UIElements;
 using UnityEngine;
 using System.Linq;
@@ -13,8 +14,10 @@ namespace SkillEditor
     /// 专门处理游戏物体（预制体）的拖拽、生成和配置管理
     /// 支持多轨道并行操作
     /// </summary>
-    public class GameObjectSkillEditorTrack : BaseSkillEditorTrack
+    public class GameObjectSkillEditorTrack : SkillEditorTrackBase
     {
+        #region 构造函数
+
         /// <summary>
         /// 游戏物体轨道构造函数
         /// </summary>
@@ -25,6 +28,8 @@ namespace SkillEditor
         public GameObjectSkillEditorTrack(VisualElement visual, float width, FFramework.Kit.SkillConfig skillConfig, int trackIndex = 0)
             : base(visual, TrackType.GameObjectTrack, width, skillConfig, trackIndex)
         { }
+
+        #endregion
 
         #region 抽象方法实现
 
@@ -45,36 +50,18 @@ namespace SkillEditor
         /// <param name="startFrame">起始帧</param>
         /// <param name="addToConfig">是否添加到配置</param>
         /// <returns>创建的轨道项</returns>
-        protected override BaseTrackItemView CreateTrackItemFromResource(object resource, int startFrame, bool addToConfig)
+        protected override TrackItemViewBase CreateTrackItemFromResource(object resource, int startFrame, bool addToConfig)
         {
             if (!(resource is GameObject gameObject))
                 return null;
 
-            float frameRate = GetFrameRate();
-            int frameCount = Mathf.RoundToInt(1f * frameRate); // 默认1秒持续时间
-            string itemName = gameObject.name;
+            var frameCount = CalculateFrameCount();
+            var newItem = CreateGameObjectTrackItem(gameObject.name, startFrame, frameCount, addToConfig);
 
-            var newItem = new GameObjectTrackItem(trackArea, itemName, frameCount, startFrame, trackIndex);
-
-            // 设置游戏物体轨道项的数据
-            var gameObjectData = newItem.GameObjectData;
-            gameObjectData.prefab = gameObject;
-            gameObjectData.autoDestroy = true;
-            gameObjectData.positionOffset = Vector3.zero;
-            gameObjectData.rotationOffset = Vector3.zero;
-            gameObjectData.scale = Vector3.one;
-            gameObjectData.useParent = false;
-            gameObjectData.parentName = "";
-            gameObjectData.destroyDelay = -1f;
-
-#if UNITY_EDITOR
-            EditorUtility.SetDirty(gameObjectData);
-#endif
-
-            // 添加到技能配置
             if (addToConfig)
             {
-                AddGameObjectToConfig(gameObject, itemName, startFrame, frameCount);
+                AddTrackItemDataToConfig(gameObject, gameObject.name, startFrame, frameCount);
+                SkillEditorEvent.OnRefreshRequested();
             }
 
             return newItem;
@@ -86,63 +73,89 @@ namespace SkillEditor
         protected override void ApplySpecificTrackStyle()
         {
             // 游戏物体轨道特有的样式设置
-            // 可以在这里添加游戏物体轨道特有的视觉效果
+            trackArea.AddToClassList("TrackArea-GameObject");
         }
 
         #endregion
 
-        #region 重写方法
+        #region 公共方法
 
         /// <summary>
-        /// 支持自定义名称的游戏物体轨道项添加
+        /// 创建游戏物体轨道项
         /// </summary>
-        /// <param name="resource">游戏物体资源</param>
-        /// <param name="itemName">自定义名称</param>
+        /// <param name="itemName">轨道项名称</param>
         /// <param name="startFrame">起始帧</param>
+        /// <param name="frameCount">总帧数</param>
         /// <param name="addToConfig">是否添加到配置</param>
-        /// <returns>创建的轨道项</returns>
-        public override BaseTrackItemView AddTrackItem(object resource, string itemName, int startFrame, bool addToConfig)
+        /// <returns>创建的游戏物体轨道项</returns>
+        public GameObjectTrackItem CreateGameObjectTrackItem(string itemName, int startFrame, int frameCount, bool addToConfig = true)
         {
-            if (!(resource is GameObject gameObject))
-                return null;
+            var gameObjectItem = new GameObjectTrackItem(trackArea, itemName, frameCount, startFrame, trackIndex);
 
-            float frameRate = GetFrameRate();
-            int frameCount = Mathf.RoundToInt(1f * frameRate); // 默认1秒持续时间
+            trackItems.Add(gameObjectItem);
 
-            var newItem = new GameObjectTrackItem(trackArea, itemName, frameCount, startFrame, trackIndex);
-
-            // 设置游戏物体轨道项的数据
-            var gameObjectData = newItem.GameObjectData;
-            gameObjectData.prefab = gameObject;
-            gameObjectData.autoDestroy = true;
-            gameObjectData.positionOffset = Vector3.zero;
-            gameObjectData.rotationOffset = Vector3.zero;
-            gameObjectData.scale = Vector3.one;
-            gameObjectData.useParent = false;
-            gameObjectData.parentName = "";
-            gameObjectData.destroyDelay = -1f;
-
-#if UNITY_EDITOR
-            EditorUtility.SetDirty(gameObjectData);
-#endif
-
-            // 添加到技能配置
             if (addToConfig)
             {
-                AddGameObjectToConfig(gameObject, itemName, startFrame, frameCount);
+                AddTrackItemDataToConfig(null, itemName, startFrame, frameCount);
+                SkillEditorEvent.OnRefreshRequested();
             }
 
-            if (newItem != null)
+            return gameObjectItem;
+        }
+
+        /// <summary>
+        /// 刷新轨道项
+        /// </summary>
+        public override void RefreshTrackItems()
+        {
+            base.RefreshTrackItems();
+        }
+
+        /// <summary>
+        /// 从配置创建游戏物体轨道项
+        /// </summary>
+        /// <param name="track">游戏物体轨道实例</param>
+        /// <param name="skillConfig">技能配置</param>
+        /// <param name="trackIndex">轨道索引</param>
+        public static void CreateTrackItemsFromConfig(GameObjectSkillEditorTrack track, FFramework.Kit.SkillConfig skillConfig, int trackIndex)
+        {
+            var gameObjectTrack = skillConfig.trackContainer.gameObjectTrack;
+            if (gameObjectTrack == null)
             {
-                trackItems.Add(newItem);
+                Debug.Log("CreateGameObjectTrackItemsFromConfig: 没有找到游戏物体轨道数据");
+                return;
             }
 
-            return newItem;
+            var targetTrack = gameObjectTrack.gameObjectTracks?.FirstOrDefault(t => t.trackIndex == trackIndex);
+            if (targetTrack?.gameObjectClips == null)
+            {
+                Debug.Log($"CreateGameObjectTrackItemsFromConfig: 没有找到索引为{trackIndex}的游戏物体轨道数据");
+                return;
+            }
+
+            foreach (var clip in targetTrack.gameObjectClips)
+            {
+                var trackItem = track.CreateGameObjectTrackItem(clip.clipName, clip.startFrame, clip.durationFrame, false);
+
+                if (trackItem is GameObjectTrackItem gameObjectTrackItem)
+                {
+                    RestoreGameObjectData(gameObjectTrackItem, clip);
+                }
+            }
         }
 
         #endregion
 
         #region 私有方法
+
+        /// <summary>
+        /// 计算帧数
+        /// </summary>
+        /// <returns>计算得到的帧数</returns>
+        private int CalculateFrameCount()
+        {
+            return Mathf.RoundToInt(1f * GetFrameRate()); // 默认1秒持续时间
+        }
 
         /// <summary>
         /// 将游戏物体添加到技能配置的游戏物体轨道中
@@ -151,49 +164,36 @@ namespace SkillEditor
         /// <param name="itemName">轨道项名称</param>
         /// <param name="startFrame">起始帧</param>
         /// <param name="frameCount">总帧数</param>
-        private void AddGameObjectToConfig(GameObject gameObject, string itemName, int startFrame, int frameCount)
+        private void AddTrackItemDataToConfig(GameObject gameObject, string itemName, int startFrame, int frameCount)
         {
             if (skillConfig?.trackContainer == null) return;
 
-            // 确保游戏物体轨道存在
-            if (skillConfig.trackContainer.gameObjectTrack == null)
-            {
-                // 创建游戏物体轨道ScriptableObject
-                var newGameObjectTrackSO = ScriptableObject.CreateInstance<FFramework.Kit.GameObjectTrackSO>();
-                skillConfig.trackContainer.gameObjectTrack = newGameObjectTrackSO;
+            EnsureGameObjectTrackExists();
 
-#if UNITY_EDITOR
-                // 将ScriptableObject作为子资产添加到技能配置文件中
-                UnityEditor.AssetDatabase.AddObjectToAsset(newGameObjectTrackSO, skillConfig);
-                UnityEditor.AssetDatabase.SaveAssets();
-#endif
-            }
-
-            // 获取游戏物体轨道SO
             var gameObjectTrackSO = skillConfig.trackContainer.gameObjectTrack;
 
-            // 确保至少有一个轨道存在
-            gameObjectTrackSO.EnsureTrackExists();
-
-            // 确保指定索引的轨道存在
             while (gameObjectTrackSO.gameObjectTracks.Count <= trackIndex)
             {
                 gameObjectTrackSO.AddTrack($"GameObject Track {gameObjectTrackSO.gameObjectTracks.Count}");
             }
 
-            // 获取指定索引的游戏物体轨道
             var gameObjectTrack = gameObjectTrackSO.gameObjectTracks[trackIndex];
 
-            // 确保游戏物体片段列表存在
             if (gameObjectTrack.gameObjectClips == null)
             {
-                gameObjectTrack.gameObjectClips = new System.Collections.Generic.List<FFramework.Kit.GameObjectTrack.GameObjectClip>();
+                gameObjectTrack.gameObjectClips = new List<FFramework.Kit.GameObjectTrack.GameObjectClip>();
             }
 
-            // 创建技能配置中的游戏物体片段数据
+            string finalName = itemName;
+            int suffix = 1;
+            while (gameObjectTrack.gameObjectClips.Any(c => c.clipName == finalName))
+            {
+                finalName = $"{itemName}_{suffix++}";
+            }
+
             var configGameObjectClip = new FFramework.Kit.GameObjectTrack.GameObjectClip
             {
-                clipName = itemName,
+                clipName = finalName,
                 startFrame = startFrame,
                 durationFrame = frameCount,
                 prefab = gameObject,
@@ -206,84 +206,53 @@ namespace SkillEditor
                 destroyDelay = -1f
             };
 
-            // 添加到对应索引的游戏物体轨道
             gameObjectTrack.gameObjectClips.Add(configGameObjectClip);
 
-            Debug.Log($"AddGameObjectToConfig: 添加游戏物体 '{itemName}' 到轨道索引 {trackIndex}");
-
 #if UNITY_EDITOR
-            // 标记轨道数据和技能配置为已修改
-            if (gameObjectTrackSO != null)
-            {
-                EditorUtility.SetDirty(gameObjectTrackSO);
-            }
-            if (skillConfig != null)
-            {
-                EditorUtility.SetDirty(skillConfig);
-            }
+            EditorUtility.SetDirty(gameObjectTrackSO);
+            EditorUtility.SetDirty(skillConfig);
 #endif
         }
 
-        #endregion
-
-        #region 配置恢复方法
-
         /// <summary>
-        /// 根据索引从配置创建游戏物体轨道项
+        /// 确保游戏物体轨道存在
         /// </summary>
-        /// <param name="track">游戏物体轨道实例</param>
-        /// <param name="skillConfig">技能配置</param>
-        /// <param name="trackIndex">轨道索引</param>
-        public static void CreateTrackItemsFromConfig(GameObjectSkillEditorTrack track, FFramework.Kit.SkillConfig skillConfig, int trackIndex)
+        private void EnsureGameObjectTrackExists()
         {
-            var gameObjectTrack = skillConfig.trackContainer.gameObjectTrack;
-            if (gameObjectTrack == null)
-            {
-                Debug.Log($"CreateGameObjectTrackItemsFromConfig: 没有找到游戏物体轨道数据");
-                return;
-            }
+            if (skillConfig.trackContainer.gameObjectTrack != null) return;
 
-            // 根据索引获取对应的轨道数据
-            var targetTrack = gameObjectTrack.gameObjectTracks?.FirstOrDefault(t => t.trackIndex == trackIndex);
-            if (targetTrack?.gameObjectClips == null)
-            {
-                Debug.Log($"CreateGameObjectTrackItemsFromConfig: 没有找到索引为{trackIndex}的游戏物体轨道数据");
-                return;
-            }
-
-            foreach (var clip in targetTrack.gameObjectClips)
-            {
-                if (clip.prefab != null)
-                {
-                    // 从配置加载时，使用配置中的名称，并设置addToConfig为false，避免重复添加到配置文件
-                    var trackItem = track.AddTrackItem(clip.prefab, clip.clipName, clip.startFrame, false);
-
-                    // 从配置中恢复完整的游戏物体属性
-                    if (trackItem is GameObjectTrackItem gameObjectTrackItem)
-                    {
-                        var gameObjectData = gameObjectTrackItem.GameObjectData;
-                        gameObjectData.durationFrame = clip.durationFrame;
-                        gameObjectData.autoDestroy = clip.autoDestroy;
-                        gameObjectData.positionOffset = clip.positionOffset;
-                        gameObjectData.rotationOffset = clip.rotationOffset;
-                        gameObjectData.scale = clip.scale;
-                        gameObjectData.useParent = clip.useParent;
-                        gameObjectData.parentName = clip.parentName;
-                        gameObjectData.destroyDelay = clip.destroyDelay;
+            var newGameObjectTrackSO = ScriptableObject.CreateInstance<FFramework.Kit.GameObjectTrackSO>();
+            skillConfig.trackContainer.gameObjectTrack = newGameObjectTrackSO;
 
 #if UNITY_EDITOR
-                        // 标记数据已修改
-                        UnityEditor.EditorUtility.SetDirty(gameObjectData);
+            UnityEditor.AssetDatabase.AddObjectToAsset(newGameObjectTrackSO, skillConfig);
+            UnityEditor.AssetDatabase.SaveAssets();
 #endif
-                    }
+        }
 
-                    // 更新轨道项的帧数和宽度显示
-                    if (clip.durationFrame > 0)
-                    {
-                        trackItem?.UpdateFrameCount(clip.durationFrame);
-                    }
-                }
-            }
+        /// <summary>
+        /// 恢复游戏物体数据
+        /// </summary>
+        /// <param name="trackItem">轨道项</param>
+        /// <param name="clip">游戏物体片段</param>
+        private static void RestoreGameObjectData(GameObjectTrackItem trackItem, FFramework.Kit.GameObjectTrack.GameObjectClip clip)
+        {
+            if (trackItem?.GameObjectData == null) return;
+
+            var gameObjectData = trackItem.GameObjectData;
+            gameObjectData.trackItemName = clip.clipName;
+            gameObjectData.durationFrame = clip.durationFrame;
+            gameObjectData.autoDestroy = clip.autoDestroy;
+            gameObjectData.positionOffset = clip.positionOffset;
+            gameObjectData.rotationOffset = clip.rotationOffset;
+            gameObjectData.scale = clip.scale;
+            gameObjectData.useParent = clip.useParent;
+            gameObjectData.parentName = clip.parentName;
+            gameObjectData.destroyDelay = clip.destroyDelay;
+
+#if UNITY_EDITOR
+            EditorUtility.SetDirty(gameObjectData);
+#endif
         }
 
         #endregion

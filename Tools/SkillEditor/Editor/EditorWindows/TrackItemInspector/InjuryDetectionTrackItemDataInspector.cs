@@ -7,7 +7,7 @@ using System.Linq;
 namespace SkillEditor
 {
     [CustomEditor(typeof(InjuryDetectionTrackItemData))]
-    public class InjuryDetectionTrackItemDataInspector : BaseTrackItemDataInspector
+    public class InjuryDetectionTrackItemDataInspector : TrackItemDataInspectorBase
     {
         protected override string TrackItemTypeName => "Attack";
         protected override string TrackItemDisplayTitle => "攻击轨道项信息";
@@ -43,16 +43,6 @@ namespace SkillEditor
             layerMaskField.RegisterValueChangedCallback(evt => OnTargetLayersChanged(evt.newValue));
             layerMaskContent.Add(layerMaskField);
             root.Add(layerMaskContent);
-        }
-
-        protected override void PerformDelete()
-        {
-            if (EditorUtility.DisplayDialog("删除确认",
-                $"确定要删除攻击轨道项 \"{targetData.trackItemName}\" 吗？\n\n此操作将会：\n• 从界面移除此轨道项\n• 删除对应的配置数据\n• 无法撤销",
-                "确认删除", "取消"))
-            {
-                DeleteAttackTrackItem();
-            }
         }
 
         #region 事件处理方法
@@ -186,80 +176,79 @@ namespace SkillEditor
         /// 删除攻击轨道项的完整流程
         /// 包括移除UI元素、删除配置数据和触发界面刷新
         /// </summary>
-        private void DeleteAttackTrackItem()
+        protected override void DeleteTrackItem()
         {
-            SafeExecute(() =>
+            var skillConfig = SkillEditorData.CurrentSkillConfig;
+            if (skillConfig?.trackContainer?.injuryDetectionTrack == null || targetData == null)
             {
-                var skillConfig = SkillEditorData.CurrentSkillConfig;
-                if (skillConfig?.trackContainer?.injuryDetectionTrack == null || targetData == null)
-                {
-                    Debug.LogWarning("无法删除轨道项：技能配置或伤害检测轨道为空");
-                    return;
-                }
+                Debug.LogWarning("无法删除轨道项：技能配置或伤害检测轨道为空");
+                return;
+            }
 
-                // 根据trackIndex查找对应的攻击轨道并删除片段
-                bool deleted = false;
-                if (skillConfig.trackContainer.injuryDetectionTrack.injuryDetectionTracks != null)
-                {
-                    var targetTrack = skillConfig.trackContainer.injuryDetectionTrack.injuryDetectionTracks
-                        .FirstOrDefault(track => track.trackIndex == targetData.trackIndex);
+            // 根据trackIndex查找对应的攻击轨道并删除片段
+            bool deleted = false;
+            if (skillConfig.trackContainer.injuryDetectionTrack.injuryDetectionTracks != null)
+            {
+                var targetTrack = skillConfig.trackContainer.injuryDetectionTrack.injuryDetectionTracks
+                    .FirstOrDefault(track => track.trackIndex == targetData.trackIndex);
 
-                    if (targetTrack?.injuryDetectionClips != null)
+                if (targetTrack?.injuryDetectionClips != null)
+                {
+                    // 查找要删除的片段（仅通过名称查找，名称已保证唯一性）
+                    var clipToRemove = targetTrack.injuryDetectionClips.FirstOrDefault(clip =>
+                        clip.clipName == targetData.trackItemName);
+
+                    if (clipToRemove != null)
                     {
-                        // 查找要删除的片段
-                        var clipToRemove = targetTrack.injuryDetectionClips.FirstOrDefault(clip =>
-                            clip.clipName == targetData.trackItemName &&
-                            clip.startFrame == targetData.startFrame);
-
-                        if (clipToRemove != null)
-                        {
-                            targetTrack.injuryDetectionClips.Remove(clipToRemove);
-                            deleted = true;
-                            Debug.Log($"从配置中删除攻击片段: {clipToRemove.clipName} (轨道索引: {targetData.trackIndex})");
-                        }
-                        else
-                        {
-                            Debug.LogWarning($"未找到要删除的攻击片段: {targetData.trackItemName} (轨道索引: {targetData.trackIndex})");
-                        }
+                        targetTrack.injuryDetectionClips.Remove(clipToRemove);
+                        deleted = true;
+                        Debug.Log($"从配置中删除攻击片段: {clipToRemove.clipName} (轨道索引: {targetData.trackIndex})");
                     }
                     else
                     {
-                        Debug.LogWarning($"未找到trackIndex为 {targetData.trackIndex} 的攻击轨道");
+                        Debug.LogWarning($"未找到要删除的攻击片段: {targetData.trackItemName} (轨道索引: {targetData.trackIndex})");
                     }
                 }
-
-                if (deleted)
+                else
                 {
-                    // 标记配置文件为已修改
-                    MarkSkillConfigDirty();
-                    UnityEditor.AssetDatabase.SaveAssets();
+                    Debug.LogWarning($"未找到trackIndex为 {targetData.trackIndex} 的攻击轨道");
                 }
+            }
 
-                // 删除ScriptableObject资产
-                if (targetData != null)
+            if (deleted)
+            {
+                // 标记配置文件为已修改
+                MarkSkillConfigDirty();
+                UnityEditor.AssetDatabase.SaveAssets();
+            }
+
+            // 删除ScriptableObject资产
+            if (targetData != null)
+            {
+                UnityEditor.AssetDatabase.DeleteAsset(UnityEditor.AssetDatabase.GetAssetPath(targetData));
+            }
+
+            // 清空Inspector选择
+            UnityEditor.Selection.activeObject = null;
+
+            // 触发界面刷新以移除UI元素
+            var window = UnityEditor.EditorWindow.GetWindow<SkillEditor>();
+            if (window != null)
+            {
+                // 使用EditorApplication.delayCall确保在下一帧执行刷新
+                UnityEditor.EditorApplication.delayCall += () =>
                 {
-                    UnityEditor.AssetDatabase.DeleteAsset(UnityEditor.AssetDatabase.GetAssetPath(targetData));
-                }
+                    window.Repaint();
 
-                // 清空Inspector选择
-                UnityEditor.Selection.activeObject = null;
+                    // 直接调用静态事件方法
+                    SkillEditorEvent.TriggerRefreshRequested();
+                };
+            }
 
-                // 触发界面刷新以移除UI元素
-                var window = UnityEditor.EditorWindow.GetWindow<SkillEditor>();
-                if (window != null)
-                {
-                    // 使用EditorApplication.delayCall确保在下一帧执行刷新
-                    UnityEditor.EditorApplication.delayCall += () =>
-                    {
-                        window.Repaint();
+            Debug.Log($"删除伤害检测轨道项: {targetData.trackItemName}");
 
-                        // 直接调用静态事件方法
-                        SkillEditorEvent.TriggerRefreshRequested();
-                    };
-                }
-
-                Debug.Log($"攻击轨道项 \"{targetData.trackItemName}\" 删除成功");
-            }, "删除攻击轨道项");
+            // 重置名称缓存
+            lastTrackItemName = null;
         }
 
         #endregion

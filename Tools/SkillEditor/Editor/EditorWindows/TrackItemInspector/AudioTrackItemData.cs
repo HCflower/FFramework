@@ -2,7 +2,7 @@ using UnityEngine;
 
 namespace SkillEditor
 {
-    public class AudioTrackItemData : BaseTrackItemData
+    public class AudioTrackItemData : TrackItemDataBase
     {
         public AudioClip audioClip;             // 音频片段
         public float volume = 1f;               // 音量

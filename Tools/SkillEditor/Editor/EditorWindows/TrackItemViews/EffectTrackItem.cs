@@ -9,12 +9,12 @@ namespace SkillEditor
     /// 专门处理特效轨道项的显示、交互和数据管理
     /// 提供特效特有的事件视图和Inspector数据功能
     /// </summary>
-    public class EffectTrackItem : BaseTrackItemView
+    public class EffectTrackItem : TrackItemViewBase
     {
         #region 私有字段
 
         /// <summary>轨道项持续帧数</summary>
-        private int frameCount;
+        private int durationFrame;
 
         /// <summary>轨道索引，用于多轨道数据定位</summary>
         private int trackIndex;
@@ -35,12 +35,12 @@ namespace SkillEditor
         /// </summary>
         /// <param name="visual">父容器，轨道项将添加到此容器中</param>
         /// <param name="title">轨道项显示标题</param>
-        /// <param name="frameCount">轨道项持续帧数，影响宽度显示</param>
+        /// <param name="durationFrame">轨道项持续帧数，影响宽度显示</param>
         /// <param name="startFrame">轨道项的起始帧位置，默认为0</param>
         /// <param name="trackIndex">轨道索引，用于多轨道数据定位，默认为0</param>
-        public EffectTrackItem(VisualElement visual, string title, int frameCount, int startFrame = 0, int trackIndex = 0)
+        public EffectTrackItem(VisualElement visual, string title, int durationFrame, int startFrame = 0, int trackIndex = 0)
         {
-            this.frameCount = frameCount;
+            this.durationFrame = durationFrame;
             this.startFrame = startFrame;
             this.trackIndex = trackIndex;
 
@@ -112,7 +112,7 @@ namespace SkillEditor
         /// </summary>
         public override void SetWidth()
         {
-            itemContent.style.width = frameCount * SkillEditorData.FrameUnitWidth;
+            itemContent.style.width = durationFrame * SkillEditorData.FrameUnitWidth;
         }
 
         /// <summary>
@@ -121,7 +121,7 @@ namespace SkillEditor
         /// <param name="newFrameCount">新的帧数</param>
         public override void UpdateFrameCount(int newFrameCount)
         {
-            frameCount = newFrameCount;
+            durationFrame = newFrameCount;
             SetWidth();
         }
 
@@ -140,7 +140,7 @@ namespace SkillEditor
         /// <returns>结束帧位置</returns>
         public float GetEndFrame()
         {
-            return startFrame + frameCount;
+            return startFrame + durationFrame;
         }
 
         /// <summary>
@@ -302,11 +302,11 @@ namespace SkillEditor
 
             var effectData = ScriptableObject.CreateInstance<EffectTrackItemData>();
             effectData.trackItemName = itemName;
-            effectData.frameCount = frameCount;
+            effectData.frameCount = durationFrame;
             effectData.startFrame = startFrame;
             // 设置轨道索引用于多轨道数据定位
             effectData.trackIndex = trackIndex;
-            effectData.durationFrame = frameCount;
+            effectData.durationFrame = durationFrame;
 
             // 设置特效特有的默认属性
             SetDefaultEffectProperties(effectData);
@@ -354,7 +354,10 @@ namespace SkillEditor
         {
             var skillConfig = SkillEditorData.CurrentSkillConfig;
             if (skillConfig?.trackContainer?.effectTrack == null)
+            {
+                Debug.Log($"EffectTrackItem: 没有配置数据，保持默认值");
                 return;
+            }
 
             // 查找对应的特效片段配置
             var configClip = skillConfig.trackContainer.effectTrack.effectTracks?
@@ -374,6 +377,10 @@ namespace SkillEditor
                 effectData.position = configClip.position;
                 effectData.rotation = configClip.rotation;
                 effectData.scale = configClip.scale;
+            }
+            else
+            {
+                Debug.Log($"EffectTrackItem: 未找到配置数据，保持默认值");
             }
         }
 
