@@ -591,18 +591,6 @@ namespace SkillEditor
             parent.Add(searchInput);
         }
 
-        public List<VisualElement> FilterTracks(string searchText)
-        {
-            var result = new List<VisualElement>();
-            foreach (var track in SkillEditorData.tracks)
-            {
-                if (track.TrackName.ToLower().Contains(searchText))
-                {
-                    result.Add(track.Control.TrackControlArea);
-                }
-            }
-            return result;
-        }
         /// <summary>
         /// 创建添加轨道按钮
         /// 点击后显示轨道类型选择菜单
@@ -1044,7 +1032,7 @@ namespace SkillEditor
             // 创建配置名称输入框
             var configName = new TextField();
             configName.AddToClassList("AddConfigInput");
-            configName.tooltip = "请输入SkillConfig名称,回车确认,ESC取消";
+            configName.tooltip = "请输入SkillConfig名称,ENTER->确认,ESC->取消";
             configName.value = "";
             addButton.Add(configName);
 
@@ -1077,6 +1065,12 @@ namespace SkillEditor
                     cancelAction();
                     evt.StopPropagation();
                 }
+            });
+
+            // 失去焦点时关闭
+            configName.RegisterCallback<FocusOutEvent>(evt =>
+            {
+                ResetAddConfigButton(addButton, configName);
             });
 
             configName.Focus();

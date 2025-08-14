@@ -708,6 +708,9 @@ namespace FFramework.Kit
             var injuryTrack = skillConfig.trackContainer?.injuryDetectionTrack;
             if (injuryTrack?.injuryDetectionTracks == null) return;
 
+            // 统计本帧需要激活的碰撞组ID
+            HashSet<int> activeGroupIds = new HashSet<int>();
+
             foreach (var track in injuryTrack.injuryDetectionTracks)
             {
                 if (!track.isEnabled || track.injuryDetectionClips == null) continue;
@@ -716,6 +719,8 @@ namespace FFramework.Kit
                 {
                     if (injuryClip.IsFrameInRange(frame))
                     {
+                        activeGroupIds.Add(injuryClip.collisionGroupId);
+
                         // 在伤害片段范围内激活碰撞组
                         ActivateCollisionGroup(injuryClip.collisionGroupId);
 
@@ -729,6 +734,15 @@ namespace FFramework.Kit
                             DeactivateCollisionGroup(injuryClip.collisionGroupId);
                         }
                     }
+                }
+            }
+
+            // 非激活的碰撞组全部关闭
+            foreach (var group in collisionGroup)
+            {
+                if (!activeGroupIds.Contains(group.collisionGroupId))
+                {
+                    DeactivateCollisionGroup(group.collisionGroupId);
                 }
             }
         }

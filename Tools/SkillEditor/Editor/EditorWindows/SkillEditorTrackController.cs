@@ -31,7 +31,6 @@ namespace SkillEditor
 
         /// <summary>轨道控制区域容器</summary>
         private VisualElement trackControlArea;
-        public VisualElement TrackControlArea => trackControlArea;
 
         /// <summary>轨道控制内容容器</summary>
         private VisualElement trackControlAreaContent;
@@ -53,8 +52,6 @@ namespace SkillEditor
         #endregion
 
         #region 构造函数
-
-
 
         /// <summary>
         /// 轨道控制器构造函数
@@ -283,9 +280,7 @@ namespace SkillEditor
             // 轨道重命名选项
             menu.AddItem(new GUIContent("更改当前轨道名称"), false, () =>
             {
-                // 示例：弹窗输入新名称（实际可用EditorUtility.DisplayDialog或自定义UI）
-                string newName = TrackName;
-                OnTrackNameChanged?.Invoke(this, newName);
+                ShowRenameTextField();
             });
 
             //TODO: 子轨道管理选项（仅特定轨道类型支持）
@@ -307,6 +302,71 @@ namespace SkillEditor
             // 在按钮正下方显示菜单
             var rect = button.worldBound;
             menu.DropDown(new Rect(rect.x, rect.yMax, 0, 0));
+        }
+
+        /// <summary>
+        /// 在轨道区域显示重命名文本输入框
+        /// </summary>
+        private void ShowRenameTextField()
+        {
+            // 移除原有标题
+            var oldTitle = trackControlAreaContent.Q<Label>("TrackControlAreaTitle");
+            if (oldTitle != null)
+                trackControlAreaContent.Remove(oldTitle);
+
+            // 创建文本输入框
+            TextField renameField = new TextField();
+            renameField.value = TrackName;
+            renameField.AddToClassList("TrackRenameTextField");
+            renameField.tooltip = "请输入轨道名称,ENTER->确认,ESC->取消";
+            renameField.SelectAll();
+
+            // 只允许单行
+            renameField.multiline = false;
+
+            // 监听键盘事件
+            renameField.RegisterCallback<KeyDownEvent>(evt =>
+            {
+                if (evt.keyCode == KeyCode.Return || evt.keyCode == KeyCode.KeypadEnter)
+                {
+                    string newName = renameField.value.Trim();
+                    if (!string.IsNullOrEmpty(newName) && newName != TrackName)
+                    {
+                        TrackName = newName;
+                        OnTrackNameChanged?.Invoke(this, newName);
+                    }
+                    CloseRenameTextField(renameField);
+                    evt.StopPropagation();
+                }
+                else if (evt.keyCode == KeyCode.Escape)
+                {
+                    CloseRenameTextField(renameField);
+                    evt.StopPropagation();
+                }
+            });
+
+            // 失去焦点时关闭
+            renameField.RegisterCallback<FocusOutEvent>(evt =>
+            {
+                CloseRenameTextField(renameField);
+            });
+
+            trackControlAreaContent.Add(renameField);
+            renameField.Focus();
+        }
+
+        /// <summary>
+        /// 关闭重命名输入框并恢复标题
+        /// </summary>
+        private void CloseRenameTextField(TextField renameField)
+        {
+            if (trackControlAreaContent.Contains(renameField))
+                trackControlAreaContent.Remove(renameField);
+
+            // 恢复标题显示
+            trackControlAreaContent.Add(CreateTrackControlTitle(TrackName));
+
+            SkillEditorEvent.OnRefreshRequested();
         }
 
         #endregion

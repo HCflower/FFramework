@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using UnityEngine.UIElements;
 using FFramework.Kit;
 using UnityEngine;
@@ -893,6 +892,9 @@ namespace SkillEditor
             // 订阅轨道删除事件
             trackControl.OnDeleteTrack += HandleTrackDelete;
 
+            // 订阅轨道项更名事件
+            trackControl.OnTrackNameChanged += HandleTrackNameChanged;
+
             // 订阅激活状态变化事件
             trackControl.OnActiveStateChanged += HandleTrackActiveStateChanged;
 
@@ -925,6 +927,144 @@ namespace SkillEditor
             else
             {
                 Debug.LogWarning("HandleTrackDelete: 未找到要删除的轨道信息");
+            }
+        }
+
+        /// <summary>
+        /// 处理轨道名称更改事件
+        /// 更新轨道名称并刷新显示，同时同步到配置文件
+        /// </summary>
+        /// <param name="controller">轨道控制器</param>
+        /// <param name="newName">新的轨道名称</param>
+        private void HandleTrackNameChanged(SkillEditorTrackController controller, string newName)
+        {
+            var info = SkillEditorData.tracks.Find(t => t.Control == controller);
+            if (info != null)
+            {
+                // 更新轨道信息
+                info.TrackName = newName;
+                // 同步到配置文件 通过 info.TrackName轨道项名称查找
+                UpdateTrackNameInConfig(info.TrackType, info.TrackIndex, newName);
+                Debug.Log($"更改轨道名称: {info.TrackName} -> {newName}");
+            }
+        }
+
+        /// <summary>
+        /// 更新轨道名称在配置文件中的映射
+        /// </summary>
+        private void UpdateTrackNameInConfig(TrackType trackType, int trackIndex, string newName)
+        {
+            var skillConfig = SkillEditorData.CurrentSkillConfig;
+            if (skillConfig?.trackContainer == null)
+            {
+                Debug.LogWarning("无法更新轨道名称：技能配置为空");
+                return;
+            }
+
+            try
+            {
+                switch (trackType)
+                {
+                    case TrackType.AnimationTrack:
+                        if (skillConfig.trackContainer.animationTrack != null)
+                        {
+                            skillConfig.trackContainer.animationTrack.trackName = newName;
+                            UnityEditor.EditorUtility.SetDirty(skillConfig.trackContainer.animationTrack);
+                        }
+                        break;
+
+                    case TrackType.CameraTrack:
+                        if (skillConfig.trackContainer.cameraTrack != null)
+                        {
+                            skillConfig.trackContainer.cameraTrack.trackName = newName;
+                            UnityEditor.EditorUtility.SetDirty(skillConfig.trackContainer.cameraTrack);
+                        }
+                        break;
+
+                    case TrackType.TransformTrack:
+                        if (skillConfig.trackContainer.transformTrack != null)
+                        {
+                            skillConfig.trackContainer.transformTrack.trackName = newName;
+                            UnityEditor.EditorUtility.SetDirty(skillConfig.trackContainer.transformTrack);
+                        }
+                        break;
+
+                    case TrackType.AudioTrack:
+                        if (skillConfig.trackContainer.audioTrack?.audioTracks != null)
+                        {
+                            var audioTrack = skillConfig.trackContainer.audioTrack.audioTracks
+                                .FirstOrDefault(t => t.trackIndex == trackIndex);
+                            if (audioTrack != null)
+                            {
+                                audioTrack.trackName = newName;
+                                UnityEditor.EditorUtility.SetDirty(skillConfig.trackContainer.audioTrack);
+                            }
+                        }
+                        break;
+
+                    case TrackType.EffectTrack:
+                        if (skillConfig.trackContainer.effectTrack?.effectTracks != null)
+                        {
+                            var effectTrack = skillConfig.trackContainer.effectTrack.effectTracks
+                                .FirstOrDefault(t => t.trackIndex == trackIndex);
+                            if (effectTrack != null)
+                            {
+                                effectTrack.trackName = newName;
+                                UnityEditor.EditorUtility.SetDirty(skillConfig.trackContainer.effectTrack);
+                            }
+                        }
+                        break;
+
+                    case TrackType.InjuryDetectionTrack:
+                        if (skillConfig.trackContainer.injuryDetectionTrack?.injuryDetectionTracks != null)
+                        {
+                            var attackTrack = skillConfig.trackContainer.injuryDetectionTrack.injuryDetectionTracks
+                                .FirstOrDefault(t => t.trackIndex == trackIndex);
+                            if (attackTrack != null)
+                            {
+                                attackTrack.trackName = newName;
+                                UnityEditor.EditorUtility.SetDirty(skillConfig.trackContainer.injuryDetectionTrack);
+                            }
+                        }
+                        break;
+
+                    case TrackType.EventTrack:
+                        if (skillConfig.trackContainer.eventTrack?.eventTracks != null)
+                        {
+                            var eventTrack = skillConfig.trackContainer.eventTrack.eventTracks
+                                .FirstOrDefault(t => t.trackIndex == trackIndex);
+                            if (eventTrack != null)
+                            {
+                                eventTrack.trackName = newName;
+                                UnityEditor.EditorUtility.SetDirty(skillConfig.trackContainer.eventTrack);
+                            }
+                        }
+                        break;
+
+                    case TrackType.GameObjectTrack:
+                        if (skillConfig.trackContainer.gameObjectTrack?.gameObjectTracks != null)
+                        {
+                            var gameObjectTrack = skillConfig.trackContainer.gameObjectTrack.gameObjectTracks
+                                .FirstOrDefault(t => t.trackIndex == trackIndex);
+                            if (gameObjectTrack != null)
+                            {
+                                gameObjectTrack.trackName = newName;
+                                UnityEditor.EditorUtility.SetDirty(skillConfig.trackContainer.gameObjectTrack);
+                            }
+                        }
+                        break;
+
+                    default:
+                        Debug.LogWarning($"未支持的轨道类型: {trackType}");
+                        break;
+                }
+
+                UnityEditor.EditorUtility.SetDirty(skillConfig);
+                UnityEditor.AssetDatabase.SaveAssets();
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"更新轨道名称失败: {ex.Message}");
             }
         }
 

@@ -131,11 +131,11 @@ namespace SkillEditor
             }
 
             // 停用当前帧不需要激活的碰撞组
-            foreach (var groupId in activeCollisionGroups.Keys)
+            foreach (var group in skillOwner.collisionGroup)
             {
-                if (!groupsToActivate.Contains(groupId))
+                if (!groupsToActivate.Contains(group.collisionGroupId))
                 {
-                    DeactivateCollidersInGroup(groupId, activeCollisionGroups[groupId]);
+                    DeactivateCollidersInGroup(group.collisionGroupId, group.colliders);
                 }
             }
         }

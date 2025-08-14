@@ -152,7 +152,7 @@ MonoBehaviour:
   isEnabled: 1
   cameraClips:
   - clipName: Camera Main Camera
-    startFrame: 23
+    startFrame: 15
     durationFrame: 5
     enablePosition: 0
     enableRotation: 0
@@ -218,6 +218,19 @@ MonoBehaviour:
       collisionGroupId: 0
     - clipName: InjuryDetection_2
       startFrame: 62
+      durationFrame: 5
+      hitEffectPrefab: {fileID: 0}
+      targetLayers:
+        serializedVersion: 2
+        m_Bits: 4294967295
+      enableAllCollisionGroups: 0
+      collisionGroupId: 1
+  - trackName: "\u4F24\u5BB3\u68C0\u6D4B\u8F68\u9053 2"
+    trackIndex: 1
+    isEnabled: 1
+    injuryDetectionClips:
+    - clipName: InjuryDetection_1
+      startFrame: 23
       durationFrame: 5
       hitEffectPrefab: {fileID: 0}
       targetLayers:

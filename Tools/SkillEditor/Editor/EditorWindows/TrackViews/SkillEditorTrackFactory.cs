@@ -1,5 +1,6 @@
 using UnityEngine.UIElements;
 using FFramework.Kit;
+using System.Linq;
 
 namespace SkillEditor
 {
@@ -124,6 +125,80 @@ namespace SkillEditor
         /// <returns>默认轨道名称</returns>
         public static string GetDefaultTrackName(TrackType trackType, int trackIndex = 0)
         {
+            // 优先查找技能配置数据中的轨道名称
+            var skillConfig = SkillEditorData.CurrentSkillConfig;
+            if (skillConfig != null && skillConfig.trackContainer != null)
+            {
+                switch (trackType)
+                {
+                    case TrackType.AnimationTrack:
+                        if (skillConfig.trackContainer.animationTrack != null && !string.IsNullOrEmpty(skillConfig.trackContainer.animationTrack.trackName))
+                            return skillConfig.trackContainer.animationTrack.trackName;
+                        break;
+                    case TrackType.CameraTrack:
+                        if (skillConfig.trackContainer.cameraTrack != null && !string.IsNullOrEmpty(skillConfig.trackContainer.cameraTrack.trackName))
+                            return skillConfig.trackContainer.cameraTrack.trackName;
+                        break;
+                    case TrackType.TransformTrack:
+                        if (skillConfig.trackContainer.transformTrack != null && !string.IsNullOrEmpty(skillConfig.trackContainer.transformTrack.trackName))
+                            return skillConfig.trackContainer.transformTrack.trackName;
+                        break;
+                    case TrackType.AudioTrack:
+                        if (skillConfig.trackContainer.audioTrack?.audioTracks != null)
+                        {
+                            var audioTrack = skillConfig.trackContainer.audioTrack.audioTracks
+                                .FirstOrDefault(t => t.trackIndex == trackIndex);
+                            if (audioTrack != null && !string.IsNullOrEmpty(audioTrack.trackName))
+                                return audioTrack.trackName;
+                        }
+                        break;
+                    case TrackType.EffectTrack:
+                        if (skillConfig.trackContainer.effectTrack?.effectTracks != null)
+                        {
+                            var effectTrack = skillConfig.trackContainer.effectTrack.effectTracks
+                                .FirstOrDefault(t => t.trackIndex == trackIndex);
+                            if (effectTrack != null && !string.IsNullOrEmpty(effectTrack.trackName))
+                                return effectTrack.trackName;
+                        }
+                        break;
+                    case TrackType.InjuryDetectionTrack:
+                        if (skillConfig.trackContainer.injuryDetectionTrack?.injuryDetectionTracks != null)
+                        {
+                            var injuryTrack = skillConfig.trackContainer.injuryDetectionTrack.injuryDetectionTracks
+                                .FirstOrDefault(t => t.trackIndex == trackIndex);
+                            if (injuryTrack != null && !string.IsNullOrEmpty(injuryTrack.trackName))
+                                return injuryTrack.trackName;
+                        }
+                        break;
+                    case TrackType.EventTrack:
+                        if (skillConfig.trackContainer.eventTrack?.eventTracks != null)
+                        {
+                            var eventTrack = skillConfig.trackContainer.eventTrack.eventTracks
+                                .FirstOrDefault(t => t.trackIndex == trackIndex);
+                            if (eventTrack != null && !string.IsNullOrEmpty(eventTrack.trackName))
+                                return eventTrack.trackName;
+                        }
+                        break;
+                    case TrackType.GameObjectTrack:
+                        if (skillConfig.trackContainer.gameObjectTrack?.gameObjectTracks != null)
+                        {
+                            var goTrack = skillConfig.trackContainer.gameObjectTrack.gameObjectTracks
+                                .FirstOrDefault(t => t.trackIndex == trackIndex);
+                            if (goTrack != null && !string.IsNullOrEmpty(goTrack.trackName))
+                                return goTrack.trackName;
+                        }
+                        break;
+                }
+            }
+
+            // 其次查找编辑器数据中的轨道名称
+            var trackInfo = SkillEditorData.tracks.FirstOrDefault(t => t.TrackType == trackType && t.TrackIndex == trackIndex);
+            if (trackInfo != null && !string.IsNullOrEmpty(trackInfo.TrackName))
+            {
+                return trackInfo.TrackName;
+            }
+
+            // 没有轨道数据则按规则生成
             string baseName = GetTrackTypeName(trackType);
 
             if (IsMultiTrackSupported(trackType) && trackIndex > 0)
