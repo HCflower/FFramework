@@ -19,7 +19,7 @@ MonoBehaviour:
   - clipName: Transform
     startFrame: 15
     durationFrame: 5
-    positionOffset: {x: 0, y: 0, z: 0}
+    positionOffset: {x: 0, y: 0, z: 1}
     targetRotation: {x: 0, y: 0, z: 0}
     targetScale: {x: 1, y: 1, z: 1}
     curveType: 0
@@ -90,12 +90,12 @@ MonoBehaviour:
   m_Name: SkillConfig
   m_EditorClassIdentifier: 
   frameRate: 24
-  maxFrames: 48
+  maxFrames: 81
   skillPlayStateName: SkillPlay
   skillId: 0
   skillIcon: {fileID: 21300000, guid: 48e7bec8a4f0e3049a6c34938bf5a7ca, type: 3}
   skillName: "\u6D66\u4E1C\u516C\u9E21"
-  description: "\u6D66\u4E1C\u653B\u51FB"
+  description: 
   trackContainer:
     animationTrack: {fileID: 297339559337665363}
     transformTrack: {fileID: -5395276449008929806}
@@ -128,6 +128,13 @@ MonoBehaviour:
     animationPlaySpeed: 1.5
     normalizedTransitionTime: 0
     applyRootMotion: 0
+  - clipName: 2H_Melee_Attack_Slice
+    startFrame: 48
+    durationFrame: 33
+    clip: {fileID: 7400000, guid: 3c9abe21136b71046b88b2f84c885561, type: 2}
+    animationPlaySpeed: 1
+    normalizedTransitionTime: 0
+    applyRootMotion: 0
 --- !u!114 &700837781105194505
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -145,7 +152,7 @@ MonoBehaviour:
   isEnabled: 1
   cameraClips:
   - clipName: Camera Main Camera
-    startFrame: 14
+    startFrame: 23
     durationFrame: 5
     enablePosition: 0
     enableRotation: 0
@@ -209,6 +216,15 @@ MonoBehaviour:
         m_Bits: 4294967295
       enableAllCollisionGroups: 0
       collisionGroupId: 0
+    - clipName: InjuryDetection_2
+      startFrame: 62
+      durationFrame: 5
+      hitEffectPrefab: {fileID: 0}
+      targetLayers:
+        serializedVersion: 2
+        m_Bits: 4294967295
+      enableAllCollisionGroups: 0
+      collisionGroupId: 1
 --- !u!114 &4144422302740679402
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -227,7 +243,7 @@ MonoBehaviour:
     isEnabled: 1
     audioClips:
     - clipName: 074_knife-1
-      startFrame: 14
+      startFrame: 13
       durationFrame: 17
       clip: {fileID: 8300000, guid: b50e386b9f25be147934ef2cf68d432e, type: 3}
       volume: 1

@@ -1,7 +1,5 @@
-using System.Collections.Generic;
-using UnityEngine;
-using UnityEditor;
 using FFramework.Kit;
+using UnityEngine;
 
 namespace SkillEditor
 {

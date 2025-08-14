@@ -44,6 +44,9 @@ namespace SkillEditor
 
         /// <summary>是否循环播放</summary>
         public static bool IsLoop { get; set; } = false;
+
+        /// <summary>编辑器版本号</summary>
+        public static object Version => "1.0.0";
         #endregion
 
         #region 公共方法

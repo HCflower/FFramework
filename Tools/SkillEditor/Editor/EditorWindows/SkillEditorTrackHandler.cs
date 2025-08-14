@@ -1,8 +1,10 @@
+using System.Collections.Generic;
 using UnityEngine.UIElements;
 using FFramework.Kit;
 using UnityEngine;
 using UnityEditor;
 using System.Linq;
+using System;
 
 namespace SkillEditor
 {
@@ -1232,7 +1234,6 @@ namespace SkillEditor
                     break;
             }
         }
-
         #endregion
     }
 }

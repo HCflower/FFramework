@@ -31,9 +31,11 @@ namespace SkillEditor
 
         /// <summary>轨道控制区域容器</summary>
         private VisualElement trackControlArea;
+        public VisualElement TrackControlArea => trackControlArea;
 
         /// <summary>轨道控制内容容器</summary>
         private VisualElement trackControlAreaContent;
+        public VisualElement TrackControlAreaContent => trackControlAreaContent;
 
         /// <summary>轨道图标元素</summary>
         private Image trackControlIcon;
@@ -51,6 +53,8 @@ namespace SkillEditor
         #endregion
 
         #region 构造函数
+
+
 
         /// <summary>
         /// 轨道控制器构造函数

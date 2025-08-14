@@ -28,12 +28,8 @@ namespace SkillEditor
         private VisualElement globalControlContent;
         /// <summary>所有轨道容器</summary>
         private VisualElement allTrackContent;
-        /// <summary>轨道控制区域</summary>
-        private VisualElement trackControlArea;
         /// <summary>轨道控制滚动视图</summary>
         private ScrollView trackControlScrollView;
-        /// <summary>轨道控制内容</summary>
-        private VisualElement trackControlContent;
         /// <summary>轨道显示区域</summary>
         private VisualElement trackArea;
         /// <summary>轨道滚动视图</summary>
@@ -177,9 +173,7 @@ namespace SkillEditor
             var trackElements = uiBuilder.CreateTrackStructure(allTrackContent);
 
             // 获取轨道结构元素
-            trackControlArea = trackElements.ControlArea;
             trackControlScrollView = trackElements.ControlScrollView;
-            trackControlContent = trackElements.ControlContent;
             trackArea = trackElements.TrackArea;
             trackScrollView = trackElements.TrackScrollView;
             trackContent = trackElements.TrackContent;

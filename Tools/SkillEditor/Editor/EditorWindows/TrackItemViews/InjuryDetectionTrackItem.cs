@@ -13,9 +13,6 @@ namespace SkillEditor
     {
         #region 私有字段
 
-        /// <summary>轨道项持续帧数</summary>
-        private int durationFrame;
-
         /// <summary>轨道索引，用于多轨道数据定位</summary>
         private int trackIndex;
 
@@ -55,7 +52,6 @@ namespace SkillEditor
             SetWidth();
             UpdatePosition();
             visual.Add(trackItem);
-
             // 注册拖拽事件
             RegisterDragEvents();
         }
@@ -121,15 +117,6 @@ namespace SkillEditor
         {
             durationFrame = newFrameCount;
             SetWidth();
-        }
-
-        /// <summary>
-        /// 获取轨道项的起始帧位置
-        /// </summary>
-        /// <returns>起始帧位置</returns>
-        public float GetStartFrame()
-        {
-            return startFrame;
         }
 
         /// <summary>

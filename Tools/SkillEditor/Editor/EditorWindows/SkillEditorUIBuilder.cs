@@ -4,6 +4,7 @@ using FFramework.Kit;
 using UnityEditor;
 using UnityEngine;
 using System;
+using System.Collections.Generic;
 
 namespace SkillEditor
 {
@@ -335,6 +336,12 @@ namespace SkillEditor
                 // TODO: 实现删除逻辑
             });
             deleteButton.style.backgroundColor = Color.red;
+
+            // 版本信息
+            HelpBox versionInfo = new HelpBox();
+            versionInfo.AddToClassList("HelpBox");
+            versionInfo.text = $"Skill Editor v{SkillEditorData.Version}";
+            parent.Add(versionInfo);
         }
 
         #endregion
@@ -541,7 +548,7 @@ namespace SkillEditor
         }
 
         /// <summary>
-        /// 创建轨道搜索输入框
+        /// TODO创建轨道搜索输入框
         /// 提供轨道搜索功能的输入界面
         /// </summary>
         /// <param name="parent">父容器</param>
@@ -559,9 +566,43 @@ namespace SkillEditor
             var searchIcon = new Image();
             searchIcon.AddToClassList("SearchTrackInputIcon");
             searchInput.Add(searchIcon);
+            searchInput.RegisterValueChangedCallback(evt =>
+            {
+                string searchText = evt.newValue.ToLower();
+
+                // 先清理所有轨道的搜索样式
+                foreach (var track in SkillEditorData.tracks)
+                {
+                    track.Control.TrackControlAreaContent.RemoveFromClassList("SearchTrackShow");
+                }
+
+                // 再为匹配项添加样式
+                if (!string.IsNullOrWhiteSpace(searchText))
+                {
+                    foreach (var track in SkillEditorData.tracks)
+                    {
+                        if (track.TrackName.ToLower().Contains(searchText))
+                        {
+                            track.Control.TrackControlAreaContent.AddToClassList("SearchTrackShow");
+                        }
+                    }
+                }
+            });
             parent.Add(searchInput);
         }
 
+        public List<VisualElement> FilterTracks(string searchText)
+        {
+            var result = new List<VisualElement>();
+            foreach (var track in SkillEditorData.tracks)
+            {
+                if (track.TrackName.ToLower().Contains(searchText))
+                {
+                    result.Add(track.Control.TrackControlArea);
+                }
+            }
+            return result;
+        }
         /// <summary>
         /// 创建添加轨道按钮
         /// 点击后显示轨道类型选择菜单

@@ -67,7 +67,6 @@ namespace SkillEditor
                 Debug.LogWarning("无法启动伤害检测预览：技能拥有者或技能配置为空");
                 return;
             }
-
             isPreviewActive = true;
         }
 
@@ -90,6 +89,9 @@ namespace SkillEditor
             if (!isPreviewActive || skillConfig?.trackContainer?.injuryDetectionTrack?.injuryDetectionTracks == null)
                 return;
 
+            // 记录当前帧需要激活的碰撞组
+            var groupsToActivate = new HashSet<int>();
+
             // 遍历所有伤害检测轨道
             foreach (var injuryTrack in skillConfig.trackContainer.injuryDetectionTrack.injuryDetectionTracks)
             {
@@ -102,8 +104,38 @@ namespace SkillEditor
                     // 遍历轨道中的伤害检测片段
                     foreach (var injuryClip in injuryTrack.injuryDetectionClips)
                     {
-                        ProcessInjuryDetectionClip(injuryClip, frame);
+                        int startFrame = injuryClip.startFrame;
+                        int endFrame = startFrame + injuryClip.durationFrame;
+
+                        // 检查当前帧是否在片段范围内
+                        if (frame >= startFrame && frame < endFrame)
+                        {
+                            // 激活对应的碰撞组
+                            ActivateCollisionGroup(injuryClip);
+
+                            // 记录需要保持激活的碰撞组
+                            if (injuryClip.enableAllCollisionGroups)
+                            {
+                                foreach (var collisionGroup in skillOwner.collisionGroup)
+                                {
+                                    groupsToActivate.Add(collisionGroup.collisionGroupId);
+                                }
+                            }
+                            else
+                            {
+                                groupsToActivate.Add(injuryClip.collisionGroupId);
+                            }
+                        }
                     }
+                }
+            }
+
+            // 停用当前帧不需要激活的碰撞组
+            foreach (var groupId in activeCollisionGroups.Keys)
+            {
+                if (!groupsToActivate.Contains(groupId))
+                {
+                    DeactivateCollidersInGroup(groupId, activeCollisionGroups[groupId]);
                 }
             }
         }
@@ -111,30 +143,6 @@ namespace SkillEditor
         #endregion
 
         #region 私有方法
-
-        /// <summary>
-        /// 处理伤害检测片段
-        /// </summary>
-        /// <param name="injuryClip">伤害检测片段</param>
-        /// <param name="currentFrame">当前帧</param>
-        private void ProcessInjuryDetectionClip(FFramework.Kit.InjuryDetectionTrack.InjuryDetectionClip injuryClip, int currentFrame)
-        {
-            int startFrame = injuryClip.startFrame;
-            int endFrame = injuryClip.startFrame + injuryClip.durationFrame;
-
-            // 检查当前帧是否在伤害检测片段范围内
-            if (currentFrame >= startFrame && currentFrame <= endFrame)
-            {
-                // 在范围内，激活对应的碰撞组
-                ActivateCollisionGroup(injuryClip);
-            }
-            else
-            {
-                // 不在范围内，停用对应的碰撞组
-                DeactivateCollisionGroup(injuryClip);
-            }
-        }
-
         /// <summary>
         /// 激活碰撞组
         /// </summary>
@@ -158,33 +166,6 @@ namespace SkillEditor
                 if (targetGroup != null)
                 {
                     ActivateCollidersInGroup(targetGroup.collisionGroupId, targetGroup.colliders);
-                }
-            }
-        }
-
-        /// <summary>
-        /// 停用碰撞组
-        /// </summary>
-        /// <param name="injuryClip">伤害检测片段</param>
-        private void DeactivateCollisionGroup(FFramework.Kit.InjuryDetectionTrack.InjuryDetectionClip injuryClip)
-        {
-            if (skillOwner.collisionGroup == null) return;
-
-            if (injuryClip.enableAllCollisionGroups)
-            {
-                // 停用所有碰撞组
-                foreach (var collisionGroup in skillOwner.collisionGroup)
-                {
-                    DeactivateCollidersInGroup(collisionGroup.collisionGroupId, collisionGroup.colliders);
-                }
-            }
-            else
-            {
-                // 停用指定的碰撞组
-                var targetGroup = skillOwner.collisionGroup.Find(g => g.collisionGroupId == injuryClip.collisionGroupId);
-                if (targetGroup != null)
-                {
-                    DeactivateCollidersInGroup(targetGroup.collisionGroupId, targetGroup.colliders);
                 }
             }
         }

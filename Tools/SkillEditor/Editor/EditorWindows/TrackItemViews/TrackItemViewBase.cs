@@ -20,6 +20,9 @@ namespace SkillEditor
         /// <summary>起始帧位置</summary>
         protected int startFrame;
 
+        /// <summary>轨道项持续帧数</summary>
+        protected int durationFrame;
+
         /// <summary>是否正在拖拽中</summary>
         protected bool isDragging = false;
 
@@ -32,6 +35,15 @@ namespace SkillEditor
         #endregion
 
         #region 公共方法
+        public int GetStartFrame()
+        {
+            return startFrame;
+        }
+
+        public int GetDurationFrame()
+        {
+            return durationFrame; // 假设有一个字段或属性表示持续帧数
+        }
 
         /// <summary>
         /// 设置轨道项的起始帧位置
@@ -213,7 +225,6 @@ namespace SkillEditor
         }
 
         /// <summary>
-        /// TODO将位置限制在轨道边界内
         /// 确保轨道项不会拖拽到轨道区域之外
         /// </summary>
         /// <param name="newLeft">计算得到的新左边距位置</param>
@@ -224,7 +235,25 @@ namespace SkillEditor
 
             float trackWidth = trackItem.parent.resolvedStyle.width;
             float itemWidth = trackItem.resolvedStyle.width;
-            return Mathf.Clamp(newLeft, 0, trackWidth - itemWidth);
+
+            // 如果宽度为0，使用计算出的宽度
+            if (itemWidth <= 0)
+            {
+                itemWidth = durationFrame * SkillEditorData.FrameUnitWidth;
+            }
+
+            if (trackWidth <= 0)
+            {
+                return Mathf.Max(0, newLeft);
+            }
+
+            // 让左边界最大值对齐到帧刻度
+            float unit = SkillEditorData.FrameUnitWidth;
+            // 计算最大允许的帧数，要考虑第0帧宽度+1
+            int maxFrame = Mathf.FloorToInt((trackWidth + 1 - itemWidth) / unit);
+            float maxLeft = maxFrame * unit;
+
+            return Mathf.Clamp(newLeft, 0, maxLeft);
         }
 
         #endregion

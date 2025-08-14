@@ -35,6 +35,7 @@ namespace SkillEditor
 
         #region 构造函数
 
+
         /// <summary>
         /// 基础轨道构造函数
         /// </summary>
@@ -193,7 +194,40 @@ namespace SkillEditor
         /// <returns>创建的轨道项</returns>
         public TrackItemViewBase AddTrackItem(object resource, int startFrame = 0)
         {
+            // 如果未指定起始帧，则计算下一个可用的起始帧
+            if (startFrame == 0)
+            {
+                startFrame = GetNextAvailableStartFrame();
+            }
+
             return AddTrackItem(resource, startFrame, true);
+        }
+
+        /// <summary>
+        /// 获取轨道中最靠右的轨道项的结束帧
+        /// </summary>
+        /// <returns>最靠右轨道项的结束帧（startFrame + durationFrame）</returns>
+        public int GetNextAvailableStartFrame()
+        {
+            int maxEndFrame = 0;
+
+            foreach (var item in trackItems)
+            {
+                // 获取轨道项的起始帧和持续帧
+                int startFrame = item.GetStartFrame();
+                int durationFrame = item.GetDurationFrame();
+
+                // 计算结束帧
+                int endFrame = startFrame + durationFrame;
+
+                // 更新最大结束帧
+                if (endFrame > maxEndFrame)
+                {
+                    maxEndFrame = endFrame;
+                }
+            }
+
+            return maxEndFrame;
         }
 
         /// <summary>

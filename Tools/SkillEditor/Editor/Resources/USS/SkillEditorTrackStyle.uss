@@ -6,7 +6,6 @@
     margin-bottom: 1px;
     padding: 0px;
     border: 0px;
-    border-radius: 0px 4px 4px 0px;
     background-color: #606060;
 
     flex-direction: row;
@@ -57,9 +56,10 @@
     width: auto;
     height: 100%;
 
+    position: absolute;
     margin: 0px;
-    border: 0px;
     padding: 0px;
+    border: 0px; 
     justify-content: center;
     flex-direction: row;
 
