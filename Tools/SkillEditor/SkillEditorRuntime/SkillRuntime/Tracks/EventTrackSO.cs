@@ -132,10 +132,8 @@ namespace FFramework.Kit
         [Serializable]
         public class EventClip : ClipBase
         {
-            // TODO: 实现事件注册
-            [Header("事件参数")]
-            [Tooltip("事件类型")] public string eventType;
-            [Tooltip("事件参数")] public string eventParameters;
+            [Header("事件名称")]
+            [Tooltip("事件名称")] public string eventName;
 
             public override int EndFrame => startFrame; // 事件是瞬时的
 
@@ -144,7 +142,7 @@ namespace FFramework.Kit
             /// </summary>
             public override bool ValidateClip()
             {
-                return !string.IsNullOrEmpty(clipName) && !string.IsNullOrEmpty(eventType);
+                return !string.IsNullOrEmpty(clipName) && !string.IsNullOrEmpty(eventName);
             }
         }
     }

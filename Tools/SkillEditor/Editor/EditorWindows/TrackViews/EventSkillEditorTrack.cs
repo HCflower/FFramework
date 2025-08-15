@@ -176,8 +176,7 @@ namespace SkillEditor
                 clipName = finalName,
                 startFrame = startFrame,
                 durationFrame = frameCount,
-                eventType = finalName,
-                eventParameters = ""
+                eventName = finalName,
             };
 
             eventTrack.eventClips.Add(configEventClip);
@@ -216,8 +215,7 @@ namespace SkillEditor
             var eventData = trackItem.EventData;
             eventData.trackItemName = clip.clipName;
             eventData.durationFrame = clip.durationFrame;
-            eventData.eventType = clip.eventType;
-            eventData.eventParameters = clip.eventParameters;
+            eventData.eventName = clip.eventName;
 
 #if UNITY_EDITOR
             EditorUtility.SetDirty(eventData);

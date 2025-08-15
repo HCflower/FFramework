@@ -3,6 +3,7 @@ using UnityEditor.UIElements;
 using UnityEditor;
 using UnityEngine;
 using System.Linq;
+using System;
 
 namespace SkillEditor
 {
@@ -28,6 +29,7 @@ namespace SkillEditor
             CreateLayerMaskField();
             CreateToggleField("启用所有检测组:", "enableAllCollisionGroups", OnEnableAllColliderChanged);
             CreateIntegerField("碰撞检测组ID:", "collisionGroupId", OnCollisionGroupIdChanged);
+            CreateTextField("事件名称:", "injuryDetectionEventName", OnInjuryDetectionEventNameChanged);
         }
 
         /// <summary>
@@ -101,8 +103,8 @@ namespace SkillEditor
         {
             SafeExecute(() =>
             {
-                UpdateTrackConfig(configClip => configClip.enableAllCollisionGroups = newValue, "启用所有碰撞体更新");
-            }, "启用所有碰撞体更新");
+                UpdateTrackConfig(configClip => configClip.enableAllCollisionGroups = newValue, "启用所有伤害检测体更新");
+            }, "启用所有伤害检测体更新");
         }
 
 
@@ -110,8 +112,16 @@ namespace SkillEditor
         {
             SafeExecute(() =>
             {
-                UpdateTrackConfig(configClip => configClip.collisionGroupId = newValue, "碰撞检测组ID更新");
-            }, "碰撞检测组ID更新");
+                UpdateTrackConfig(configClip => configClip.collisionGroupId = newValue, "伤害检测组ID更新");
+            }, "伤害检测组ID更新");
+        }
+
+        private void OnInjuryDetectionEventNameChanged(string newValue)
+        {
+            SafeExecute(() =>
+             {
+                 UpdateTrackConfig(configClip => configClip.injuryDetectionEventName = newValue, "伤害检测事件名称更新");
+             }, "伤害检测事件名称更新");
         }
 
         #endregion

@@ -301,8 +301,7 @@ namespace SkillEditor
         private void SetDefaultEventProperties(EventTrackItemData eventData)
         {
             // 默认事件参数
-            eventData.eventType = eventData.trackItemName;
-            eventData.eventParameters = "";
+            eventData.eventName = eventData.trackItemName;
         }
 
         /// <summary>
@@ -332,8 +331,7 @@ namespace SkillEditor
                 // 从配置中恢复事件属性
                 eventData.trackItemName = configClip.clipName;
                 eventData.durationFrame = configClip.durationFrame;
-                eventData.eventType = configClip.eventType;
-                eventData.eventParameters = configClip.eventParameters;
+                eventData.eventName = configClip.eventName;
             }
         }
 

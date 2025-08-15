@@ -326,6 +326,7 @@ namespace SkillEditor
             injuryDetectionData.targetLayers = -1; // 默认检测所有层
             injuryDetectionData.enableAllCollisionGroups = false; // 默认不启用所有碰撞组
             injuryDetectionData.collisionGroupId = 0; // 默认碰撞组ID为0
+            injuryDetectionData.injuryDetectionEventName = "OnInjuryDetection";
         }
 
         /// <summary>
@@ -353,6 +354,7 @@ namespace SkillEditor
                 injuryDetectionData.enableAllCollisionGroups = configClip.enableAllCollisionGroups;
                 injuryDetectionData.collisionGroupId = configClip.collisionGroupId;
                 injuryDetectionData.hitEffectPrefab = configClip.hitEffectPrefab;
+                injuryDetectionData.injuryDetectionEventName = configClip.injuryDetectionEventName;
             }
         }
 

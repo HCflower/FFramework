@@ -221,9 +221,6 @@ namespace FFramework.Kit
 
             // 初始化轨道数据
             InitializeTrackData();
-
-            // 触发技能开始事件
-            skillEvent?.OnSkillStart();
         }
 
         /// <summary>
@@ -264,9 +261,6 @@ namespace FFramework.Kit
             RestoreOriginalStates();
 
             Debug.Log($"SkillRuntimeController: 技能播放已停止");
-
-            // 触发技能结束事件
-            skillEvent?.OnSkillEnd();
         }
 
         /// <summary>
@@ -482,6 +476,7 @@ namespace FFramework.Kit
                     skillAnimator.applyRootMotion = animClip.applyRootMotion;
 
                     // 将当前动画片段设置到AnimatorController对应的动画状态
+                    // TODO：接入Animancer插件播放动画
                     var controller = skillAnimator.runtimeAnimatorController as UnityEditor.Animations.AnimatorController;
                     if (controller != null && !string.IsNullOrEmpty(skillAnimationStateName))
                     {
@@ -503,7 +498,7 @@ namespace FFramework.Kit
                     // 使用缓存的哈希值，避免每次重新计算
                     if (skillAnimator.HasState(0, animationStateHash))
                     {
-                        // 使用CrossFadeInFixedTime实现平滑过渡
+                        // TODO使用CrossFadeInFixedTime实现平滑过渡
                         skillAnimator.CrossFadeInFixedTime(animationStateHash, animClip.normalizedTransitionTime, 0, normalizedTime);
                     }
 
@@ -728,7 +723,7 @@ namespace FFramework.Kit
                         if (frame == injuryClip.EndFrame)
                         {
                             // 执行实际的伤害检测
-                            PerformDamageDetection(injuryClip.collisionGroupId);
+                            PerformDamageDetection(injuryClip.collisionGroupId, injuryClip.injuryDetectionEventName);
 
                             // 关闭碰撞组
                             DeactivateCollisionGroup(injuryClip.collisionGroupId);
@@ -765,9 +760,7 @@ namespace FFramework.Kit
                     if (frame == eventClip.startFrame)
                     {
                         // 触发事件
-                        skillEvent?.OnSkillEvent(eventClip.eventType, eventClip.eventParameters);
-
-                        Debug.Log($"SkillRuntimeController: 触发事件 {eventClip.eventType} 在帧 {frame}");
+                        skillEvent?.TriggerSkillEvent(eventClip.eventName);
                     }
                 }
             }
@@ -944,7 +937,7 @@ namespace FFramework.Kit
         /// </summary>
         /// <param name="groupId">碰撞组ID</param>
         /// <param name="frame">当前帧</param>
-        private void PerformDamageDetection(int groupId)
+        private void PerformDamageDetection(int groupId, string injuryDetectionEventName)
         {
             foreach (var group in collisionGroup)
             {
@@ -956,14 +949,13 @@ namespace FFramework.Kit
                         {
                             // 获取碰撞体范围内的所有目标
                             var targets = collider.GetCollidersInRange();
-                            Debug.Log(targets.Count);
                             if (targets.Count > 0)
                             {
                                 // 可以在这里添加具体的伤害处理逻辑
                                 foreach (var target in targets)
                                 {
                                     //TODO: 触发伤害检测事件
-                                    skillEvent?.OnInjuryDetection(target.gameObject);
+                                    skillEvent?.TriggerSkillEvent(injuryDetectionEventName, target.gameObject);
                                 }
                             }
                         }

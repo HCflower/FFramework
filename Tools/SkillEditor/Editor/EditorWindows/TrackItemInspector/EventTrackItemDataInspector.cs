@@ -23,32 +23,20 @@ namespace SkillEditor
         protected override void CreateSpecificFields()
         {
             // 事件参数设置
-            CreateTextField("事件类型:", "eventType", OnEventTypeChanged);
-            CreateTextField("事件参数:", "eventParameters", OnEventParametersChanged);
+            CreateTextField("事件名称:", "eventName", OnEventNameChanged);
         }
 
         #region 事件处理方法
 
-        private void OnEventTypeChanged(string newValue)
+        private void OnEventNameChanged(string newValue)
         {
             SafeExecute(() =>
             {
                 UpdateEventTrackConfig(configClip =>
                 {
-                    configClip.eventType = newValue;
+                    configClip.eventName = newValue;
                 }, "事件类型更新");
             }, "事件类型更新");
-        }
-
-        private void OnEventParametersChanged(string newValue)
-        {
-            SafeExecute(() =>
-            {
-                UpdateEventTrackConfig(configClip =>
-                {
-                    configClip.eventParameters = newValue;
-                }, "事件参数更新");
-            }, "事件参数更新");
         }
 
         protected override void OnTrackItemNameChanged(string newValue)

@@ -10,7 +10,6 @@ namespace SkillEditor
     /// </summary>
     public class EventTrackItemData : TrackItemDataBase
     {
-        public string eventType;          //事件类型
-        public string eventParameters;    //事件参数
+        public string eventName;          //事件类型
     }
 }

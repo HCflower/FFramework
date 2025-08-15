@@ -12,5 +12,6 @@ namespace SkillEditor
         public LayerMask targetLayers = -1;                 //目标层级
         public bool enableAllCollisionGroups = false;       //启用所有碰撞体
         public int collisionGroupId = 0;                    //碰撞检测组ID
+        public string injuryDetectionEventName;             //伤害检测事件名
     }
 }

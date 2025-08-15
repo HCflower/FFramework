@@ -317,9 +317,10 @@ namespace SkillEditor
         private void SetDefaultAnimationProperties(AnimationTrackItemData animationData)
         {
             // 默认动画参数
-            animationData.animationPlaySpeed = 1f; // 默认播放速度为1
-            animationData.applyRootMotion = false; // 默认不应用根运动
-            animationData.animationClip = null; // 默认动画片段为空
+            animationData.animationPlaySpeed = 1f;              // 默认播放速度为1
+            animationData.applyRootMotion = false;              // 默认不应用根运动
+            animationData.normalizedTransitionTime = 0.15f;     // 默认过渡时间为0.15秒
+            animationData.animationClip = null;                 // 默认动画片段为空
             // 注意：frameCount 和 durationFrame 在外部设置
         }
 
@@ -344,6 +345,7 @@ namespace SkillEditor
                 animationData.animationClip = configClip.clip;
                 animationData.durationFrame = configClip.durationFrame;
                 animationData.animationPlaySpeed = configClip.animationPlaySpeed;
+                animationData.normalizedTransitionTime = configClip.normalizedTransitionTime;
                 animationData.applyRootMotion = configClip.applyRootMotion;
 
                 // 如果配置中有原始帧数，则使用配置中的值作为基准帧数

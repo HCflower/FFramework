@@ -118,6 +118,7 @@ namespace SkillEditor
                     attackData.targetLayers = clip.targetLayers;
                     attackData.enableAllCollisionGroups = clip.enableAllCollisionGroups;
                     attackData.collisionGroupId = clip.collisionGroupId;
+                    attackData.injuryDetectionEventName = clip.injuryDetectionEventName;
 #if UNITY_EDITOR
                     // 标记数据已修改
                     UnityEditor.EditorUtility.SetDirty(attackData);
@@ -202,6 +203,7 @@ namespace SkillEditor
                 targetLayers = -1,
                 enableAllCollisionGroups = false,
                 collisionGroupId = 0,
+                injuryDetectionEventName = "OnInjuryDetection",
             };
 
             // 添加到对应索引的伤害检测轨道

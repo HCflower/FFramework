@@ -90,7 +90,7 @@ MonoBehaviour:
   m_Name: SkillConfig
   m_EditorClassIdentifier: 
   frameRate: 24
-  maxFrames: 81
+  maxFrames: 70
   skillPlayStateName: SkillPlay
   skillId: 0
   skillIcon: {fileID: 21300000, guid: 48e7bec8a4f0e3049a6c34938bf5a7ca, type: 3}
@@ -126,14 +126,14 @@ MonoBehaviour:
     durationFrame: 48
     clip: {fileID: 7400000, guid: 3a91922c9630cdc4e94e060121e72b00, type: 2}
     animationPlaySpeed: 1.5
-    normalizedTransitionTime: 0
+    normalizedTransitionTime: 0.15
     applyRootMotion: 0
   - clipName: 2H_Melee_Attack_Slice
     startFrame: 48
-    durationFrame: 33
+    durationFrame: 22
     clip: {fileID: 7400000, guid: 3c9abe21136b71046b88b2f84c885561, type: 2}
-    animationPlaySpeed: 1
-    normalizedTransitionTime: 0
+    animationPlaySpeed: 1.5
+    normalizedTransitionTime: 0.15
     applyRootMotion: 0
 --- !u!114 &700837781105194505
 MonoBehaviour:
@@ -216,28 +216,17 @@ MonoBehaviour:
         m_Bits: 4294967295
       enableAllCollisionGroups: 0
       collisionGroupId: 0
+      injuryDetectionEventName: OnInjuryDetection
     - clipName: InjuryDetection_2
-      startFrame: 62
-      durationFrame: 5
+      startFrame: 56
+      durationFrame: 7
       hitEffectPrefab: {fileID: 0}
       targetLayers:
         serializedVersion: 2
         m_Bits: 4294967295
       enableAllCollisionGroups: 0
       collisionGroupId: 1
-  - trackName: "\u4F24\u5BB3\u68C0\u6D4B\u8F68\u9053 2"
-    trackIndex: 1
-    isEnabled: 1
-    injuryDetectionClips:
-    - clipName: InjuryDetection_1
-      startFrame: 23
-      durationFrame: 5
-      hitEffectPrefab: {fileID: 0}
-      targetLayers:
-        serializedVersion: 2
-        m_Bits: 4294967295
-      enableAllCollisionGroups: 0
-      collisionGroupId: 1
+      injuryDetectionEventName: OnInjuryDetection
 --- !u!114 &4144422302740679402
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -283,5 +272,4 @@ MonoBehaviour:
     - clipName: Event
       startFrame: 15
       durationFrame: 1
-      eventType: Event
-      eventParameters: 
+      eventName: Log
