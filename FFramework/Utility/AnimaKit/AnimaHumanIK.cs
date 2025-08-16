@@ -12,7 +12,8 @@ namespace FFramework.Kit
     {
         public Animator animator;
         public AnimationClip animationClip;
-        public Transform leftFootEffector;
+        public AvatarIKGoal avatarIKGoal;
+        public Transform avatarIkEffector;
         [Range(0f, 1f)] public float weight = 0.0f;
         private PlayableGraph playableGraph;
         private AnimationScriptPlayable jobPlayable;
@@ -21,7 +22,8 @@ namespace FFramework.Kit
             playableGraph = PlayableGraph.Create();
             // 设置IK数据
             AnimaIKJob job = new AnimaIKJob();
-            job.leftFootHandle = animator.BindSceneTransform(leftFootEffector);
+            job.avatarIKGoal = avatarIKGoal;
+            job.avatarIKHandle = animator.BindSceneTransform(avatarIkEffector);
             job.weight = weight;
             jobPlayable = AnimationScriptPlayable.Create(playableGraph, job);
 
@@ -47,6 +49,7 @@ namespace FFramework.Kit
             if (jobPlayable.IsValid())
             {
                 AnimaIKJob job = jobPlayable.GetJobData<AnimaIKJob>();
+                job.avatarIKGoal = avatarIKGoal;
                 job.weight = weight;
                 jobPlayable.SetJobData(job);
             }
@@ -57,24 +60,30 @@ namespace FFramework.Kit
     // 动画IK工作
     public struct AnimaIKJob : IAnimationJob
     {
-        public TransformSceneHandle leftFootHandle;
+        public TransformSceneHandle avatarIKHandle;
+        public AvatarIKGoal avatarIKGoal;
         public float weight;
-
         // 处理动画
         public void ProcessAnimation(AnimationStream stream)
         {
-            if (stream.isValid && leftFootHandle.IsValid(stream))
+            if (stream.isValid && avatarIKHandle.IsValid(stream))
             {
                 var human = stream.AsHuman();
-                // 设置左脚IK位移和权重
-                human.SetGoalLocalPosition(AvatarIKGoal.LeftFoot, leftFootHandle.GetPosition(stream));
-                human.SetGoalWeightPosition(AvatarIKGoal.LeftFoot, weight);
-                // 设置左脚IK旋转和权重
-                human.SetGoalLocalRotation(AvatarIKGoal.LeftFoot, leftFootHandle.GetRotation(stream));
-                human.SetGoalWeightRotation(AvatarIKGoal.LeftFoot, weight);
+                human = SetAvatarIK(avatarIKGoal, stream, human);
                 // 解算IK
                 human.SolveIK();
             }
+        }
+
+        private AnimationHumanStream SetAvatarIK(AvatarIKGoal avatarIKGoal, AnimationStream stream, AnimationHumanStream human)
+        {
+            // 设置左脚IK位移和权重
+            human.SetGoalLocalPosition(avatarIKGoal, avatarIKHandle.GetPosition(stream));
+            human.SetGoalWeightPosition(avatarIKGoal, weight);
+            // 设置左脚IK旋转和权重
+            human.SetGoalLocalRotation(avatarIKGoal, avatarIKHandle.GetRotation(stream));
+            human.SetGoalWeightRotation(avatarIKGoal, weight);
+            return human;
         }
 
         // 处理根运动
