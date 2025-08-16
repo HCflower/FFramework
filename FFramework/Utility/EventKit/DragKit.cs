@@ -13,7 +13,6 @@ namespace FFramework.Kit
 
         [Header("拖拽设置")]
         [SerializeField] private bool enableDrag = true;
-        [SerializeField] private bool dragOnSurfaces = true;
         [SerializeField] private bool returnToOriginalPosition = false;
         [SerializeField] private float returnSpeed = 5f;
 
