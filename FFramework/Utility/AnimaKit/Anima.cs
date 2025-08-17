@@ -1,0 +1,46 @@
+using UnityEngine.Playables;
+using UnityEngine;
+
+namespace FFramework.Kit
+{
+    /// <summary>
+    /// 动画控制器基类
+    /// </summary>
+    public abstract class Anima : MonoBehaviour, IAnima
+    {
+        public Animator animator;
+        [Tooltip("播放进度(0.0~1.0)"), Range(0.0f, 1.0f)] public float playProgress = 0.0f;
+        [Tooltip("播放速度")] public float playSpeed = 1.0f;
+        [Tooltip("是否循环播放")] public bool isLoop = false;
+        protected PlayableGraph playableGraph;
+
+        protected virtual void Start()
+        {
+            if (animator == null) animator = GetComponent<Animator>();
+            playableGraph = PlayableGraph.Create();
+        }
+
+        protected virtual void OnDisable()
+        {
+            playableGraph.Destroy();
+        }
+
+        [Button("播放动画")]
+        public abstract void PlayAnima();
+        [Button("暂停动画")]
+        public abstract void PauseAnima();
+        [Button("切换动画")]
+        public abstract void ChangeAnima();
+        // 获取动画播放进度
+        public virtual void SetAnimaPlayProgress()
+        {
+            // playableGraph.GetRootPlayable(0).SetSpeed(playSpeed);
+            // playableGraph.GetRootPlayable(0).SetTime(playProgress * playableGraph.GetRootPlayable(0).GetDuration());
+        }
+
+#if UNITY_EDITOR
+        protected abstract void OnValidate();
+#endif
+
+    }
+}

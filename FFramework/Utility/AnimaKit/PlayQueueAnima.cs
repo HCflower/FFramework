@@ -7,8 +7,8 @@ namespace FFramework.Kit
     /// <summary>
     /// 动画播放队列
     /// </summary>
-    [AddComponentMenu("Anima/PlayAnimaQueue")]
-    public class PlayAnimaQueue : MonoBehaviour
+    [AddComponentMenu("Anima/PlayQueueAnima")]
+    public class PlayQueueAnima : MonoBehaviour
     {
         public Animator animator;
         public float playSpeed = 1.0f;
