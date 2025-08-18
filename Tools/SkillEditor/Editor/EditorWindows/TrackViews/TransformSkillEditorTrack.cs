@@ -88,7 +88,7 @@ namespace SkillEditor
             if (addToConfig)
             {
                 AddTrackItemDataToConfig(itemName, targetObject, startFrame, frameCount);
-                SkillEditorEvent.OnRefreshRequested();
+                SkillEditorEvent.TriggerRefreshRequested();
             }
 
             var newItem = new TransformTrackItem(trackArea, itemName, frameCount, startFrame, trackIndex);

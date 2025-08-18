@@ -59,7 +59,7 @@ namespace SkillEditor
             if (addToConfig)
             {
                 AddTrackItemDataToConfig(audioClip, audioClip.name, startFrame, frameCount);
-                SkillEditorEvent.OnRefreshRequested();
+                SkillEditorEvent.TriggerRefreshRequested();
             }
 
             return newItem;

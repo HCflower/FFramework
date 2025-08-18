@@ -21,7 +21,7 @@ namespace SkillEditor
         protected int startFrame;
 
         /// <summary>轨道项持续帧数</summary>
-        protected int durationFrame;
+        protected int trackItemDurationFrame;
 
         /// <summary>是否正在拖拽中</summary>
         protected bool isDragging = false;
@@ -42,7 +42,7 @@ namespace SkillEditor
 
         public int GetDurationFrame()
         {
-            return durationFrame; // 假设有一个字段或属性表示持续帧数
+            return trackItemDurationFrame; // 假设有一个字段或属性表示持续帧数
         }
 
         /// <summary>
@@ -239,7 +239,7 @@ namespace SkillEditor
             // 如果宽度为0，使用计算出的宽度
             if (itemWidth <= 0)
             {
-                itemWidth = durationFrame * SkillEditorData.FrameUnitWidth;
+                itemWidth = trackItemDurationFrame * SkillEditorData.FrameUnitWidth;
             }
 
             if (trackWidth <= 0)

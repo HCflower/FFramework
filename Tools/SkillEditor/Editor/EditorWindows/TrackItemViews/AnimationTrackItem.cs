@@ -1,6 +1,7 @@
 using UnityEngine.UIElements;
 using UnityEngine;
 using System.Linq;
+using System;
 
 namespace SkillEditor
 {
@@ -20,7 +21,7 @@ namespace SkillEditor
         private AnimationTrackItemData currentAnimationData;
 
         /// <summary>动画事件标签</summary>
-        private Label animationEvent;
+        private Label transitionDurationFrameLabel;
 
         #endregion
 
@@ -37,7 +38,7 @@ namespace SkillEditor
         /// <param name="trackIndex">轨道索引，用于多轨道数据定位，默认为0</param>
         public AnimationTrackItem(VisualElement visual, string title, int durationFrame, int startFrame = 0, int trackIndex = 0)
         {
-            this.durationFrame = durationFrame;
+            this.trackItemDurationFrame = durationFrame;
             this.startFrame = startFrame;
             this.trackIndex = trackIndex;
 
@@ -47,7 +48,6 @@ namespace SkillEditor
             // 创建轨道项内容
             itemContent = CreateAnimationTrackItemContent(title);
             trackItem.Add(itemContent);
-
             // 设置宽度和位置
             SetWidth();
             UpdatePosition();
@@ -72,6 +72,7 @@ namespace SkillEditor
                 {
                     currentAnimationData = CreateAnimationTrackItemData();
                 }
+                SetTransitionDurationFrameView(currentAnimationData.transitionDurationFrame, transitionDurationFrameLabel);
                 return currentAnimationData;
             }
         }
@@ -107,7 +108,7 @@ namespace SkillEditor
         /// </summary>
         public override void SetWidth()
         {
-            itemContent.style.width = durationFrame * SkillEditorData.FrameUnitWidth;
+            itemContent.style.width = trackItemDurationFrame * SkillEditorData.FrameUnitWidth;
         }
 
         /// <summary>
@@ -116,7 +117,7 @@ namespace SkillEditor
         /// <param name="newFrameCount">新的帧数</param>
         public override void UpdateFrameCount(int newFrameCount)
         {
-            durationFrame = newFrameCount;
+            trackItemDurationFrame = newFrameCount;
             SetWidth();
         }
 
@@ -126,7 +127,7 @@ namespace SkillEditor
         /// <returns>结束帧位置</returns>
         public float GetEndFrame()
         {
-            return startFrame + durationFrame;
+            return startFrame + trackItemDurationFrame;
         }
 
         /// <summary>
@@ -174,8 +175,56 @@ namespace SkillEditor
         {
             if (currentAnimationData != null)
             {
+                // 更新前一片段的过渡帧时间
+                CalculateTransitionDuration();
+                // 更新检查器面板
                 UpdateInspectorPanel();
+                // 刷新动画轨道项
+                SkillEditorEvent.OnRefreshRequested();
             }
+        }
+
+        /// <summary>
+        /// 计算过渡持续帧
+        /// </summary>
+        private void CalculateTransitionDuration()
+        {
+            // 获取当前轨道项的起始帧
+            int currentStartFrame = startFrame;
+
+            // 获取当前轨道的所有轨道项
+            var trackItems = SkillEditorData.CurrentSkillConfig?.trackContainer?.animationTrack?.animationClips;
+            if (trackItems == null || trackItems.Count == 0) return;
+
+            // 查找前一个最近的片段
+            FFramework.Kit.AnimationTrack.AnimationClip previousItem = null;
+            foreach (var item in trackItems)
+            {
+                // 跳过当前轨道项
+                if (item.clip == currentAnimationData.animationClip ||
+                   (item.clipName == currentAnimationData.trackItemName &&
+                    item.startFrame == currentAnimationData.startFrame))
+                {
+                    continue;
+                }
+
+                // 查找起始帧小于当前轨道项的片段
+                if (item.startFrame < currentStartFrame)
+                {
+                    if (previousItem == null || item.startFrame > previousItem.startFrame)
+                    {
+                        previousItem = item;
+                    }
+                }
+            }
+
+            if (previousItem == null) return;
+
+            // 计算帧重叠
+            int overlapFrames = Mathf.Max(0, Mathf.RoundToInt(previousItem.startFrame + previousItem.durationFrame - currentStartFrame));
+
+            // 设置前一个片段的过渡持续帧
+            previousItem.transitionDurationFrame = overlapFrames;
         }
 
         #endregion
@@ -209,14 +258,23 @@ namespace SkillEditor
             itemContent.tooltip = title;
 
             // 创建动画事件标签
-            animationEvent = new Label();
-            itemContent.Add(animationEvent);
+            transitionDurationFrameLabel = new Label();
+            itemContent.Add(transitionDurationFrameLabel);
 
             // 添加标题标签
             AddTitleLabel(itemContent, title);
 
             return itemContent;
         }
+
+        private void SetTransitionDurationFrameView(int transitionDurationFrame, VisualElement visualElement)
+        {
+            if (visualElement == null || transitionDurationFrame == 0) return;
+            visualElement.AddToClassList("TransitionDurationFrameView");
+            visualElement.style.width = transitionDurationFrame * SkillEditorData.FrameUnitWidth;
+            visualElement.style.left = (base.trackItemDurationFrame - transitionDurationFrame) * SkillEditorData.FrameUnitWidth - 2;
+        }
+
 
         /// <summary>
         /// 为动画轨道项内容添加标题标签
@@ -286,7 +344,7 @@ namespace SkillEditor
             // 这样确保基准帧数反映的是动画的原始长度
             if (animationData.frameCount <= 0)
             {
-                animationData.frameCount = durationFrame;
+                animationData.frameCount = trackItemDurationFrame;
             }
 
             // 如果持续帧数还没有设置，则使用基准帧数
@@ -319,7 +377,7 @@ namespace SkillEditor
             // 默认动画参数
             animationData.animationPlaySpeed = 1f;              // 默认播放速度为1
             animationData.applyRootMotion = false;              // 默认不应用根运动
-            animationData.normalizedTransitionTime = 0.15f;     // 默认过渡时间为0.15秒
+            animationData.transitionDurationFrame = 1;           // 默认过渡时间为1帧
             animationData.animationClip = null;                 // 默认动画片段为空
             // 注意：frameCount 和 durationFrame 在外部设置
         }
@@ -345,7 +403,7 @@ namespace SkillEditor
                 animationData.animationClip = configClip.clip;
                 animationData.durationFrame = configClip.durationFrame;
                 animationData.animationPlaySpeed = configClip.animationPlaySpeed;
-                animationData.normalizedTransitionTime = configClip.normalizedTransitionTime;
+                animationData.transitionDurationFrame = configClip.transitionDurationFrame;
                 animationData.applyRootMotion = configClip.applyRootMotion;
 
                 // 如果配置中有原始帧数，则使用配置中的值作为基准帧数

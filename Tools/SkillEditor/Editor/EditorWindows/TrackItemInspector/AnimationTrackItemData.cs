@@ -8,9 +8,9 @@ namespace SkillEditor
     /// </summary>
     public class AnimationTrackItemData : TrackItemDataBase
     {
-        public AnimationClip animationClip;     // 动画片段
-        public float animationPlaySpeed = 1f;            // 播放速度
-        [Min(0.0f)] public float normalizedTransitionTime = 0.0f; // 过渡时间
-        public bool applyRootMotion;            // 是应用根运动
+        public AnimationClip animationClip;                 // 动画片段
+        public float animationPlaySpeed = 1f;               // 播放速度
+        [Min(0.0f)] public int transitionDurationFrame = 0; // 过渡时间
+        public bool applyRootMotion;                        // 是应用根运动
     }
 }

@@ -68,7 +68,7 @@ namespace SkillEditor
             if (addToConfig)
             {
                 AddTrackItemDataToConfig(injuryDetectionName, startFrame, frameCount);
-                SkillEditorEvent.OnRefreshRequested();
+                SkillEditorEvent.TriggerRefreshRequested();
             }
 
             var newItem = new InjuryDetectionTrackItem(trackArea, injuryDetectionName, frameCount, startFrame, trackIndex);

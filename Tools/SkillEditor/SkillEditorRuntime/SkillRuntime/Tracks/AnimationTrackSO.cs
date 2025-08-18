@@ -107,7 +107,7 @@ namespace FFramework.Kit
         {
             [Tooltip("动画片段")] public UnityEngine.AnimationClip clip;
             [Tooltip("动画播放速度"), Min(0)] public float animationPlaySpeed = 1.0f;
-            [Tooltip("归一化动画过渡时间"), Min(0.0f)] public float normalizedTransitionTime = 0.1f;
+            [Tooltip("归一化动画过渡时间"), Min(0)] public int transitionDurationFrame = 0;
             [Tooltip("是否应用动画根运动")] public bool applyRootMotion = false;
         }
     }

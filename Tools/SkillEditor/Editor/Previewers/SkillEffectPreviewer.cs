@@ -127,8 +127,6 @@ namespace SkillEditor
 
             // 隐藏所有特效
             HideAllEffects();
-
-            Debug.Log("SkillEffectPreviewer: 停止特效预览");
         }
 
         /// <summary>
@@ -737,8 +735,6 @@ namespace SkillEditor
             skillOwner = null;
             skillConfig = null;
             effectContainer = null;
-
-            Debug.Log("SkillEffectPreviewer: 资源清理完成");
         }
 
         #endregion

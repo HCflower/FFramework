@@ -37,7 +37,7 @@ namespace SkillEditor
         /// <param name="trackIndex">轨道索引，用于多轨道数据定位，默认为0</param>
         public AudioTrackItem(VisualElement visual, string title, int durationFrame, int startFrame = 0, int trackIndex = 0)
         {
-            this.durationFrame = durationFrame;
+            this.trackItemDurationFrame = durationFrame;
             this.startFrame = startFrame;
             this.trackIndex = trackIndex;
 
@@ -107,7 +107,7 @@ namespace SkillEditor
         /// </summary>
         public override void SetWidth()
         {
-            itemContent.style.width = durationFrame * SkillEditorData.FrameUnitWidth;
+            itemContent.style.width = trackItemDurationFrame * SkillEditorData.FrameUnitWidth;
         }
 
         /// <summary>
@@ -116,7 +116,7 @@ namespace SkillEditor
         /// <param name="newFrameCount">新的帧数</param>
         public override void UpdateFrameCount(int newFrameCount)
         {
-            durationFrame = newFrameCount;
+            trackItemDurationFrame = newFrameCount;
             SetWidth();
         }
 
@@ -126,7 +126,7 @@ namespace SkillEditor
         /// <returns>结束帧位置</returns>
         public float GetEndFrame()
         {
-            return startFrame + durationFrame;
+            return startFrame + trackItemDurationFrame;
         }
 
         /// <summary>
@@ -137,18 +137,6 @@ namespace SkillEditor
         {
             SetWidth();
             UpdatePosition();
-        }
-
-        /// <summary>
-        /// 设置音频事件视图的显示
-        /// 用于显示音频轨道中的事件可视化表示
-        /// </summary>
-        /// <param name="leftFrame">相对左边界帧</param>
-        /// <param name="startFrame">事件起始帧</param>
-        /// <param name="durationFrame">事件持续帧数</param>
-        public void SetAudioEventView(int leftFrame, int startFrame, int durationFrame)
-        {
-            SetEventView(leftFrame, startFrame, durationFrame, audioEvent, Color.blue);
         }
 
         /// <summary>
@@ -303,10 +291,10 @@ namespace SkillEditor
 
             var audioData = ScriptableObject.CreateInstance<AudioTrackItemData>();
             audioData.trackItemName = itemName;
-            audioData.frameCount = durationFrame;
+            audioData.frameCount = trackItemDurationFrame;
             audioData.startFrame = startFrame;
             audioData.trackIndex = trackIndex; // 设置轨道索引用于多轨道数据定位
-            audioData.durationFrame = durationFrame;
+            audioData.durationFrame = trackItemDurationFrame;
 
             // 设置音频特有的默认属性
             SetDefaultAudioProperties(audioData);

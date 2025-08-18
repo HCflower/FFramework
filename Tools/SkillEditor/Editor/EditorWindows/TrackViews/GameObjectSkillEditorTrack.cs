@@ -61,7 +61,7 @@ namespace SkillEditor
             if (addToConfig)
             {
                 AddTrackItemDataToConfig(gameObject, gameObject.name, startFrame, frameCount);
-                SkillEditorEvent.OnRefreshRequested();
+                SkillEditorEvent.TriggerRefreshRequested();
             }
 
             return newItem;
@@ -97,7 +97,7 @@ namespace SkillEditor
             if (addToConfig)
             {
                 AddTrackItemDataToConfig(null, itemName, startFrame, frameCount);
-                SkillEditorEvent.OnRefreshRequested();
+                SkillEditorEvent.TriggerRefreshRequested();
             }
 
             return gameObjectItem;

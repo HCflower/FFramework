@@ -14,6 +14,8 @@ namespace FFramework.Kit
         [Header("设置")]
         [Tooltip("技能配置文件")] public SkillConfig skillConfig;
         [Tooltip("技能动画状态机")] public Animator skillAnimator;
+        [Tooltip("动画播放器")] public Anima Anima;
+
         [Tooltip("技能控制的摄像机")] public Camera skillCamera;
         [Tooltip("默认动画状态名")] public string defaultStateName = "Idle";
         [Tooltip("技能动画状态名")] public string skillAnimationStateName = "SkillPlay";
@@ -24,6 +26,7 @@ namespace FFramework.Kit
         [SerializeField, Tooltip("当前播放帧")][ShowOnly] private int currentFrame = 0;
         [SerializeField, Tooltip("播放开始时间")][ShowOnly] private float playStartTime = 0f;
         [SerializeField, Tooltip("播放速度倍数")][ShowOnly] private float playSpeed = 1.0f;
+        [SerializeField, Tooltip("当前动画片段名称")][ShowOnly] private string currentAnimaClipName = "";
 
         [Header("伤害检测")]
         [Tooltip("伤害检测碰撞器")] public List<CollisionGroup> collisionGroup = new List<CollisionGroup>();
@@ -37,12 +40,6 @@ namespace FFramework.Kit
 
         /// <summary>音频源组件</summary>
         private AudioSource audioSource;
-
-        /// <summary>当前播放的动画片段</summary>
-        private string currentAnimationClip = "";
-
-        /// <summary>缓存的动画状态哈希值，避免每帧重复计算</summary>
-        private int animationStateHash;
 
         /// <summary>动画器原始根运动状态</summary>
         private bool originalApplyRootMotion;
@@ -192,7 +189,7 @@ namespace FFramework.Kit
         /// <param name="speed">播放速度倍数</param>
         public void PlaySkill(bool loop = false, float speed = 1.0f)
         {
-            if (skillConfig == null)
+            if (skillConfig == null || isPlaying)
             {
                 Debug.LogWarning($"SkillRuntimeController: 无法播放技能，技能配置为空");
                 return;
@@ -205,16 +202,13 @@ namespace FFramework.Kit
             playStartTime = Time.time;
 
             // 重置动画状态
-            currentAnimationClip = "";
+            currentAnimaClipName = "";
             if (skillAnimator != null)
             {
                 skillAnimator.speed = 1f;
             }
 
             Debug.Log($"SkillRuntimeController: 开始播放技能 {skillConfig.skillName}");
-
-            // 缓存动画状态哈希值，避免每帧重复计算
-            animationStateHash = Animator.StringToHash(skillAnimationStateName);
 
             // 使用当前Transform状态作为新的初始状态（实现累加模式）
             UpdateTransformInitialState();
@@ -237,22 +231,11 @@ namespace FFramework.Kit
             if (skillAnimator != null)
             {
                 skillAnimator.speed = 1f; // 恢复正常速度
-                // 使用CrossFadeInFixedTime平滑过渡到默认状态
-                if (skillAnimator.HasState(0, Animator.StringToHash(defaultStateName)))
-                {
-                    skillAnimator.CrossFadeInFixedTime(defaultStateName, 0.15f, 0, 0f);
-                    Debug.Log($"SkillRuntimeController: 平滑过渡到默认状态 {defaultStateName}");
-                }
-                else
-                {
-                    // 如果没有默认状态，则停止当前动画
-                    skillAnimator.StopPlayback();
-                    Debug.Log("SkillRuntimeController: 停止动画播放");
-                }
+                                          //TODO:停止动画播放
             }
 
             // 重置动画状态
-            currentAnimationClip = "";
+            currentAnimaClipName = "";
 
             // 停止所有轨道
             StopAllTracks();
@@ -339,7 +322,7 @@ namespace FFramework.Kit
                     currentFrame = 0;
 
                     // 重置动画状态以确保循环播放时动画能正确重新开始
-                    currentAnimationClip = "";
+                    currentAnimaClipName = "";
 
                     // 使用当前Transform状态作为新的初始状态（累加模式）
                     UpdateTransformInitialState();
@@ -450,62 +433,26 @@ namespace FFramework.Kit
             {
                 if (animClip.clip == null || !animClip.IsFrameInRange(frame)) continue;
 
-                // 计算播放时间，需要考虑动画片段的播放速度
-                float localTime = (frame - animClip.startFrame) / FrameRate;
-
-                // 应用动画播放速度：播放速度越快，动画时间进度越快
-                float scaledTime = localTime * animClip.animationPlaySpeed;
-
-                // 计算归一化时间
-                float normalizedTime = animClip.clip.length > 0 ? scaledTime / animClip.clip.length : 0f;
-
-                // 如果是循环播放，使用模运算来循环时间
-                if (animClip.clip.length > 0)
-                {
-                    normalizedTime = normalizedTime % 1.0f;
-                }
-
                 // 检查是否需要切换动画片段或者是第一帧
-                bool shouldPlayAnimation = currentAnimationClip != animClip.clip.name || frame == animClip.startFrame;
+                bool shouldPlayAnimation = currentAnimaClipName != animClip.clip.name || frame == animClip.startFrame;
 
                 if (shouldPlayAnimation)
                 {
-                    currentAnimationClip = animClip.clip.name;
+                    currentAnimaClipName = animClip.clip.name;
 
                     // 设置根运动
                     skillAnimator.applyRootMotion = animClip.applyRootMotion;
 
                     // 将当前动画片段设置到AnimatorController对应的动画状态
-                    // TODO：接入Animancer插件播放动画
-                    var controller = skillAnimator.runtimeAnimatorController as UnityEditor.Animations.AnimatorController;
-                    if (controller != null && !string.IsNullOrEmpty(skillAnimationStateName))
-                    {
-                        if (controller.layers.Length > 0)
-                        {
-                            var layer = controller.layers[0];
-                            foreach (var state in layer.stateMachine.states)
-                            {
-                                if (state.state.name == skillAnimationStateName)
-                                {
-                                    state.state.motion = animClip.clip;
-                                    skillAnimator.Rebind(); // 强制刷新
-                                    break;
-                                }
-                            }
-                        }
-                    }
-
-                    // 使用缓存的哈希值，避免每次重新计算
-                    if (skillAnimator.HasState(0, animationStateHash))
-                    {
-                        // TODO使用CrossFadeInFixedTime实现平滑过渡
-                        skillAnimator.CrossFadeInFixedTime(animationStateHash, animClip.normalizedTransitionTime, 0, normalizedTime);
-                    }
-
-                    skillAnimator.speed = animClip.animationPlaySpeed * playSpeed;
+                    // TODO：接入Playable API播放动画
+                    PlaySmartAnima anima = Anima as PlaySmartAnima;
+                    anima.playSpeed = animClip.animationPlaySpeed;
+                    anima.isLoop = animClip.clip.isLooping;
+                    // 设置过渡时间-保留两位小数
+                    anima.ChangeAnima(animClip.clip, (float)Mathf.Round(animClip.transitionDurationFrame / skillConfig.frameRate * 100f) / 100f);
                 }
-
-                break; // 只播放第一个匹配的动画片段
+                // 只播放第一个匹配的动画片段
+                break;
             }
         }
 

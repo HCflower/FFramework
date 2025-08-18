@@ -1,6 +1,8 @@
 using FFramework.Kit;
 using UnityEngine;
 using UnityEditor;
+using UnityEngine.Playables;
+using UnityEngine.Animations;
 
 namespace SkillEditor
 {
@@ -30,14 +32,15 @@ namespace SkillEditor
         /// <summary>当前预览帧</summary>
         private int currentPreviewFrame = 0;
 
-        /// <summary>是否在编辑模式下预览</summary>
-        private bool isEditModePreview = false;
-
         /// <summary>当前预览的动画片段</summary>
         private AnimationClip currentPreviewClip;
 
         /// <summary>全局播放速度倍数</summary>
         private float globalPlaySpeedMultiplier = 1f;
+
+        private PlayableGraph playableGraph;
+        private AnimationPlayableOutput animationOutput;
+        private AnimationClipPlayable currentClipPlayable;
 
         #endregion
 
@@ -68,14 +71,21 @@ namespace SkillEditor
             }
 
             var animator = target.GetComponent<Animator>();
-            if (animator == null || animator.runtimeAnimatorController == null)
+            if (animator == null)
             {
-                Debug.LogWarning($"预览目标 {target.name} 没有有效的Animator组件或控制器");
+                Debug.LogWarning($"预览目标 {target.name} 没有有效的 Animator 组件");
                 return false;
             }
 
             previewTarget = target;
             previewAnimator = animator;
+
+            // 初始化 PlayableGraph
+            if (!playableGraph.IsValid())
+            {
+                playableGraph = PlayableGraph.Create("SkillAnimationPreviewer");
+                animationOutput = AnimationPlayableOutput.Create(playableGraph, "AnimationOutput", previewAnimator);
+            }
 
             return true;
         }
@@ -101,25 +111,17 @@ namespace SkillEditor
 
             currentSkillConfig = skillConfig;
             isPreviewing = true;
-            isEditModePreview = !Application.isPlaying;
-
-            // 计算开始时间
-            double currentFrameTime = SkillEditorData.CurrentFrame / (double)skillConfig.frameRate;
-            previewStartTime = EditorApplication.timeSinceStartup - currentFrameTime;
-            currentPreviewFrame = SkillEditorData.CurrentFrame;
+            // SkillEditorData.IsPlaying = true; // 设置为播放状态
+            if (SkillEditorData.IsPlaying)
+            {
+                // 计算开始时间
+                double currentFrameTime = SkillEditorData.CurrentFrame / (double)skillConfig.frameRate;
+                previewStartTime = EditorApplication.timeSinceStartup - currentFrameTime;
+                currentPreviewFrame = SkillEditorData.CurrentFrame;
+            }
 
             try
             {
-                if (isEditModePreview)
-                {
-                    AnimationMode.StartAnimationMode();
-                }
-                else if (!HasSkillState())
-                {
-                    Debug.LogWarning("Animator状态机中没有找到Skill状态");
-                    return false;
-                }
-
                 EditorApplication.update += UpdatePreview;
                 Debug.Log($"开始预览技能动画: {skillConfig.skillName}");
                 return true;
@@ -128,6 +130,7 @@ namespace SkillEditor
             {
                 Debug.LogError($"启动预览时出错: {e.Message}");
                 isPreviewing = false;
+                SkillEditorData.IsPlaying = false; // 设置为非播放状态
                 return false;
             }
         }
@@ -140,12 +143,12 @@ namespace SkillEditor
             if (!isPreviewing) return;
 
             isPreviewing = false;
+            SkillEditorData.IsPlaying = false; // 设置为非播放状态
             EditorApplication.update -= UpdatePreview;
 
-            if (isEditModePreview)
+            if (playableGraph.IsValid())
             {
-                AnimationMode.StopAnimationMode();
-                isEditModePreview = false;
+                playableGraph.Stop();
             }
 
             currentSkillConfig = null;
@@ -189,7 +192,7 @@ namespace SkillEditor
         }
 
         /// <summary>
-        /// 计算动画片段播放时间
+        /// 计算动画片段播放时间,
         /// </summary>
         private float CalculateClipTime(FFramework.Kit.AnimationTrack.AnimationClip animClip)
         {
@@ -221,29 +224,38 @@ namespace SkillEditor
         {
             currentPreviewClip = clip;
 
-            if (isEditModePreview)
+            if (!playableGraph.IsValid())
             {
-                AnimationMode.SampleAnimationClip(previewTarget.gameObject, clip, time);
+                Debug.LogError("PlayableGraph 无效，无法播放动画");
+                return;
+            }
+
+            if (currentClipPlayable.IsValid())
+            {
+                currentClipPlayable.Destroy();
+            }
+
+            currentClipPlayable = AnimationClipPlayable.Create(playableGraph, clip);
+            currentClipPlayable.SetTime(time);
+            currentClipPlayable.SetSpeed(globalPlaySpeedMultiplier * (animClipData?.animationPlaySpeed ?? 1f));
+
+            animationOutput.SetSourcePlayable(currentClipPlayable);
+
+            // 如果当前编辑器不是播放状态（即手动拖拽/暂停），直接 Evaluate 以立刻应用指定时间的姿态
+            if (!SkillEditorData.IsPlaying)
+            {
+                // 确保 graph 已经准备好，然后 Evaluate 以更新 Animator 到指定时间点
+                if (!playableGraph.IsPlaying())
+                {
+                    playableGraph.Play(); // 需要先 Play 一次以让 Evaluate 生效（速度为0时不会推进）
+                }
+                playableGraph.Evaluate();
             }
             else
             {
-                if (HasSkillState())
+                if (!playableGraph.IsPlaying())
                 {
-                    UpdateSkillStateClip(clip);
-                    float normalizedTime = clip.length > 0 ? time / clip.length : 0f;
-                    previewAnimator.Play(currentSkillConfig.skillPlayStateName, 0, normalizedTime);
-
-                    // 在运行时模式下，也需要设置Animator的播放速度来匹配动画片段的播放速度
-                    if (animClipData != null)
-                    {
-                        // 最终播放速度 = 动画片段播放速度 × 全局播放速度倍数
-                        float finalPlaySpeed = animClipData.animationPlaySpeed * globalPlaySpeedMultiplier;
-                        previewAnimator.speed = finalPlaySpeed;
-                    }
-                    else
-                    {
-                        previewAnimator.speed = globalPlaySpeedMultiplier;
-                    }
+                    playableGraph.Play();
                 }
             }
         }
@@ -256,35 +268,10 @@ namespace SkillEditor
         {
             globalPlaySpeedMultiplier = speed;
 
-            if (isEditModePreview || previewAnimator == null) return;
-
-            bool wasPlaying = previewAnimator.speed > 0f;
-
-            // 如果从暂停恢复播放，重新计算开始时间
-            if (!wasPlaying && speed > 0f && isPreviewing && currentSkillConfig != null)
+            if (playableGraph.IsValid() && currentClipPlayable.IsValid())
             {
-                double frameTime = currentPreviewFrame / currentSkillConfig.frameRate;
-                previewStartTime = EditorApplication.timeSinceStartup - frameTime;
+                currentClipPlayable.SetSpeed(speed);
             }
-
-            // 如果当前有播放的动画片段，立即更新播放速度
-            if (speed <= 0f)
-            {
-                previewAnimator.speed = 0f; // 暂停
-            }
-            else
-            {
-                // 重新触发当前帧的预览来应用新的播放速度
-                PreviewFrame(currentPreviewFrame);
-            }
-        }
-
-        /// <summary>
-        /// 重置预览到第0帧
-        /// </summary>
-        public void ResetPreview()
-        {
-            if (isPreviewing) PreviewFrame(0);
         }
 
         #endregion
@@ -292,79 +279,15 @@ namespace SkillEditor
         #region 私有方法
 
         /// <summary>
-        /// 检查Animator是否有SkillPlay状态
-        /// </summary>
-        /// <returns>是否存在SkillPlay状态</returns>
-        private bool HasSkillState()
-        {
-            if (previewAnimator == null || previewAnimator.runtimeAnimatorController == null)
-                return false;
-            if (currentSkillConfig == null || string.IsNullOrEmpty(currentSkillConfig.skillPlayStateName))
-                return false;
-
-            var controller = previewAnimator.runtimeAnimatorController as UnityEditor.Animations.AnimatorController;
-            if (controller == null) return false;
-
-            if (controller.layers.Length > 0)
-            {
-                var layer = controller.layers[0];
-                foreach (var state in layer.stateMachine.states)
-                {
-                    if (state.state.name == currentSkillConfig.skillPlayStateName)
-                    {
-                        return true;
-                    }
-                }
-            }
-            return false;
-        }
-
-        /// <summary>
-        /// 更新Skill状态的动画片段
-        /// </summary>
-        /// <param name="clip">要设置的动画片段</param>
-        private void UpdateSkillStateClip(AnimationClip clip)
-        {
-            if (previewAnimator == null || previewAnimator.runtimeAnimatorController == null)
-                return;
-
-            var controller = previewAnimator.runtimeAnimatorController as UnityEditor.Animations.AnimatorController;
-            if (controller == null) return;
-
-            // 查找Skill状态并更新其动画片段
-            if (controller.layers.Length > 0)
-            {
-                var layer = controller.layers[0];
-                foreach (var childState in layer.stateMachine.states)
-                {
-                    if (childState.state.name == currentSkillConfig.skillPlayStateName)
-                    {
-                        // 更新状态的动画片段
-                        childState.state.motion = clip;
-                        break;
-                    }
-                }
-            }
-        }
-
-        /// <summary>
         /// 更新预览（编辑器更新回调）
         /// </summary>
         private void UpdatePreview()
         {
-            if (!isPreviewing || currentSkillConfig == null || previewAnimator == null)
+            if (!isPreviewing || currentSkillConfig == null || previewAnimator == null || !SkillEditorData.IsPlaying)
             {
-                StopPreview();
                 return;
             }
 
-            // 检查是否应该播放
-            bool shouldPlay = isEditModePreview ?
-                SkillEditorData.IsPlaying :
-                (previewAnimator.speed > 0f && globalPlaySpeedMultiplier > 0f);
-            if (!shouldPlay) return;
-
-            // 计算目标帧
             double elapsedTime = EditorApplication.timeSinceStartup - previewStartTime;
             int targetFrame = Mathf.FloorToInt((float)(elapsedTime * currentSkillConfig.frameRate));
 
@@ -379,12 +302,6 @@ namespace SkillEditor
                 else
                 {
                     targetFrame = currentSkillConfig.maxFrames;
-                    if (currentPreviewFrame != targetFrame)
-                    {
-                        PreviewFrame(targetFrame);
-                        SkillEditorEvent.TriggerCurrentFrameChanged(targetFrame);
-                    }
-                    // 非循环播放到最后一帧时，结束播放状态
                     SkillEditorData.IsPlaying = false;
                     SkillEditorEvent.TriggerPlayStateChanged(false);
                     StopPreview();
@@ -410,6 +327,11 @@ namespace SkillEditor
         public void Dispose()
         {
             StopPreview();
+
+            if (playableGraph.IsValid())
+            {
+                playableGraph.Destroy(); // 在清理时销毁 PlayableGraph
+            }
             previewTarget = null;
             previewAnimator = null;
             currentSkillConfig = null;

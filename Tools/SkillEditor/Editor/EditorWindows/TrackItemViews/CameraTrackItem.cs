@@ -40,7 +40,7 @@ namespace SkillEditor
         /// <param name="trackIndex">轨道索引，用于多轨道数据定位，默认为0</param>
         public CameraTrackItem(VisualElement visual, string title, int durationFrame, int startFrame = 0, int trackIndex = 0)
         {
-            this.durationFrame = durationFrame;
+            this.trackItemDurationFrame = durationFrame;
             this.startFrame = startFrame;
             this.trackIndex = trackIndex;
 
@@ -118,7 +118,7 @@ namespace SkillEditor
         /// </summary>
         public override void SetWidth()
         {
-            itemContent.style.width = durationFrame * SkillEditorData.FrameUnitWidth;
+            itemContent.style.width = trackItemDurationFrame * SkillEditorData.FrameUnitWidth;
         }
 
         /// <summary>
@@ -127,7 +127,7 @@ namespace SkillEditor
         /// <param name="newFrameCount">新的帧数</param>
         public override void UpdateFrameCount(int newFrameCount)
         {
-            durationFrame = newFrameCount;
+            trackItemDurationFrame = newFrameCount;
             SetWidth();
         }
 
@@ -137,7 +137,7 @@ namespace SkillEditor
         /// <returns>结束帧位置</returns>
         public float GetEndFrame()
         {
-            return startFrame + durationFrame;
+            return startFrame + trackItemDurationFrame;
         }
 
         /// <summary>
@@ -321,11 +321,11 @@ namespace SkillEditor
 
             var cameraData = ScriptableObject.CreateInstance<CameraTrackItemData>();
             cameraData.trackItemName = itemName;
-            cameraData.frameCount = durationFrame;
+            cameraData.frameCount = trackItemDurationFrame;
             cameraData.startFrame = startFrame;
             // 设置轨道索引用于多轨道数据定位
             cameraData.trackIndex = trackIndex;
-            cameraData.durationFrame = durationFrame;
+            cameraData.durationFrame = trackItemDurationFrame;
 
             // 设置摄像机特有的默认属性
             SetDefaultCameraProperties(cameraData);
@@ -367,7 +367,7 @@ namespace SkillEditor
             cameraData.restoreFrame = 1;
             cameraData.enableShake = false;
             cameraData.animationStartFrameOffset = startFrame;
-            cameraData.animationDurationFrame = durationFrame;
+            cameraData.animationDurationFrame = trackItemDurationFrame;
         }
 
         /// <summary>

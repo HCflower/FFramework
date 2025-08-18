@@ -125,6 +125,17 @@
     background-color: rgba(255, 255, 255, 0.45);
 }
 
+/* 持续帧视图 */
+.TransitionDurationFrameView{
+    height:2px;
+    width: auto;
+    position:absolute;
+    left:0px;
+    bottom:0px;
+    border:0px;
+    background-color: rgb(229, 155, 29);
+}
+
 /* 轨道项标题 - 鼠标悬停效果 */
 .TrackItemTitle:hover{
     color: rgb(255, 255, 255); /* 悬停时文字变亮 */

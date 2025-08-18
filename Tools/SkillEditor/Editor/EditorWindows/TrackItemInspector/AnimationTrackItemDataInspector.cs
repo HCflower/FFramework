@@ -28,7 +28,7 @@ namespace SkillEditor
             CreateFloatField("播放速度:", "animationPlaySpeed", OnPlaySpeedChanged);
 
             // 动画过渡时间
-            CreateFloatField("动画过渡时间:", "normalizedTransitionTime", OnNormalizedTransitionTimeChanged);
+            CreateIntegerField("动画过渡帧数:", "transitionDurationFrame", OnTransitionTimeChanged);
 
             // 应用根运动
             CreateToggleField("应用根运动:", "applyRootMotion", OnApplyRootMotionChanged);
@@ -59,11 +59,11 @@ namespace SkillEditor
             }, "播放速度更新");
         }
 
-        private void OnNormalizedTransitionTimeChanged(float newValue)
+        private void OnTransitionTimeChanged(int newValue)
         {
             SafeExecute(() =>
             {
-                UpdateTrackConfig(configClip => configClip.normalizedTransitionTime = newValue, "过渡时间更新");
+                UpdateTrackConfig(configClip => configClip.transitionDurationFrame = newValue, "过渡时间更新");
             }, "过渡时间更新");
 
         }

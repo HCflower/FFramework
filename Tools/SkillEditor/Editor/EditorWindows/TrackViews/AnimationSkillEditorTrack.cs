@@ -46,7 +46,7 @@ namespace SkillEditor
             if (addToConfig)
             {
                 AddAnimationClipToConfig(animationClip, startFrame, CalculateFrameCount(animationClip));
-                SkillEditorEvent.OnRefreshRequested();
+                SkillEditorEvent.TriggerRefreshRequested();
             }
 
             return animationItem;
@@ -121,7 +121,7 @@ namespace SkillEditor
                 durationFrame = frameCount,
                 clip = animationClip,
                 animationPlaySpeed = 1.0f,
-                normalizedTransitionTime = 0.15f,
+                transitionDurationFrame = 0,
                 applyRootMotion = false
             };
 

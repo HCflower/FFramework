@@ -366,7 +366,7 @@ namespace SkillEditor
             // 恢复标题显示
             trackControlAreaContent.Add(CreateTrackControlTitle(TrackName));
 
-            SkillEditorEvent.OnRefreshRequested();
+            SkillEditorEvent.TriggerRefreshRequested();
         }
 
         #endregion

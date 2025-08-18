@@ -251,7 +251,7 @@ namespace SkillEditor
             if (SkillEditorData.CurrentSkillConfig == null) return;
 
             // 启动动画预览
-            if (animationPreviewer != null && !animationPreviewer.IsPreviewing)
+            if (animationPreviewer != null && !animationPreviewer.IsPreviewing && SkillEditorData.IsPlaying)
             {
                 animationPreviewer.StartPreview(SkillEditorData.CurrentSkillConfig);
             }
@@ -416,11 +416,23 @@ namespace SkillEditor
             // 如果没有在预览状态，则启动预览
             if (!animationPreviewer.IsPreviewing)
             {
-                animationPreviewer.StartPreview(SkillEditorData.CurrentSkillConfig);
+                if (SkillEditorData.CurrentSkillConfig != null && animationPreviewer.PreviewTarget != null)
+                {
+                    animationPreviewer.StartPreview(SkillEditorData.CurrentSkillConfig);
+
+                    // 如果当前不是播放状态（手动拖拽/暂停），把预览速度设为0以保持定格
+                    if (!SkillEditorData.IsPlaying)
+                    {
+                        animationPreviewer.SetPreviewSpeed(0f);
+                    }
+                }
             }
 
-            // 驱动动画到指定帧（UpdateEditModePreview会检查播放状态）
-            animationPreviewer.PreviewFrame(frame);
+            // 无论是否在播放状态，都应该预览指定帧（用于手动拖拽）
+            if (animationPreviewer.IsPreviewing)
+            {
+                animationPreviewer.PreviewFrame(frame);
+            }
         }
 
         /// <summary>
