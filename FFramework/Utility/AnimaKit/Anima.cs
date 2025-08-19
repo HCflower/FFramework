@@ -16,13 +16,16 @@ namespace FFramework.Kit
 
         protected virtual void Start()
         {
-            if (animator == null) animator = GetComponent<Animator>();
+            if (animator == null)
+            {
+                animator = GetComponent<Animator>();
+            }
             playableGraph = PlayableGraph.Create();
         }
 
-        protected virtual void OnDisable()
+        protected virtual void OnDestroy()
         {
-            playableGraph.Destroy();
+            if (playableGraph.IsValid()) playableGraph.Destroy();
         }
 
         [Button("播放动画")]

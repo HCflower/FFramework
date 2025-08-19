@@ -119,6 +119,5 @@ namespace FFramework.Kit
             mixerPlayable.SetInputWeight(0, 1 - weight);
             mixerPlayable.SetInputWeight(1, weight);
         }
-
     }
 }

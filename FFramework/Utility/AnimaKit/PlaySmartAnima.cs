@@ -53,7 +53,6 @@ namespace FFramework.Kit
         private void Update()
         {
             if (!mixerPlayable.IsValid()) return;
-
             // 根据权重判断当前主要播放的动画
             // 如果权重大于等于0.5，则主要播放动画2，否则播放动画1
             int primaryInputIndex = weight >= 0.5f ? 1 : 0;
@@ -114,7 +113,7 @@ namespace FFramework.Kit
             // 检查是否正在过渡中
             if (isTransitioning)
             {
-                Debug.LogWarning("正在过渡中，无法切换动画！");
+                // Debug.LogWarning("正在过渡中，无法切换动画！");
                 return;
             }
 
@@ -128,7 +127,7 @@ namespace FFramework.Kit
             // 如果新动画与当前动画相同，则不需要切换
             if (currentAnimaClip == newClip)
             {
-                Debug.Log("目标动画与当前动画相同，无需切换！");
+                // Debug.Log("目标动画与当前动画相同，无需切换！");
                 return;
             }
 

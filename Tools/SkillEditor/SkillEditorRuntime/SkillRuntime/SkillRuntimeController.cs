@@ -15,10 +15,7 @@ namespace FFramework.Kit
         [Tooltip("技能配置文件")] public SkillConfig skillConfig;
         [Tooltip("技能动画状态机")] public Animator skillAnimator;
         [Tooltip("动画播放器")] public Anima Anima;
-
         [Tooltip("技能控制的摄像机")] public Camera skillCamera;
-        [Tooltip("默认动画状态名")] public string defaultStateName = "Idle";
-        [Tooltip("技能动画状态名")] public string skillAnimationStateName = "SkillPlay";
 
         [Header("运行时状态")]
         [SerializeField, Tooltip("是否正在播放技能")][ShowOnly] private bool isPlaying = false;
@@ -191,7 +188,7 @@ namespace FFramework.Kit
         {
             if (skillConfig == null || isPlaying)
             {
-                Debug.LogWarning($"SkillRuntimeController: 无法播放技能，技能配置为空");
+                Debug.Log($"skillConfig: {skillConfig}, isPlaying: {isPlaying}");
                 return;
             }
 
@@ -230,8 +227,7 @@ namespace FFramework.Kit
             // 停止动画播放，使用平滑过渡到默认状态
             if (skillAnimator != null)
             {
-                skillAnimator.speed = 1f; // 恢复正常速度
-                                          //TODO:停止动画播放
+                //TODO:停止动画播放
             }
 
             // 重置动画状态
@@ -296,6 +292,11 @@ namespace FFramework.Kit
 
             // 执行当前帧的所有轨道
             ExecuteFrameData(currentFrame);
+        }
+
+        public bool IsPlayingSkill()
+        {
+            return isPlaying;
         }
 
         #endregion
@@ -433,24 +434,19 @@ namespace FFramework.Kit
             {
                 if (animClip.clip == null || !animClip.IsFrameInRange(frame)) continue;
 
-                // 检查是否需要切换动画片段或者是第一帧
-                bool shouldPlayAnimation = currentAnimaClipName != animClip.clip.name || frame == animClip.startFrame;
 
-                if (shouldPlayAnimation)
-                {
-                    currentAnimaClipName = animClip.clip.name;
+                currentAnimaClipName = animClip.clip.name;
 
-                    // 设置根运动
-                    skillAnimator.applyRootMotion = animClip.applyRootMotion;
+                // 设置根运动
+                skillAnimator.applyRootMotion = animClip.applyRootMotion;
 
-                    // 将当前动画片段设置到AnimatorController对应的动画状态
-                    // TODO：接入Playable API播放动画
-                    PlaySmartAnima anima = Anima as PlaySmartAnima;
-                    anima.playSpeed = animClip.animationPlaySpeed;
-                    anima.isLoop = animClip.clip.isLooping;
-                    // 设置过渡时间-保留两位小数
-                    anima.ChangeAnima(animClip.clip, (float)Mathf.Round(animClip.transitionDurationFrame / skillConfig.frameRate * 100f) / 100f);
-                }
+                // 将当前动画片段设置到AnimatorController对应的动画状态
+                // TODO：接入Playable API播放动画
+                PlaySmartAnima anima = Anima as PlaySmartAnima;
+                anima.playSpeed = animClip.animationPlaySpeed;
+                anima.isLoop = animClip.clip.isLooping;
+                // 设置过渡时间-保留两位小数
+                anima.ChangeAnima(animClip.clip, (float)Mathf.Round(animClip.transitionDurationFrame / skillConfig.frameRate * 100f) / 100f);
                 // 只播放第一个匹配的动画片段
                 break;
             }
@@ -894,17 +890,17 @@ namespace FFramework.Kit
                     {
                         if (collider != null && collider.enabled)
                         {
-                            // 获取碰撞体范围内的所有目标
-                            var targets = collider.GetCollidersInRange();
-                            if (targets.Count > 0)
-                            {
-                                // 可以在这里添加具体的伤害处理逻辑
-                                foreach (var target in targets)
-                                {
-                                    //TODO: 触发伤害检测事件
-                                    skillEvent?.TriggerSkillEvent(injuryDetectionEventName, target.gameObject);
-                                }
-                            }
+                            // // 获取碰撞体范围内的所有目标
+                            // var targets = collider.GetCollidersInRange();
+                            // if (targets.Count > 0)
+                            // {
+                            //     // 可以在这里添加具体的伤害处理逻辑
+                            //     foreach (var target in targets)
+                            //     {
+                            //         //TODO: 触发伤害检测事件
+                            //         skillEvent?.TriggerSkillEvent(injuryDetectionEventName, target.gameObject);
+                            //     }
+                            // }
                         }
                     }
                     break;
