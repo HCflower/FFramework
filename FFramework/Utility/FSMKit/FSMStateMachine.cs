@@ -52,6 +52,9 @@ namespace FFramework.Kit
             {
                 stateBase.Init(owner);
             }
+            // 缓存状态对象
+            var stateType = defaultState.GetType();
+            stateCache[stateType] = defaultState;
             currentState = defaultState;
             currentState?.OnEnter(this);
         }
@@ -94,6 +97,9 @@ namespace FFramework.Kit
             {
                 stateBase.Init(owner);
             }
+            // 缓存状态对象
+            var stateType = newState.GetType();
+            stateCache[stateType] = newState;
 
             currentState?.OnExit(this);
             currentState = newState;
