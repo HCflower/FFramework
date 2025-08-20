@@ -14,9 +14,9 @@ namespace FFramework.Kit
         private AnimationClipPlayable animationPlayable;
         private AnimationPlayableOutput output;
 
-        protected override void Start()
+        protected override void Awake()
         {
-            base.Start();
+            base.Awake();
             animationPlayable = AnimationClipPlayable.Create(playableGraph, animationClip);
             animationPlayable.SetSpeed(playSpeed);
             isLoop = animationClip.isLooping;

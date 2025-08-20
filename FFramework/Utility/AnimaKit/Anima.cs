@@ -14,7 +14,7 @@ namespace FFramework.Kit
         [Tooltip("是否循环播放")] public bool isLoop = false;
         protected PlayableGraph playableGraph;
 
-        protected virtual void Start()
+        protected virtual void Awake()
         {
             if (animator == null)
             {
@@ -23,9 +23,12 @@ namespace FFramework.Kit
             playableGraph = PlayableGraph.Create();
         }
 
-        protected virtual void OnDestroy()
+        protected virtual void OnDisable()
         {
-            if (playableGraph.IsValid()) playableGraph.Destroy();
+            if (playableGraph.IsValid())
+            {
+                playableGraph.Destroy();
+            }
         }
 
         [Button("播放动画")]
@@ -35,11 +38,7 @@ namespace FFramework.Kit
         [Button("切换动画")]
         public abstract void ChangeAnima();
         // 获取动画播放进度
-        public virtual void SetAnimaPlayProgress()
-        {
-            // playableGraph.GetRootPlayable(0).SetSpeed(playSpeed);
-            // playableGraph.GetRootPlayable(0).SetTime(playProgress * playableGraph.GetRootPlayable(0).GetDuration());
-        }
+        public virtual void SetAnimaPlayProgress() { }
 
 #if UNITY_EDITOR
         protected abstract void OnValidate();

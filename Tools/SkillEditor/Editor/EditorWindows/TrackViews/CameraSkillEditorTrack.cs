@@ -41,13 +41,8 @@ namespace SkillEditor
             string itemName = ExtractCameraName(resource);
             if (string.IsNullOrEmpty(itemName)) return null;
 
+            // 添加配置
             var newItem = CreateCameraTrackItem(itemName, startFrame, 5, addToConfig);
-
-            if (addToConfig)
-            {
-                AddTrackItemDataToConfig(itemName, startFrame, 5);
-                SkillEditorEvent.TriggerRefreshRequested();
-            }
 
             return newItem;
         }

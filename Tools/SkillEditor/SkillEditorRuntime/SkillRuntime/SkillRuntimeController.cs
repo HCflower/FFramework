@@ -57,6 +57,8 @@ namespace FFramework.Kit
 
         /// <summary>是否正在播放技能</summary>
         public bool IsPlaying => isPlaying;
+        // TODO
+        public bool isOver = false;
 
         /// <summary>当前播放帧</summary>
         public int CurrentFrame => currentFrame;
@@ -195,6 +197,7 @@ namespace FFramework.Kit
             isLoop = loop;
             playSpeed = Mathf.Max(0.1f, speed);
             isPlaying = true;
+            isOver = false;
             currentFrame = 0;
             playStartTime = Time.time;
 
@@ -222,6 +225,7 @@ namespace FFramework.Kit
             if (!isPlaying) return;
 
             isPlaying = false;
+            isOver = true;
             currentFrame = 0;
 
             // 停止动画播放，使用平滑过渡到默认状态
@@ -890,17 +894,17 @@ namespace FFramework.Kit
                     {
                         if (collider != null && collider.enabled)
                         {
-                            // // 获取碰撞体范围内的所有目标
-                            // var targets = collider.GetCollidersInRange();
-                            // if (targets.Count > 0)
-                            // {
-                            //     // 可以在这里添加具体的伤害处理逻辑
-                            //     foreach (var target in targets)
-                            //     {
-                            //         //TODO: 触发伤害检测事件
-                            //         skillEvent?.TriggerSkillEvent(injuryDetectionEventName, target.gameObject);
-                            //     }
-                            // }
+                            // 获取碰撞体范围内的所有目标
+                            var targets = collider.GetHitColliders();
+                            if (targets.Count > 0)
+                            {
+                                // 可以在这里添加具体的伤害处理逻辑
+                                foreach (var target in targets)
+                                {
+                                    //TODO: 触发伤害检测事件
+                                    skillEvent?.TriggerSkillEvent(injuryDetectionEventName, target.gameObject);
+                                }
+                            }
                         }
                     }
                     break;
@@ -963,7 +967,7 @@ namespace FFramework.Kit
         }
 
         /// <summary>
-        /// 恢复原始状态
+        /// TODO：恢复原始状态
         /// </summary>
         private void RestoreOriginalStates()
         {
@@ -972,11 +976,11 @@ namespace FFramework.Kit
             // transform.rotation = originalRotation;
             // transform.localScale = originalScale;
 
-            // 恢复摄像机状态（摄像机通常需要恢复到原始状态）
+            // 恢复摄像机状态（只恢复FOV，不恢复位置和旋转）
             if (skillCamera != null)
             {
-                skillCamera.transform.position = originalCameraPosition;
-                skillCamera.transform.rotation = originalCameraRotation;
+                // skillCamera.transform.position = originalCameraPosition; // 注释掉
+                // skillCamera.transform.rotation = originalCameraRotation; // 注释掉
                 skillCamera.fieldOfView = originalCameraFieldOfView;
             }
 

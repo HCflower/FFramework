@@ -15,11 +15,22 @@ public abstract class CustomCollider : MonoBehaviour
     [Tooltip("是否显示碰撞区域")] public bool showGizmosInScene = true;
 
     // 缓存的碰撞对象列表
-    protected HashSet<Collider> targetColliders = new HashSet<Collider>();
-    void Start() { }
+    protected HashSet<Collider> hitColliders = new HashSet<Collider>();
+    void Update()
+    {
+        DetectColliders();
+    }
+
+    void OnDisable()
+    {
+        hitColliders.Clear(); // 每次检测前清空
+    }
 
     // 检测碰撞体
     protected abstract void DetectColliders();
+
+    // 获取命中的碰撞体
+    public HashSet<Collider> GetHitColliders() => hitColliders;
 
 #if UNITY_EDITOR
     // 调试绘制 - 子类必须实现

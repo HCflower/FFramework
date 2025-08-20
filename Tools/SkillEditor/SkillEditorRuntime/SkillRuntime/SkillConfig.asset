@@ -190,6 +190,45 @@ MonoBehaviour:
     animationStartFrameOffset: 0
     animationDurationFrame: 3
     shakePreset: {fileID: 11400000, guid: e68b6101fe0610a46a9f69c687d8b5d5, type: 2}
+  - clipName: Camera Main Camera_1
+    startFrame: 54
+    durationFrame: 5
+    enablePosition: 0
+    enableRotation: 0
+    enableFieldOfView: 0
+    positionOffset: {x: 0, y: 0, z: 0}
+    targetRotation: {x: 0, y: 0, z: 0}
+    targetFieldOfView: 60
+    curveType: 2
+    customCurve:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: 0
+        inSlope: 0
+        outSlope: 1
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      - serializedVersion: 3
+        time: 1
+        value: 1
+        inSlope: 1
+        outSlope: 0
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    restoreFrame: 2
+    enableShake: 1
+    animationStartFrameOffset: 0
+    animationDurationFrame: 3
+    shakePreset: {fileID: 11400000, guid: e68b6101fe0610a46a9f69c687d8b5d5, type: 2}
 --- !u!114 &776813478751267645
 MonoBehaviour:
   m_ObjectHideFlags: 0

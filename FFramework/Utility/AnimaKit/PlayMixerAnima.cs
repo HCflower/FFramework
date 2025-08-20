@@ -17,9 +17,9 @@ namespace FFramework.Kit
         // 用于平滑过渡的时间
         [Tooltip("过渡时间")] public float transitionTime = 0.15f;
         private AnimationMixerPlayable mixerPlayable;
-        protected override void Start()
+        protected override void Awake()
         {
-            base.Start();
+            base.Awake();
             mixerPlayable = AnimationMixerPlayable.Create(playableGraph);
             var clip1Playable = AnimationClipPlayable.Create(playableGraph, animationClip1);
             var clip2Playable = AnimationClipPlayable.Create(playableGraph, animationClip2);

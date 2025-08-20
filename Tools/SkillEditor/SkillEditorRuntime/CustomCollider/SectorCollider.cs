@@ -1,10 +1,11 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
 /// 扇形碰撞体
 /// 用于检测扇形区域内的碰撞，支持内外圆半径、角度和厚度设置
 /// </summary>
-[AddComponentMenu("CustomColliders/3D/Sector Collider")]
+[AddComponentMenu("CustomColliders/Sector Collider")]
 public class SectorCollider : CustomCollider
 {
     [Header("扇形参数")]
@@ -14,11 +15,48 @@ public class SectorCollider : CustomCollider
     [Tooltip("扇形厚度"), Min(0.1f)] public float sectorThickness = 0.1f;
 
     // 检测碰撞体
+    // BUG,内部圆检测会移除已经检测到的碰撞体。
     protected override void DetectColliders()
     {
+        hitColliders.Clear(); // 每次检测前清空
 
+        float innerR = innerCircleRadius;
+        float outerR = outerCircleRadius;
+        float angle = sectorAngle;
+        float thickness = sectorThickness;
+        float halfAngle = angle * 0.5f;
+
+        Vector3 center = transform.position + centerOffset;
+        Quaternion rot = Quaternion.LookRotation(transform.forward, transform.up) * Quaternion.Euler(rotationOffset);
+
+        Vector3 boxSize = new Vector3(outerR * 2, thickness, outerR * 2);
+        Vector3 boxCenter = center;
+        Quaternion boxRotation = rot;
+
+        Collider[] colliders = Physics.OverlapBox(boxCenter, boxSize * 0.5f, boxRotation, targetLayers);
+
+        Vector3 sectorForward = rot * Vector3.forward;
+
+        foreach (var col in colliders)
+        {
+            if (col == null) continue;
+            if (col.gameObject == gameObject) continue;
+
+            Vector3 point = col.ClosestPoint(center);
+            float distance = Vector3.Distance(point, center);
+            if (distance < innerR || distance > outerR) continue;
+
+            Vector3 dir = (point - center).normalized;
+            float ang = Vector3.Angle(sectorForward, dir);
+            if (ang > halfAngle) continue;
+
+            float upOffset = Mathf.Abs(Vector3.Dot(point - center, rot * Vector3.up));
+            if (upOffset > thickness * 0.5f) continue;
+
+            // 命中且去重，HashSet自动去重
+            hitColliders.Add(col);
+        }
     }
-
     // 绘制碰撞体区域
     protected override void DrawColliderGizmos()
     {
