@@ -21,7 +21,7 @@ namespace SkillEditor
         private bool isPreviewActive;
 
         /// <summary>当前激活的伤害检测组信息</summary>
-        private Dictionary<int, List<CustomCollider>> activeCollisionGroups = new Dictionary<int, List<CustomCollider>>();
+        private Dictionary<string, List<Collider>> activeCollisionGroups = new Dictionary<string, List<Collider>>();
 
         #endregion
 
@@ -89,53 +89,61 @@ namespace SkillEditor
             if (!isPreviewActive || skillConfig?.trackContainer?.injuryDetectionTrack?.injuryDetectionTracks == null)
                 return;
 
-            // 记录当前帧需要激活的碰撞组
-            var groupsToActivate = new HashSet<int>();
+            // 记录本帧需要激活的所有碰撞体
+            var collidersToActivate = new HashSet<Collider>();
 
-            // 遍历所有伤害检测轨道
             foreach (var injuryTrack in skillConfig.trackContainer.injuryDetectionTrack.injuryDetectionTracks)
             {
-                // 检查轨道是否激活
                 if (injuryTrack == null || !injuryTrack.isEnabled)
                     continue;
 
                 if (injuryTrack.injuryDetectionClips != null)
                 {
-                    // 遍历轨道中的伤害检测片段
                     foreach (var injuryClip in injuryTrack.injuryDetectionClips)
                     {
                         int startFrame = injuryClip.startFrame;
                         int endFrame = startFrame + injuryClip.durationFrame;
 
-                        // 检查当前帧是否在片段范围内
                         if (frame >= startFrame && frame < endFrame)
                         {
-                            // 激活对应的碰撞组
-                            ActivateCollisionGroup(injuryClip);
-
-                            // 记录需要保持激活的碰撞组
                             if (injuryClip.enableAllCollisionGroups)
                             {
                                 foreach (var collisionGroup in skillOwner.collisionGroup)
                                 {
-                                    groupsToActivate.Add(collisionGroup.collisionGroupId);
+                                    if (collisionGroup.colliders != null)
+                                        foreach (var col in collisionGroup.colliders)
+                                            collidersToActivate.Add(col);
                                 }
                             }
                             else
                             {
-                                groupsToActivate.Add(injuryClip.collisionGroupId);
+                                var targetGroup = skillOwner.collisionGroup.Find(g => g.injuryDetectionGroupUID == injuryClip.injuryDetectionGroupUID);
+                                if (targetGroup != null && targetGroup.colliders != null)
+                                {
+                                    foreach (var col in targetGroup.colliders)
+                                        collidersToActivate.Add(col);
+                                }
                             }
                         }
                     }
                 }
             }
 
-            // 停用当前帧不需要激活的碰撞组
+            // 激活本帧需要的所有碰撞体
+            foreach (var col in collidersToActivate)
+            {
+                if (col != null && !col.enabled)
+                    col.enabled = true;
+            }
+
+            // 禁用其它未激活的碰撞体
             foreach (var group in skillOwner.collisionGroup)
             {
-                if (!groupsToActivate.Contains(group.collisionGroupId))
+                if (group.colliders == null) continue;
+                foreach (var col in group.colliders)
                 {
-                    DeactivateCollidersInGroup(group.collisionGroupId, group.colliders);
+                    if (col != null && !collidersToActivate.Contains(col) && col.enabled)
+                        col.enabled = false;
                 }
             }
         }
@@ -156,16 +164,16 @@ namespace SkillEditor
                 // 启用所有碰撞组
                 foreach (var collisionGroup in skillOwner.collisionGroup)
                 {
-                    ActivateCollidersInGroup(collisionGroup.collisionGroupId, collisionGroup.colliders);
+                    ActivateCollidersInGroup(collisionGroup.injuryDetectionGroupUID, collisionGroup.colliders);
                 }
             }
             else
             {
                 // 启用指定的碰撞组
-                var targetGroup = skillOwner.collisionGroup.Find(g => g.collisionGroupId == injuryClip.collisionGroupId);
+                var targetGroup = skillOwner.collisionGroup.Find(g => g.injuryDetectionGroupUID == injuryClip.injuryDetectionGroupUID);
                 if (targetGroup != null)
                 {
-                    ActivateCollidersInGroup(targetGroup.collisionGroupId, targetGroup.colliders);
+                    ActivateCollidersInGroup(targetGroup.injuryDetectionGroupUID, targetGroup.colliders);
                 }
             }
         }
@@ -173,16 +181,16 @@ namespace SkillEditor
         /// <summary>
         /// 激活指定组的碰撞器
         /// </summary>
-        /// <param name="groupId">组ID</param>
+        /// <param name="injuryDetectionGroupUID">组ID</param>
         /// <param name="colliders">碰撞器列表</param>
-        private void ActivateCollidersInGroup(int groupId, List<CustomCollider> colliders)
+        private void ActivateCollidersInGroup(string injuryDetectionGroupUID, List<Collider> colliders)
         {
             if (colliders == null) return;
 
             // 记录当前激活的碰撞组
-            if (!activeCollisionGroups.ContainsKey(groupId))
+            if (!activeCollisionGroups.ContainsKey(injuryDetectionGroupUID))
             {
-                activeCollisionGroups[groupId] = new List<CustomCollider>();
+                activeCollisionGroups[injuryDetectionGroupUID] = new List<Collider>();
             }
 
             foreach (var collider in colliders)
@@ -190,7 +198,7 @@ namespace SkillEditor
                 if (collider != null && !collider.enabled)
                 {
                     collider.enabled = true;
-                    activeCollisionGroups[groupId].Add(collider);
+                    activeCollisionGroups[injuryDetectionGroupUID].Add(collider);
                 }
             }
         }
@@ -198,9 +206,9 @@ namespace SkillEditor
         /// <summary>
         /// 停用指定组的碰撞器
         /// </summary>
-        /// <param name="groupId">组ID</param>
+        /// <param name="injuryDetectionGroupUID">组ID</param>
         /// <param name="colliders">碰撞器列表</param>
-        private void DeactivateCollidersInGroup(int groupId, List<CustomCollider> colliders)
+        private void DeactivateCollidersInGroup(string injuryDetectionGroupUID, List<Collider> colliders)
         {
             if (colliders == null) return;
 
@@ -213,9 +221,9 @@ namespace SkillEditor
             }
 
             // 清理激活记录
-            if (activeCollisionGroups.ContainsKey(groupId))
+            if (activeCollisionGroups.ContainsKey(injuryDetectionGroupUID))
             {
-                activeCollisionGroups[groupId].Clear();
+                activeCollisionGroups[injuryDetectionGroupUID].Clear();
             }
         }
 

@@ -57,8 +57,6 @@ namespace FFramework.Kit
 
         /// <summary>是否正在播放技能</summary>
         public bool IsPlaying => isPlaying;
-        // TODO
-        public bool isOver = false;
 
         /// <summary>当前播放帧</summary>
         public int CurrentFrame => currentFrame;
@@ -197,16 +195,11 @@ namespace FFramework.Kit
             isLoop = loop;
             playSpeed = Mathf.Max(0.1f, speed);
             isPlaying = true;
-            isOver = false;
             currentFrame = 0;
             playStartTime = Time.time;
 
             // 重置动画状态
             currentAnimaClipName = "";
-            if (skillAnimator != null)
-            {
-                skillAnimator.speed = 1f;
-            }
 
             Debug.Log($"SkillRuntimeController: 开始播放技能 {skillConfig.skillName}");
 
@@ -225,14 +218,9 @@ namespace FFramework.Kit
             if (!isPlaying) return;
 
             isPlaying = false;
-            isOver = true;
             currentFrame = 0;
 
-            // 停止动画播放，使用平滑过渡到默认状态
-            if (skillAnimator != null)
-            {
-                //TODO:停止动画播放
-            }
+            //TODO:停止动画播放
 
             // 重置动画状态
             currentAnimaClipName = "";
@@ -253,11 +241,7 @@ namespace FFramework.Kit
         {
             isPlaying = false;
 
-            // 暂停动画
-            if (skillAnimator != null)
-            {
-                skillAnimator.speed = 0f;
-            }
+            //TODO:停止动画播放
 
             Debug.Log($"SkillRuntimeController: 技能播放已暂停");
         }
@@ -272,11 +256,7 @@ namespace FFramework.Kit
             isPlaying = true;
             playStartTime = Time.time - (currentFrame / FrameRate / playSpeed);
 
-            // 恢复动画
-            if (skillAnimator != null)
-            {
-                skillAnimator.speed = playSpeed;
-            }
+            //TODO 恢复动画
 
             Debug.Log($"SkillRuntimeController: 技能播放已恢复");
         }
@@ -415,7 +395,7 @@ namespace FFramework.Kit
                 originalScale = transform.localScale;
             }
 
-            // 更新摄像机状态（摄像机通常不需要累加，但为了一致性也可以更新）
+            //TODO： 更新摄像机状态（摄像机通常不需要累加，但为了一致性也可以更新）
             if (skillCamera != null)
             {
                 originalCameraPosition = skillCamera.transform.position;
@@ -437,7 +417,6 @@ namespace FFramework.Kit
             foreach (var animClip in animationTrack.animationClips)
             {
                 if (animClip.clip == null || !animClip.IsFrameInRange(frame)) continue;
-
 
                 currentAnimaClipName = animClip.clip.name;
 
@@ -650,8 +629,8 @@ namespace FFramework.Kit
             var injuryTrack = skillConfig.trackContainer?.injuryDetectionTrack;
             if (injuryTrack?.injuryDetectionTracks == null) return;
 
-            // 统计本帧需要激活的碰撞组ID
-            HashSet<int> activeGroupIds = new HashSet<int>();
+            // 统计本帧需要激活的碰撞体
+            HashSet<Collider> collidersToActivate = new HashSet<Collider>();
 
             foreach (var track in injuryTrack.injuryDetectionTracks)
             {
@@ -661,30 +640,35 @@ namespace FFramework.Kit
                 {
                     if (injuryClip.IsFrameInRange(frame))
                     {
-                        activeGroupIds.Add(injuryClip.collisionGroupId);
-
-                        // 在伤害片段范围内激活碰撞组
-                        ActivateCollisionGroup(injuryClip.collisionGroupId);
-
-                        // 如果是最后一帧，执行伤害检测并关闭碰撞组
-                        if (frame == injuryClip.EndFrame)
+                        // 收集本帧需要激活的所有碰撞体
+                        foreach (var group in collisionGroup)
                         {
-                            // 执行实际的伤害检测
-                            PerformDamageDetection(injuryClip.collisionGroupId, injuryClip.injuryDetectionEventName);
-
-                            // 关闭碰撞组
-                            DeactivateCollisionGroup(injuryClip.collisionGroupId);
+                            if (group.injuryDetectionGroupUID == injuryClip.injuryDetectionGroupUID)
+                            {
+                                foreach (var collider in group.colliders)
+                                {
+                                    if (collider != null)
+                                        collidersToActivate.Add(collider);
+                                }
+                            }
                         }
                     }
                 }
             }
 
-            // 非激活的碰撞组全部关闭
+            // 激活本帧需要的所有碰撞体
+            foreach (var collider in collidersToActivate)
+            {
+                collider.enabled = true;
+            }
+
+            // 禁用其它未激活的碰撞体
             foreach (var group in collisionGroup)
             {
-                if (!activeGroupIds.Contains(group.collisionGroupId))
+                foreach (var collider in group.colliders)
                 {
-                    DeactivateCollisionGroup(group.collisionGroupId);
+                    if (collider != null && !collidersToActivate.Contains(collider))
+                        collider.enabled = false;
                 }
             }
         }
@@ -744,7 +728,7 @@ namespace FFramework.Kit
             effectObj.SetActive(false);
             effectInstances[effectKey] = effectObj;
 
-            Debug.Log($"SkillRuntimeController: 创建特效实例 {effectClip.effectPrefab.name}");
+            // Debug.Log($"SkillRuntimeController: 创建特效实例 {effectClip.effectPrefab.name}");
         }
 
         /// <summary>
@@ -838,81 +822,6 @@ namespace FFramework.Kit
         #region 碰撞检测
 
         /// <summary>
-        /// 激活碰撞组
-        /// </summary>
-        /// <param name="groupId">碰撞组ID</param>
-        /// <returns>是否成功激活碰撞组</returns>
-        private bool ActivateCollisionGroup(int groupId)
-        {
-            foreach (var group in collisionGroup)
-            {
-                if (group.collisionGroupId == groupId)
-                {
-                    foreach (var collider in group.colliders)
-                    {
-                        if (collider != null)
-                            collider.enabled = true;
-                    }
-                    return true;
-                }
-            }
-            return false;
-        }
-
-        /// <summary>
-        /// 停用指定碰撞组
-        /// </summary>
-        /// <param name="groupId">碰撞组ID</param>
-        private void DeactivateCollisionGroup(int groupId)
-        {
-            foreach (var group in collisionGroup)
-            {
-                if (group.collisionGroupId == groupId)
-                {
-                    foreach (var collider in group.colliders)
-                    {
-                        if (collider != null)
-                            collider.enabled = false;
-                    }
-                    break;
-                }
-            }
-        }
-
-        /// <summary>
-        /// 执行伤害检测
-        /// </summary>
-        /// <param name="groupId">碰撞组ID</param>
-        /// <param name="frame">当前帧</param>
-        private void PerformDamageDetection(int groupId, string injuryDetectionEventName)
-        {
-            foreach (var group in collisionGroup)
-            {
-                if (group.collisionGroupId == groupId)
-                {
-                    foreach (var collider in group.colliders)
-                    {
-                        if (collider != null && collider.enabled)
-                        {
-                            // 获取碰撞体范围内的所有目标
-                            var targets = collider.GetHitColliders();
-                            if (targets.Count > 0)
-                            {
-                                // 可以在这里添加具体的伤害处理逻辑
-                                foreach (var target in targets)
-                                {
-                                    //TODO: 触发伤害检测事件
-                                    skillEvent?.TriggerSkillEvent(injuryDetectionEventName, target.gameObject);
-                                }
-                            }
-                        }
-                    }
-                    break;
-                }
-            }
-        }
-
-        /// <summary>
         /// 停用所有碰撞组
         /// </summary>
         private void DeactivateAllCollisionGroups()
@@ -938,11 +847,7 @@ namespace FFramework.Kit
         /// </summary>
         private void StopAllTracks()
         {
-            // 停止动画
-            if (skillAnimator != null)
-            {
-                skillAnimator.speed = 1f;
-            }
+            //TODO 停止动画
 
             // 停止音频
             if (audioSource != null && audioSource.isPlaying)
@@ -979,8 +884,8 @@ namespace FFramework.Kit
             // 恢复摄像机状态（只恢复FOV，不恢复位置和旋转）
             if (skillCamera != null)
             {
-                // skillCamera.transform.position = originalCameraPosition; // 注释掉
-                // skillCamera.transform.rotation = originalCameraRotation; // 注释掉
+                // skillCamera.transform.position = originalCameraPosition;  
+                // skillCamera.transform.rotation = originalCameraRotation;  
                 skillCamera.fieldOfView = originalCameraFieldOfView;
             }
 
@@ -1019,7 +924,7 @@ namespace FFramework.Kit
     [Serializable]
     public class CollisionGroup
     {
-        [Min(0)][Tooltip("碰撞组ID")] public int collisionGroupId;
-        public List<CustomCollider> colliders = new List<CustomCollider>();
+        [Min(0)][Tooltip("伤害检测组UID")] public string injuryDetectionGroupUID;
+        public List<Collider> colliders = new List<Collider>();
     }
 }

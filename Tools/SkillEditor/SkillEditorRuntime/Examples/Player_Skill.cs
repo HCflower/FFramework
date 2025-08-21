@@ -16,7 +16,7 @@ namespace SkillEditorExamples
         public override void OnUpdate(FSMStateMachine<PlayerController> machine)
         {
             //TODO:添加技能可打断
-            if (!owner.skillRuntime.IsPlaying && owner.skillRuntime.isOver)
+            if (!owner.skillRuntime.IsPlaying)
             {
                 // 如果没有移动输入，切回Idle
                 if (owner.velocity.magnitude <= 0.1f)

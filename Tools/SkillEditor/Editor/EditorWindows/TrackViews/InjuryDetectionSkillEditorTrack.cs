@@ -117,7 +117,7 @@ namespace SkillEditor
                     // 从配置中恢复完整的攻击属性
                     attackData.targetLayers = clip.targetLayers;
                     attackData.enableAllCollisionGroups = clip.enableAllCollisionGroups;
-                    attackData.collisionGroupId = clip.collisionGroupId;
+                    attackData.injuryDetectionGroupUID = clip.injuryDetectionGroupUID;
                     attackData.injuryDetectionEventName = clip.injuryDetectionEventName;
 #if UNITY_EDITOR
                     // 标记数据已修改
@@ -202,7 +202,7 @@ namespace SkillEditor
                 durationFrame = frameCount,
                 targetLayers = -1,
                 enableAllCollisionGroups = false,
-                collisionGroupId = 0,
+                injuryDetectionGroupUID = "DefaultGroup",
                 injuryDetectionEventName = "OnInjuryDetection",
             };
 

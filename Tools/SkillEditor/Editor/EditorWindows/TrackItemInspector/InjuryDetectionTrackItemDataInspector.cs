@@ -28,7 +28,7 @@ namespace SkillEditor
             CreateObjectField<GameObject>("Hit特效预制体:", "hitEffectPrefab", OnHitEffectPrefabChanged);
             CreateLayerMaskField();
             CreateToggleField("启用所有检测组:", "enableAllCollisionGroups", OnEnableAllColliderChanged);
-            CreateIntegerField("碰撞检测组ID:", "collisionGroupId", OnCollisionGroupIdChanged);
+            CreateTextField("碰撞检测组ID:", "injuryDetectionGroupUID", OnInjuryDetectionGroupUIDChanged);
             CreateTextField("事件名称:", "injuryDetectionEventName", OnInjuryDetectionEventNameChanged);
         }
 
@@ -108,11 +108,11 @@ namespace SkillEditor
         }
 
 
-        private void OnCollisionGroupIdChanged(int newValue)
+        private void OnInjuryDetectionGroupUIDChanged(string newValue)
         {
             SafeExecute(() =>
             {
-                UpdateTrackConfig(configClip => configClip.collisionGroupId = newValue, "伤害检测组ID更新");
+                UpdateTrackConfig(configClip => configClip.injuryDetectionGroupUID = newValue, "伤害检测组ID更新");
             }, "伤害检测组ID更新");
         }
 

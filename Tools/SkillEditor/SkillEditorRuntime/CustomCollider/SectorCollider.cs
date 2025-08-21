@@ -1,152 +1,225 @@
-using System.Collections.Generic;
 using UnityEngine;
+using System.Text;
 
-/// <summary>
-/// 扇形碰撞体
-/// 用于检测扇形区域内的碰撞，支持内外圆半径、角度和厚度设置
-/// </summary>
-[AddComponentMenu("CustomColliders/Sector Collider")]
-public class SectorCollider : CustomCollider
+namespace FFramework.Kit
 {
-    [Header("扇形参数")]
-    [Tooltip("扇形内圆半径"), Min(0)] public float innerCircleRadius = 0;
-    [Tooltip("扇形外圆半径"), Min(1)] public float outerCircleRadius = 1;
-    [Tooltip("扇形角度"), Range(0, 360)] public float sectorAngle = 90;
-    [Tooltip("扇形厚度"), Min(0.1f)] public float sectorThickness = 0.1f;
-
-    // 检测碰撞体
-    // BUG,内部圆检测会移除已经检测到的碰撞体。
-    protected override void DetectColliders()
+    [AddComponentMenu("CustomPrimitiveColliders/3D/Sector Collider"), RequireComponent(typeof(MeshCollider))]
+    public class SectorCollider : CustomColliderBase
     {
-        hitColliders.Clear(); // 每次检测前清空
+        [SerializeField]
+        private float radius = 1f;
+        [SerializeField]
+        private float height = 1f;
+        [SerializeField, Range(1, 360)]
+        private int fanAngle = 135;
+        [SerializeField]
+        private int numVertices = 32;
 
-        float innerR = innerCircleRadius;
-        float outerR = outerCircleRadius;
-        float angle = sectorAngle;
-        float thickness = sectorThickness;
-        float halfAngle = angle * 0.5f;
-
-        Vector3 center = transform.position + centerOffset;
-        Quaternion rot = Quaternion.LookRotation(transform.forward, transform.up) * Quaternion.Euler(rotationOffset);
-
-        Vector3 boxSize = new Vector3(outerR * 2, thickness, outerR * 2);
-        Vector3 boxCenter = center;
-        Quaternion boxRotation = rot;
-
-        Collider[] colliders = Physics.OverlapBox(boxCenter, boxSize * 0.5f, boxRotation, targetLayers);
-
-        Vector3 sectorForward = rot * Vector3.forward;
-
-        foreach (var col in colliders)
+        private void Awake()
         {
-            if (col == null) continue;
-            if (col.gameObject == gameObject) continue;
+            ReCreate(radius, height, fanAngle, numVertices);
+        }
 
-            Vector3 point = col.ClosestPoint(center);
-            float distance = Vector3.Distance(point, center);
-            if (distance < innerR || distance > outerR) continue;
+#if UNITY_EDITOR
 
-            Vector3 dir = (point - center).normalized;
-            float ang = Vector3.Angle(sectorForward, dir);
-            if (ang > halfAngle) continue;
+        private void Reset()
+        {
+            ReCreate(radius, height, fanAngle, numVertices);
+        }
 
-            float upOffset = Mathf.Abs(Vector3.Dot(point - center, rot * Vector3.up));
-            if (upOffset > thickness * 0.5f) continue;
+        private void OnValidate()
+        {
+            ReCreate(radius, height, fanAngle, numVertices);
+        }
 
-            // 命中且去重，HashSet自动去重
-            hitColliders.Add(col);
+#endif
+
+        public void ReCreate(float radius, float height, int fanAngle, int numVertices = 32)
+        {
+            Mesh mesh = CreateMesh(radius, height, fanAngle, numVertices);
+
+            if (meshCollider.sharedMesh != null)
+            {
+                meshCollider.sharedMesh.Clear();
+                if (Application.isPlaying)
+                {
+                    Destroy(meshCollider.sharedMesh);
+                }
+                else
+                {
+                    DestroyImmediate(meshCollider.sharedMesh);
+                }
+
+            }
+
+            meshCollider.sharedMesh = mesh;
+        }
+
+        private Mesh CreateMesh(float radius, float height, int fanAngle, int numVertices)
+        {
+            if (radius <= 0f)
+            {
+                radius = 0.01f;
+            }
+
+            if (height <= 0f)
+            {
+                height = 0.01f;
+            }
+
+            fanAngle = Mathf.Clamp(fanAngle, 1, 360);
+
+            if (numVertices < 4)
+            {
+                numVertices = 4;
+            }
+
+            this.radius = radius;
+            this.height = height;
+            this.fanAngle = fanAngle;
+            this.numVertices = numVertices;
+
+            Mesh mesh = new Mesh();
+
+#if UNITY_EDITOR
+            StringBuilder sbName = new StringBuilder("Cylinder");
+            sbName.Append(numVertices);
+            sbName.Append("_radius_");
+            sbName.Append(radius);
+            sbName.Append("_height_");
+            sbName.Append(height);
+            sbName.Append("_fanAngle_");
+            sbName.Append(fanAngle);
+            mesh.name = sbName.ToString();
+#endif
+
+            Vector3[] vertices = new Vector3[(numVertices * 2) + 2];
+            Vector3[] normals = new Vector3[vertices.Length];
+            Vector2[] uvs = new Vector2[vertices.Length];
+            int[] triangles = new int[numVertices * 4 * 3];
+
+            float halfHeight = height / 2f;
+            Vector3 center = Vector3.zero;
+
+            Quaternion quatStep = Quaternion.Euler(0f, fanAngle / (float)(fanAngle == 360 ? this.numVertices : (numVertices - 1)), 0f);
+
+            vertices[0] = new Vector3(0f, -halfHeight, 0f); ;
+            vertices[vertices.Length - 1] = new Vector3(0f, halfHeight, 0f);
+
+            normals[0] = Vector3.down;
+            normals[normals.Length - 1] = Vector3.up;
+
+            uvs[0] = new Vector2(0.5f, 0.5f);
+            uvs[uvs.Length - 1] = uvs[0];
+
+            int triangleCount = 0;
+
+            for (int i = 1; i <= numVertices; i++)
+            {
+                if (i == 1)
+                {
+                    vertices[i] = new Vector3(radius, -halfHeight, 0f);
+                    vertices[i + numVertices] = new Vector3(radius, halfHeight, 0f);
+                }
+                else
+                {
+                    vertices[i] = quatStep * vertices[i - 1];
+                    vertices[i + numVertices] = quatStep * vertices[i + numVertices - 1];
+                }
+
+                if (i == numVertices)
+                {
+                    if (fanAngle >= 360)
+                    {
+                        triangles[triangleCount++] = 1;
+                        triangles[triangleCount++] = i;
+                        triangles[triangleCount++] = 0;
+
+                        triangles[triangleCount++] = numVertices * 2;
+                        triangles[triangleCount++] = 1 + numVertices;
+                        triangles[triangleCount++] = vertices.Length - 1;
+
+                        triangles[triangleCount++] = 1;
+                        triangles[triangleCount++] = 1 + numVertices;
+                        triangles[triangleCount++] = numVertices;
+
+                        triangles[triangleCount++] = 1 + numVertices;
+                        triangles[triangleCount++] = numVertices * 2;
+                        triangles[triangleCount++] = numVertices;
+                    }
+                    else
+                    {
+                        triangles[triangleCount++] = 1;
+                        triangles[triangleCount++] = 1 + numVertices;
+                        triangles[triangleCount++] = 0;
+
+                        triangles[triangleCount++] = 1 + numVertices;
+                        triangles[triangleCount++] = vertices.Length - 1;
+                        triangles[triangleCount++] = 0;
+
+                        triangles[triangleCount++] = 0;
+                        triangles[triangleCount++] = vertices.Length - 1;
+                        triangles[triangleCount++] = numVertices;
+
+                        triangles[triangleCount++] = vertices.Length - 1;
+                        triangles[triangleCount++] = numVertices * 2;
+                        triangles[triangleCount++] = numVertices;
+                    }
+                }
+                else
+                {
+                    triangles[triangleCount++] = i + 1;
+                    triangles[triangleCount++] = i;
+                    triangles[triangleCount++] = 0;
+
+                    triangles[triangleCount++] = i + numVertices;
+                    triangles[triangleCount++] = i + numVertices + 1;
+                    triangles[triangleCount++] = vertices.Length - 1;
+
+                    triangles[triangleCount++] = i + 1;
+                    triangles[triangleCount++] = i + numVertices + 1;
+                    triangles[triangleCount++] = i;
+
+                    triangles[triangleCount++] = i + numVertices + 1;
+                    triangles[triangleCount++] = i + numVertices;
+                    triangles[triangleCount++] = i;
+                }
+            }
+
+            Vector3 meshForward;
+            int centerIndex = Mathf.FloorToInt(numVertices / 2);
+            if (numVertices % 2 == 0)
+            {
+                meshForward = (vertices[centerIndex] - vertices[0]) + (vertices[centerIndex + 1] - vertices[0]);
+            }
+            else
+            {
+                meshForward = vertices[centerIndex + 1] - vertices[0];
+            }
+
+            Quaternion quat = Quaternion.FromToRotation(meshForward, Vector3.forward);
+            for (int i = 0; i < vertices.Length; i++)
+            {
+                float y = vertices[i].y;
+                vertices[i] = quat * vertices[i];
+                vertices[i].y = y;
+            }
+
+            for (int i = 1; i <= numVertices; i++)
+            {
+                normals[i] = vertices[i] - center;
+                normals[i + numVertices] = vertices[i + numVertices] - center;
+
+                uvs[i] = new Vector2(0.5f + vertices[i].x / (2 * radius), 0.5f + vertices[i].z / (2 * radius));
+                uvs[i + numVertices] = new Vector2(0.5f + vertices[i + numVertices].x / (2 * radius), 0.5f + vertices[i + numVertices].z / (2 * radius));
+            }
+
+            mesh.vertices = vertices;
+            mesh.normals = normals;
+            mesh.uv = uvs;
+            mesh.triangles = triangles;
+
+            return mesh;
         }
     }
-    // 绘制碰撞体区域
-    protected override void DrawColliderGizmos()
-    {
-        float innerR = innerCircleRadius;
-        float outerR = outerCircleRadius;
-        float angle = sectorAngle;
-        float thickness = sectorThickness;
-        int segments = Mathf.Max(5, Mathf.CeilToInt(angle / 20f));
-        float halfAngle = angle * 0.5f;
-
-        Vector3 center = transform.position + centerOffset;
-        Quaternion rot = Quaternion.LookRotation(transform.forward, transform.up) * Quaternion.Euler(rotationOffset);
-        Vector3 halfUpOffset = rot * Vector3.up * (thickness * 0.5f);
-
-        // 优化：圆弧绘制方法
-        void DrawArc(float radius, Vector3 offset)
-        {
-            Vector3 lastBottom = center + rot * Quaternion.Euler(0, -halfAngle, 0) * Vector3.forward * radius - offset;
-            Vector3 lastTop = center + rot * Quaternion.Euler(0, -halfAngle, 0) * Vector3.forward * radius + offset;
-            for (int i = 1; i <= segments; i++)
-            {
-                float a = -halfAngle + angle / segments * i;
-                Vector3 nextBottom = center + rot * Quaternion.Euler(0, a, 0) * Vector3.forward * radius - offset;
-                Vector3 nextTop = center + rot * Quaternion.Euler(0, a, 0) * Vector3.forward * radius + offset;
-                Gizmos.color = gizmosColor;
-                Gizmos.DrawLine(lastBottom, nextBottom);
-                Gizmos.DrawLine(lastTop, nextTop);
-                lastBottom = nextBottom;
-                lastTop = nextTop;
-            }
-        }
-
-        // 绘制外圆弧
-        DrawArc(outerR, halfUpOffset);
-        // 绘制内圆弧
-        DrawArc(innerR, halfUpOffset);
-
-        // 两条边（底面和顶面）
-        Vector3 leftOuterBottom = center + rot * Quaternion.Euler(0, -halfAngle, 0) * Vector3.forward * outerR - halfUpOffset;
-        Vector3 leftInnerBottom = center + rot * Quaternion.Euler(0, -halfAngle, 0) * Vector3.forward * innerR - halfUpOffset;
-        Vector3 rightOuterBottom = center + rot * Quaternion.Euler(0, halfAngle, 0) * Vector3.forward * outerR - halfUpOffset;
-        Vector3 rightInnerBottom = center + rot * Quaternion.Euler(0, halfAngle, 0) * Vector3.forward * innerR - halfUpOffset;
-
-        Vector3 leftOuterTop = center + rot * Quaternion.Euler(0, -halfAngle, 0) * Vector3.forward * outerR + halfUpOffset;
-        Vector3 leftInnerTop = center + rot * Quaternion.Euler(0, -halfAngle, 0) * Vector3.forward * innerR + halfUpOffset;
-        Vector3 rightOuterTop = center + rot * Quaternion.Euler(0, halfAngle, 0) * Vector3.forward * outerR + halfUpOffset;
-        Vector3 rightInnerTop = center + rot * Quaternion.Euler(0, halfAngle, 0) * Vector3.forward * innerR + halfUpOffset;
-
-        Gizmos.DrawLine(leftInnerBottom, leftOuterBottom);
-        Gizmos.DrawLine(rightInnerBottom, rightOuterBottom);
-        Gizmos.DrawLine(leftInnerTop, leftOuterTop);
-        Gizmos.DrawLine(rightInnerTop, rightOuterTop);
-
-        // 连接四个角
-        Gizmos.DrawLine(leftInnerBottom, leftInnerTop);
-        Gizmos.DrawLine(leftOuterBottom, leftOuterTop);
-        Gizmos.DrawLine(rightInnerBottom, rightInnerTop);
-        Gizmos.DrawLine(rightOuterBottom, rightOuterTop);
-
-        // 对称连接上下端点和内外圆端点
-        int step = 2; // 每隔2个分段
-        for (int i = 0; i <= segments; i += step)
-        {
-            float a = -halfAngle + angle / segments * i;
-            Vector3 outerBottom = center + rot * Quaternion.Euler(0, a, 0) * Vector3.forward * outerR - halfUpOffset;
-            Vector3 outerTop = center + rot * Quaternion.Euler(0, a, 0) * Vector3.forward * outerR + halfUpOffset;
-            Vector3 innerBottom = center + rot * Quaternion.Euler(0, a, 0) * Vector3.forward * innerR - halfUpOffset;
-            Vector3 innerTop = center + rot * Quaternion.Euler(0, a, 0) * Vector3.forward * innerR + halfUpOffset;
-
-            Gizmos.color = gizmosColor;
-            Gizmos.DrawLine(outerBottom, outerTop);
-            Gizmos.DrawLine(innerBottom, innerTop);
-            Gizmos.DrawLine(innerBottom, outerBottom); // 底面内外圆端点
-            Gizmos.DrawLine(innerTop, outerTop);       // 顶面内外圆端点
-
-            // 对称连接另一侧
-            if (i != segments - i && i != 0)
-            {
-                float aSym = -halfAngle + angle / segments * (segments - i);
-                Vector3 outerBottomSym = center + rot * Quaternion.Euler(0, aSym, 0) * Vector3.forward * outerR - halfUpOffset;
-                Vector3 outerTopSym = center + rot * Quaternion.Euler(0, aSym, 0) * Vector3.forward * outerR + halfUpOffset;
-                Vector3 innerBottomSym = center + rot * Quaternion.Euler(0, aSym, 0) * Vector3.forward * innerR - halfUpOffset;
-                Vector3 innerTopSym = center + rot * Quaternion.Euler(0, aSym, 0) * Vector3.forward * innerR + halfUpOffset;
-
-                Gizmos.DrawLine(outerBottomSym, outerTopSym);
-                Gizmos.DrawLine(innerBottomSym, innerTopSym);
-                Gizmos.DrawLine(innerBottomSym, outerBottomSym);
-                Gizmos.DrawLine(innerTopSym, outerTopSym);
-            }
-        }
-    }
-
 }

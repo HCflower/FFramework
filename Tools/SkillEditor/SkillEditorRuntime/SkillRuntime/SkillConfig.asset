@@ -90,7 +90,7 @@ MonoBehaviour:
   m_Name: SkillConfig
   m_EditorClassIdentifier: 
   frameRate: 24
-  maxFrames: 66
+  maxFrames: 76
   skillPlayStateName: SkillPlay
   skillId: 0
   skillIcon: {fileID: 21300000, guid: 48e7bec8a4f0e3049a6c34938bf5a7ca, type: 3}
@@ -128,10 +128,10 @@ MonoBehaviour:
     animationPlaySpeed: 1.5
     transitionDurationFrame: 4
     applyRootMotion: 0
-  - clipName: 2H_Melee_Attack_Slice
+  - clipName: 2H_Melee_Attack_Chop
     startFrame: 44
-    durationFrame: 22
-    clip: {fileID: 7400000, guid: 3c9abe21136b71046b88b2f84c885561, type: 2}
+    durationFrame: 32
+    clip: {fileID: 7400000, guid: 1004f7c6a236a38459c78c30df2748c5, type: 2}
     animationPlaySpeed: 1.5
     transitionDurationFrame: 0
     applyRootMotion: 0
@@ -254,17 +254,17 @@ MonoBehaviour:
         serializedVersion: 2
         m_Bits: 4294967295
       enableAllCollisionGroups: 0
-      collisionGroupId: 0
+      injuryDetectionGroupUID: InjuryDetection_0
       injuryDetectionEventName: OnInjuryDetection
     - clipName: InjuryDetection_2
-      startFrame: 56
+      startFrame: 63
       durationFrame: 7
       hitEffectPrefab: {fileID: 0}
       targetLayers:
         serializedVersion: 2
         m_Bits: 4294967295
       enableAllCollisionGroups: 0
-      collisionGroupId: 1
+      injuryDetectionGroupUID: InjuryDetection_1
       injuryDetectionEventName: OnInjuryDetection
 --- !u!114 &4144422302740679402
 MonoBehaviour:

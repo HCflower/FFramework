@@ -136,8 +136,8 @@ namespace FFramework.Kit
             [Tooltip("击中特效")] public GameObject hitEffectPrefab;
             [Tooltip("目标层级")] public LayerMask targetLayers = -1;
             [Tooltip("启用所有碰撞体")] public bool enableAllCollisionGroups = false;
-            [Tooltip("碰撞检测组ID")] public int collisionGroupId = 0;
-            [Tooltip("伤害检测事件名")] public string injuryDetectionEventName = "OnInjuryDetection";
+            [Tooltip("伤害检测组UID")] public string injuryDetectionGroupUID;
+            [Tooltip("伤害检测事件名")] public string injuryDetectionEventName;
             public override int EndFrame => startFrame + Mathf.Max(1, durationFrame);
 
             /// <summary>
