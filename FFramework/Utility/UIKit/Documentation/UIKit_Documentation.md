@@ -1,4 +1,4 @@
-# UIKit 完整文档
+# FFramework.Kit UIKit 完整文档
 
 本文档包含 UIKit 工具类的完整功能说明、使用教程和 API 参考。
 
@@ -64,7 +64,7 @@ public class MainMenuPanel : UIPanel
 
 1. 在场景中创建 UI 面板 GameObject
 2. 添加你的面板脚本组件
-3. 制作成预制体并放入`Resources`文件夹
+3. 制作成预制体并放入 `Resources`文件夹
 4. **重要**: 确保预制体名称与脚本类名完全一致
 
 ### 2. 基本操作
@@ -441,6 +441,7 @@ public class PanelComponentExample : MonoBehaviour
    - 在 Inspector 中启用自动运行
 
 4. **创建测试面板**
+
    - 在 Resources 文件夹创建面板预制体
    - 确保名称与脚本类名一致
 

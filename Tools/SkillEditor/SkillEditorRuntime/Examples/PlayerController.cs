@@ -22,7 +22,8 @@ namespace SkillEditorExamples
         public CharacterController characterController;
 
         public FSMStateMachine<PlayerController> stateMachine;
-
+        //TODO:添加是否可移动
+        public bool canMove = true;
         private Player_Idle player_Idle;
         void Start()
         {
@@ -49,8 +50,7 @@ namespace SkillEditorExamples
             velocity = transform.TransformDirection(new Vector3(moveX, 0, moveZ));
             velocity.y = 0; // 确保没有垂直移动
             velocity.Normalize();
-
-            characterController.Move(velocity * moveSpeed * Time.deltaTime);
+            if (canMove) characterController.Move(velocity * moveSpeed * Time.deltaTime);
             stateMachine.Update();
         }
     }

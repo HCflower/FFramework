@@ -1,4 +1,4 @@
-# LoadSceneKit 场景加载工具文档
+# FFramework.Kit LoadSceneKit 场景加载工具文档
 
 ## 📖 目录
 
@@ -131,7 +131,7 @@ public static async UniTask<bool> LoadSceneAsyncTask(string sceneName, Action on
 - `sceneName`: 目标场景名称
 - `onChangeScene`: 场景切换开始时的回调（用于显示加载面板等）
 - `onComplete`: 完成回调，参数表示是否成功
-- **返回值**: UniTask<bool> - 可以 await 等待，返回操作是否成功
+- **返回值**: UniTask`<bool>` - 可以 await 等待，返回操作是否成功
 
 **优势：**
 
@@ -788,12 +788,12 @@ public class LoadingUIPool : MonoBehaviour
 2. **避免重复操作**
 
    - 在场景切换过程中不要重复调用加载方法
-   - 使用`IsProcessing`属性检查当前状态
+   - 使用 `IsProcessing`属性检查当前状态
 
 3. **UniTask 依赖性**
 
    - 使用 UniTask 功能需要安装 Cysharp.UniTask 包
-   - 在项目中添加`using Cysharp.Threading.Tasks;`
+   - 在项目中添加 `using Cysharp.Threading.Tasks;`
 
 4. **内存管理**
 
@@ -833,6 +833,7 @@ public class LoadingUIPool : MonoBehaviour
     - 90%以上的进度可能停留较长时间
 
 11. **异常处理**
+
     - 系统内置了基础的异常处理
     - 建议在回调中添加额外的错误处理逻辑
 

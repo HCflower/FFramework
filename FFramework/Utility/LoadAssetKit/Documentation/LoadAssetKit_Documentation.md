@@ -1,4 +1,4 @@
-# LoadAssetKit 资源加载工具文档
+# FFramework.Kit LoadAssetKit 资源加载工具文档
 
 ## 📋 目录
 
@@ -409,7 +409,7 @@ public class BundleManager : MonoBehaviour
 {
 try
 {
-var sprite = await LoadAssetKit.LoadAssetFromResAsync<Sprite>("UI/Icons/player_icon");
+var sprite = await LoadAssetKit.LoadAssetFromResAsync`<Sprite>`("UI/Icons/player_icon");
 if (sprite != null)
 {
 // 使用资源

@@ -9,11 +9,13 @@ namespace SkillEditorExamples
     {
         public override void OnEnter(FSMStateMachine<PlayerController> machine)
         {
+            owner.canMove = false;
             owner.skillRuntime.PlaySkill();
         }
 
         public override void OnUpdate(FSMStateMachine<PlayerController> machine)
         {
+            //TODO:添加技能可打断
             if (!owner.skillRuntime.IsPlaying && owner.skillRuntime.isOver)
             {
                 // 如果没有移动输入，切回Idle
@@ -32,6 +34,5 @@ namespace SkillEditorExamples
         {
 
         }
-
     }
 }

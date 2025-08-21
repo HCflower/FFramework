@@ -1,4 +1,4 @@
-# EventKit 事件工具使用说明
+# FFramework.Kit EventKit 事件工具使用说明
 
 ## 📖 目录
 
@@ -262,8 +262,8 @@ gameObject.BindClick(eventData =>
 
 ### 1. 性能优化
 
-- 在对象销毁前调用`ClearAllEvents()`清理事件
-- 对于临时 UI，使用`RemoveOnXXX`方法移除特定事件
+- 在对象销毁前调用 `ClearAllEvents()`清理事件
+- 对于临时 UI，使用 `RemoveOnXXX`方法移除特定事件
 - 避免在 Update 中频繁绑定/解绑事件
 
 ### 2. 代码组织
@@ -280,7 +280,7 @@ gameObject.BindClick(eventData =>
 
 ## 注意事项
 
-1. **射线检测**: Image 和 Text 组件需要启用`raycastTarget`才能接收事件
+1. **射线检测**: Image 和 Text 组件需要启用 `raycastTarget`才能接收事件
 2. **事件冲突**: 多个组件监听同一事件时要注意执行顺序
 3. **内存泄漏**: 记得在适当时候清理事件监听
 4. **坐标系统**: 注意世界坐标和 UI 坐标的转换

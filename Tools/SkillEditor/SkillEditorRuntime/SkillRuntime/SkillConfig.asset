@@ -14,15 +14,15 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   trackName: "\u53D8\u5316\u8F68\u9053"
   trackIndex: 0
-  isEnabled: 0
+  isEnabled: 1
   transformClips:
   - clipName: Transform
-    startFrame: 15
+    startFrame: 10
     durationFrame: 5
-    positionOffset: {x: 0, y: 0, z: 1}
+    positionOffset: {x: 0, y: 0, z: 2}
     targetRotation: {x: 0, y: 0, z: 0}
     targetScale: {x: 1, y: 1, z: 1}
-    curveType: 0
+    curveType: 3
     customCurve:
       serializedVersion: 2
       m_Curve:
@@ -156,10 +156,10 @@ MonoBehaviour:
     durationFrame: 5
     enablePosition: 0
     enableRotation: 0
-    enableFieldOfView: 0
+    enableFieldOfView: 1
     positionOffset: {x: 0, y: 0, z: 0}
     targetRotation: {x: 0, y: 0, z: 0}
-    targetFieldOfView: 60
+    targetFieldOfView: 55
     curveType: 2
     customCurve:
       serializedVersion: 2
@@ -195,10 +195,10 @@ MonoBehaviour:
     durationFrame: 5
     enablePosition: 0
     enableRotation: 0
-    enableFieldOfView: 0
+    enableFieldOfView: 1
     positionOffset: {x: 0, y: 0, z: 0}
     targetRotation: {x: 0, y: 0, z: 0}
-    targetFieldOfView: 60
+    targetFieldOfView: 55
     curveType: 2
     customCurve:
       serializedVersion: 2

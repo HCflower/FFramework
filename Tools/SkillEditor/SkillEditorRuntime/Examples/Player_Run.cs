@@ -13,6 +13,7 @@ namespace SkillEditorExamples
 
         public override void OnEnter(FSMStateMachine<PlayerController> machine)
         {
+            owner.canMove = true;
             owner.playSmartAnima.ChangeAnima(owner.run, owner.transitionTime);
         }
 
