@@ -8,41 +8,44 @@ namespace SkillEditorExamples
     /// </summary>
     public class Player_Run : StateBase<PlayerController>
     {
-        private float idleBufferTime = 0.15f; // 缓冲时间（秒）
-        private float idleBufferCounter = 0f;
+        private float lastMovementTime;
+        private const float MOVEMENT_BUFFER = 0.2f; // 200ms缓冲
 
-        public override void OnEnter(FSMStateMachine<PlayerController> machine)
+        public override async void OnEnter(FSMStateMachine<PlayerController> machine)
         {
             owner.canMove = true;
-            owner.playSmartAnima.ChangeAnima(owner.run, owner.transitionTime);
+            lastMovementTime = Time.time;
+            await owner.playSmartAnima.ChangeAnima(owner.run, owner.transitionTime);
         }
 
-        public override void OnExit(FSMStateMachine<PlayerController> machine)
+        public override async void OnUpdate(FSMStateMachine<PlayerController> machine)
         {
+            // 更新最后移动时间
+            if (owner.velocity.magnitude > 0.01f)
+            {
+                lastMovementTime = Time.time;
+            }
 
-        }
-
-        public override void OnUpdate(FSMStateMachine<PlayerController> machine)
-        {
+            // 技能切换
             if (Input.GetKeyDown(KeyCode.E))
             {
+                await owner.playSmartAnima.ChangeAnima(owner.idle, owner.transitionTime); // 使用过渡
                 machine.ChangeState<Player_Skill>();
                 return;
             }
 
-            if (owner.velocity.magnitude <= 0.1f)
+            // 使用时间缓冲检测真正的停止
+            if (Time.time - lastMovementTime > MOVEMENT_BUFFER)
             {
-                idleBufferCounter += Time.deltaTime;
-                if (idleBufferCounter >= idleBufferTime)
-                {
-                    machine.ChangeState<Player_Idle>();
-                    idleBufferCounter = 0f;
-                }
+                await owner.playSmartAnima.ChangeAnima(owner.idle, owner.transitionTime); // 使用过渡
+                machine.ChangeState<Player_Idle>();
+                return;
             }
-            else
-            {
-                idleBufferCounter = 0f;
-            }
+        }
+
+        public override void OnExit(FSMStateMachine<PlayerController> machine)
+        {
+            // 清理
         }
     }
 }

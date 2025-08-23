@@ -121,7 +121,7 @@ namespace SkillEditor
                 durationFrame = frameCount,
                 clip = animationClip,
                 animationPlaySpeed = 1.0f,
-                transitionDurationFrame = 0,
+                transitionDurationFrame = 1,
                 applyRootMotion = false
             };
 
@@ -146,6 +146,7 @@ namespace SkillEditor
             animationData.animationClip = clip.clip;
             animationData.durationFrame = clip.durationFrame;
             animationData.animationPlaySpeed = clip.animationPlaySpeed;
+            animationData.transitionDurationFrame = clip.transitionDurationFrame;
             animationData.applyRootMotion = clip.applyRootMotion;
 
 #if UNITY_EDITOR

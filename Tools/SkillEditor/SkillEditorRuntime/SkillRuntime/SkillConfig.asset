@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   trackName: "\u53D8\u5316\u8F68\u9053"
   trackIndex: 0
-  isEnabled: 1
+  isEnabled: 0
   transformClips:
   - clipName: Transform
     startFrame: 10
@@ -47,7 +47,7 @@ MonoBehaviour:
       m_PreInfinity: 2
       m_PostInfinity: 2
       m_RotationOrder: 4
-    enablePosition: 1
+    enablePosition: 0
     enableRotation: 0
     enableScale: 0
 --- !u!114 &-3162120677461194959
@@ -133,7 +133,7 @@ MonoBehaviour:
     durationFrame: 32
     clip: {fileID: 7400000, guid: 1004f7c6a236a38459c78c30df2748c5, type: 2}
     animationPlaySpeed: 1.5
-    transitionDurationFrame: 0
+    transitionDurationFrame: 1
     applyRootMotion: 0
 --- !u!114 &700837781105194505
 MonoBehaviour:
@@ -159,7 +159,7 @@ MonoBehaviour:
     enableFieldOfView: 1
     positionOffset: {x: 0, y: 0, z: 0}
     targetRotation: {x: 0, y: 0, z: 0}
-    targetFieldOfView: 55
+    targetFieldOfView: 60
     curveType: 2
     customCurve:
       serializedVersion: 2
@@ -195,10 +195,10 @@ MonoBehaviour:
     durationFrame: 5
     enablePosition: 0
     enableRotation: 0
-    enableFieldOfView: 1
+    enableFieldOfView: 0
     positionOffset: {x: 0, y: 0, z: 0}
     targetRotation: {x: 0, y: 0, z: 0}
-    targetFieldOfView: 55
+    targetFieldOfView: 60
     curveType: 2
     customCurve:
       serializedVersion: 2
@@ -285,6 +285,14 @@ MonoBehaviour:
     audioClips:
     - clipName: 074_knife-1
       startFrame: 13
+      durationFrame: 17
+      clip: {fileID: 8300000, guid: b50e386b9f25be147934ef2cf68d432e, type: 3}
+      volume: 1
+      pitch: 1
+      spatialBlend: 0
+      reverbZoneMix: 1
+    - clipName: 074_knife
+      startFrame: 59
       durationFrame: 17
       clip: {fileID: 8300000, guid: b50e386b9f25be147934ef2cf68d432e, type: 3}
       volume: 1

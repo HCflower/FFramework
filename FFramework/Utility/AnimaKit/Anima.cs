@@ -23,7 +23,7 @@ namespace FFramework.Kit
             playableGraph = PlayableGraph.Create();
         }
 
-        protected virtual void OnDisable()
+        protected virtual void OnDestroy()
         {
             if (playableGraph.IsValid())
             {

@@ -10,6 +10,7 @@ namespace SkillEditorExamples
         public override void OnEnter(FSMStateMachine<PlayerController> machine)
         {
             owner.canMove = false;
+            owner.canRotate = false;
             owner.skillRuntime.PlaySkill();
         }
 
@@ -32,7 +33,7 @@ namespace SkillEditorExamples
 
         public override void OnExit(FSMStateMachine<PlayerController> machine)
         {
-
+            owner.canRotate = true;
         }
     }
 }

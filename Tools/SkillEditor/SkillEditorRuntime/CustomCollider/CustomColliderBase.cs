@@ -17,6 +17,7 @@ namespace FFramework.Kit
                     if (m_meshCollider == null)
                     {
                         m_meshCollider = gameObject.AddComponent<MeshCollider>();
+                        meshCollider.convex = true;
                     }
                 }
                 return m_meshCollider;
@@ -36,6 +37,7 @@ namespace FFramework.Kit
         //             if (m_polygonCollider2d == null)
         //             {
         //                 m_polygonCollider2d = gameObject.AddComponent<PolygonCollider2D>();
+        //                 meshCollider.convex = true;
         //             }
         //         }
         //         return m_polygonCollider2d;
