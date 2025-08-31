@@ -68,15 +68,25 @@ MonoBehaviour:
     isEnabled: 1
     effectClips:
     - clipName: basicslash
-      startFrame: 14
+      startFrame: 5
       durationFrame: 24
       effectPrefab: {fileID: 6389406066330802589, guid: 5ef8d476ac4025a4e85cc5e7c5004889, type: 3}
       effectPlaySpeed: 0.5
       isCutEffect: 1
-      cutEffectFrameOffset: 10
-      position: {x: 0, y: 2.25, z: 0}
-      rotation: {x: -90, y: 0, z: 80}
-      scale: {x: 0.5, y: 0.5, z: 0.5}
+      cutEffectFrameOffset: 14
+      position: {x: -0.027959704, y: 1.0101156, z: 0.013440281}
+      rotation: {x: -75, y: -105, z: -145}
+      scale: {x: 0.3, y: 0.3, z: 0.3}
+    - clipName: basicslash_1
+      startFrame: 34
+      durationFrame: 12
+      effectPrefab: {fileID: 6389406066330802589, guid: 5ef8d476ac4025a4e85cc5e7c5004889, type: 3}
+      effectPlaySpeed: 1
+      isCutEffect: 0
+      cutEffectFrameOffset: 0
+      position: {x: -0.169, y: 0.71, z: -0.02}
+      rotation: {x: -23.5, y: -90, z: 92}
+      scale: {x: 0.25, y: 0.25, z: 0.25}
 --- !u!114 &11400000
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -90,7 +100,7 @@ MonoBehaviour:
   m_Name: SkillConfig
   m_EditorClassIdentifier: 
   frameRate: 24
-  maxFrames: 76
+  maxFrames: 54
   skillPlayStateName: SkillPlay
   skillId: 0
   skillIcon: {fileID: 21300000, guid: 48e7bec8a4f0e3049a6c34938bf5a7ca, type: 3}
@@ -121,19 +131,19 @@ MonoBehaviour:
   trackIndex: 0
   isEnabled: 1
   animationClips:
-  - clipName: 2H_Melee_Attack_Spin
+  - clipName: Atk1
     startFrame: 0
-    durationFrame: 48
-    clip: {fileID: 7400000, guid: 3a91922c9630cdc4e94e060121e72b00, type: 2}
-    animationPlaySpeed: 1.5
-    transitionDurationFrame: 4
+    durationFrame: 20
+    clip: {fileID: 7400000, guid: 89b083c3cdd6cb64d906f6bbfcb40211, type: 3}
+    animationPlaySpeed: 1
+    transitionDurationFrame: 2
     applyRootMotion: 0
-  - clipName: 2H_Melee_Attack_Chop
-    startFrame: 44
-    durationFrame: 32
-    clip: {fileID: 7400000, guid: 1004f7c6a236a38459c78c30df2748c5, type: 2}
-    animationPlaySpeed: 1.5
-    transitionDurationFrame: 1
+  - clipName: Atk2
+    startFrame: 18
+    durationFrame: 36
+    clip: {fileID: 7400000, guid: f3a99e8d52c562f43bfcc8e857c3e450, type: 3}
+    animationPlaySpeed: 1
+    transitionDurationFrame: 3
     applyRootMotion: 0
 --- !u!114 &700837781105194505
 MonoBehaviour:
@@ -152,11 +162,11 @@ MonoBehaviour:
   isEnabled: 1
   cameraClips:
   - clipName: Camera Main Camera
-    startFrame: 15
+    startFrame: 12
     durationFrame: 5
     enablePosition: 0
     enableRotation: 0
-    enableFieldOfView: 1
+    enableFieldOfView: 0
     positionOffset: {x: 0, y: 0, z: 0}
     targetRotation: {x: 0, y: 0, z: 0}
     targetFieldOfView: 60
@@ -191,7 +201,7 @@ MonoBehaviour:
     animationDurationFrame: 3
     shakePreset: {fileID: 11400000, guid: e68b6101fe0610a46a9f69c687d8b5d5, type: 2}
   - clipName: Camera Main Camera_1
-    startFrame: 54
+    startFrame: 41
     durationFrame: 5
     enablePosition: 0
     enableRotation: 0
@@ -247,8 +257,8 @@ MonoBehaviour:
     isEnabled: 1
     injuryDetectionClips:
     - clipName: InjuryDetection
-      startFrame: 15
-      durationFrame: 10
+      startFrame: 5
+      durationFrame: 11
       hitEffectPrefab: {fileID: 0}
       targetLayers:
         serializedVersion: 2
@@ -257,8 +267,8 @@ MonoBehaviour:
       injuryDetectionGroupUID: InjuryDetection_0
       injuryDetectionEventName: OnInjuryDetection
     - clipName: InjuryDetection_2
-      startFrame: 63
-      durationFrame: 7
+      startFrame: 34
+      durationFrame: 3
       hitEffectPrefab: {fileID: 0}
       targetLayers:
         serializedVersion: 2
@@ -284,7 +294,7 @@ MonoBehaviour:
     isEnabled: 1
     audioClips:
     - clipName: 074_knife-1
-      startFrame: 13
+      startFrame: 10
       durationFrame: 17
       clip: {fileID: 8300000, guid: b50e386b9f25be147934ef2cf68d432e, type: 3}
       volume: 1
@@ -292,7 +302,7 @@ MonoBehaviour:
       spatialBlend: 0
       reverbZoneMix: 1
     - clipName: 074_knife
-      startFrame: 59
+      startFrame: 33
       durationFrame: 17
       clip: {fileID: 8300000, guid: b50e386b9f25be147934ef2cf68d432e, type: 3}
       volume: 1

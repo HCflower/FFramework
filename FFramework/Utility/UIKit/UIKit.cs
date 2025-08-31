@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
 
 namespace FFramework.Kit
@@ -9,14 +8,8 @@ namespace FFramework.Kit
     /// </summary>
     public static class UIKit
     {
-        #region 私有字段
-
         private static Dictionary<string, UIPanel> uiPanelDic = new Dictionary<string, UIPanel>();
         private static Stack<UIPanel> panelStack = new Stack<UIPanel>();
-
-        #endregion
-
-        #region 公共属性
 
         /// <summary>当前打开的UI面板数量</summary>
         public static int OpenPanelCount => panelStack.Count;
@@ -26,11 +19,6 @@ namespace FFramework.Kit
 
         /// <summary>是否有打开的面板</summary>
         public static bool HasOpenPanels => panelStack.Count > 0;
-
-        #endregion
-
-        #region 私有方法
-
 
         private static UIRoot GetUIRoot()
         {
@@ -74,6 +62,7 @@ namespace FFramework.Kit
         /// </summary>
         private static void RemovePanelFromStack(UIPanel targetPanel)
         {
+            if (targetPanel == null) return;
             var tempStack = new Stack<UIPanel>();
             bool found = false;
 
@@ -313,10 +302,6 @@ namespace FFramework.Kit
             }
         }
 
-        #endregion
-
-        #region UI面板操作
-
         /// <summary>
         /// 从Resources/UI 中加载UI面板
         /// </summary>
@@ -325,7 +310,7 @@ namespace FFramework.Kit
         public static T OpenUIPanelFromRes<T>(bool isCache = true, UILayer layer = UILayer.DebugLayer) where T : UIPanel
         {
             string typeName = typeof(T).Name;
-            Debug.Log($"Open UIPanel : <color=green>{typeName}.</color>");
+            Debug.Log($"<color=green> Open UIPanel </color>: {typeName}");
             if (!uiPanelDic.TryGetValue(typeName, out UIPanel uiPanel))
             {
                 // 从Resources加载预设体
@@ -408,13 +393,16 @@ namespace FFramework.Kit
             if (panelStack.Count == 0) return;
 
             UIPanel currentPanel = panelStack.Pop();
-            Debug.Log($"Close UIPanel : <color=yellow>{currentPanel.GetType().Name}.</color>");
+            Debug.Log($"<color=yellow> Close UIPanel : </color>{currentPanel.GetType().Name}");
             currentPanel.Close();
 
-            // 显示上一个面板
+            // 如果栈中还有面板，解锁并显示前一个面板
             if (panelStack.Count > 0)
             {
-                panelStack.Peek().Show();
+                var previousPanel = panelStack.Peek();
+                // 只有当previousPanel确实被锁定时才调用OnUnLock
+                previousPanel.OnUnLock();
+                // 不需要重复调用Show()，因为面板可能本来就是显示的
             }
         }
 
@@ -424,25 +412,38 @@ namespace FFramework.Kit
         public static void CloseUIPanel<T>()
         {
             string typeName = typeof(T).Name;
-            Debug.Log($"Close UIPanel : <color=yellow>{typeName}.</color>");
-            if (uiPanelDic.TryGetValue(typeName, out UIPanel ui))
+            Debug.Log($"<color=yellow> Close UIPanel</color> :{typeName}");
+
+            if (uiPanelDic.TryGetValue(typeName, out UIPanel uiPanel))
             {
-                // 从栈中移除该面板(如果存在)
-                var tempStack = new Stack<UIPanel>();
-                while (panelStack.Count > 0)
-                {
-                    var panel = panelStack.Pop();
-                    if (panel != ui)
-                    {
-                        tempStack.Push(panel);
-                    }
-                }
-                // 恢复栈
-                while (tempStack.Count > 0)
-                {
-                    panelStack.Push(tempStack.Pop());
-                }
-                ui.Close();
+                CloseUIPanelInternal(uiPanel);
+            }
+        }
+
+        /// <summary>
+        /// 内部关闭面板方法
+        /// </summary>
+        private static void CloseUIPanelInternal(UIPanel uiPanel)
+        {
+            // 从栈中移除面板
+            RemovePanelFromStack(uiPanel);
+
+            // 关闭面板
+            uiPanel.Close();
+
+            // 解锁新的栈顶面板
+            UnlockTopPanel();
+        }
+
+        /// <summary>
+        /// 解锁栈顶面板
+        /// </summary>
+        private static void UnlockTopPanel()
+        {
+            if (panelStack.Count > 0)
+            {
+                var topPanel = panelStack.Peek();
+                topPanel.OnUnLock();
             }
         }
 
@@ -539,7 +540,7 @@ namespace FFramework.Kit
         /// </summary>
         /// <param name="panel">父物体</param>
         /// <param name="childPath">子物体路径，支持"Parent/Child"格式</param>
-        private static GameObject FindChildGameObject(GameObject panel, string childPath)
+        public static GameObject FindChildGameObject(GameObject panel, string childPath)
         {
             if (string.IsNullOrEmpty(childPath))
             {
@@ -623,8 +624,6 @@ namespace FFramework.Kit
 
             return component;
         }
-
-        #endregion
 
         #endregion
     }

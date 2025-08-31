@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using UnityEngine;
 using System;
@@ -9,90 +10,124 @@ namespace FFramework
     /// </summary>
     public interface IEventSystem
     {
-        public void Send<T>() where T : new();                          //发送事件
-        public void Send<T>(T Event);                                   //发送特定类型的事件
-        public IRemoveListener AddListener<T>(Action<T> onEvent);       //添加事件监听
-        public void RemoveListener<T>(Action<T> onEvent);               //取消注册事件
+        void Send<T>() where T : new();
+        void Send<T>(T Event);
+        IRemoveListener AddListener<T>(Action<T> onEvent);
+        void RemoveListener<T>(Action<T> onEvent);
+
+        // 带事件ID的发送 -用于网络
+        void Send<T>(object eventId, T Event);
+        IRemoveListener AddListener<T>(object eventId, Action<T> onEvent);
+        void RemoveListener<T>(object eventId, Action<T> onEvent);
     }
 
-    //移除事件监听接口
+    /// <summary>
+    /// 移除事件监听接口
+    /// </summary>
     public interface IRemoveListener
     {
-        public void RemoveListener();
+        void RemoveListener();
     }
 
-    //用于存储事件系统和事件回调的引用，以便后续注销
+    /// <summary>
+    /// 用于存储事件系统和事件回调的引用（不带事件ID）
+    /// </summary>
     public struct EventSystemUnRegister<T> : IRemoveListener
     {
         public IEventSystem TypeEventSystem;
         public Action<T> OnEvent;
+
         public void RemoveListener()
         {
-            TypeEventSystem.RemoveListener<T>(OnEvent);
+            TypeEventSystem?.RemoveListener(OnEvent);
             TypeEventSystem = null;
             OnEvent = null;
         }
     }
 
-    // 替代 typeof(T) 的高性能方案
+    /// <summary>
+    /// 用于存储事件系统和事件回调的引用（带事件ID）
+    /// </summary>
+    public struct EventSystemUnRegisterWithId<T> : IRemoveListener
+    {
+        public IEventSystem TypeEventSystem;
+        public object EventId;
+        public Action<T> OnEvent;
+
+        public void RemoveListener()
+        {
+            TypeEventSystem?.RemoveListener(EventId, OnEvent);
+            TypeEventSystem = null;
+            EventId = null;
+            OnEvent = null;
+        }
+    }
+
+    /// <summary>
+    /// 替代 typeof(T) 的高性能方案
+    /// </summary>
     public static class TypeHelper<T>
     {
         public static readonly Type Type = typeof(T);
     }
 
     /// <summary>
-    /// 事件系统的核心实现，管理事件的注册、注销和触发
+    /// 事件监听器容器接口
+    /// </summary>
+    public interface IEventListeners { }
+
+    /// <summary>
+    /// 特定类型的事件监听器容器
+    /// </summary>
+    public class EventListeners<T> : IEventListeners
+    {
+        public Action<T> OnEvent = _ => { };
+    }
+
+    /// <summary>
+    /// 事件系统的核心实现
     /// </summary>
     public class EventSystem : IEventSystem
     {
-        public interface IAddListeners { }
+        #region 字段声明
 
-        public class AddListeners<T> : IAddListeners
-        {
-            public Action<T> OnEvent = Event => { };
-        }
+        // 不带事件ID的注册字典
+        private readonly Dictionary<Type, IEventListeners> registerDic = new Dictionary<Type, IEventListeners>();
 
-        //事件注册字典
-        private Dictionary<Type, IAddListeners> registerDic = new Dictionary<Type, IAddListeners>();
+        // 带事件ID的注册字典（类型+事件ID）
+        private readonly ConcurrentDictionary<Type, ConcurrentDictionary<object, Delegate>> idRegisterDic =
+            new ConcurrentDictionary<Type, ConcurrentDictionary<object, Delegate>>();
 
-        /// <summary>
-        /// 发送事件
-        /// T -> 事件类型
-        /// </summary>
+        #endregion
+
+        #region 不带事件ID的方法实现
+
         public void Send<T>() where T : new()
         {
-            T Event = new T();
-            Send<T>(Event);
+            Send(new T());
         }
 
-        /// <summary>
-        /// 发送指定事件
-        /// T -> 事件类型
-        /// </summary>
         public void Send<T>(T Event)
         {
             Type type = TypeHelper<T>.Type;
-            IAddListeners registers;
-            if (registerDic.TryGetValue(type, out registers))
+            if (registerDic.TryGetValue(type, out var listeners) && listeners is EventListeners<T> typedListeners)
             {
-                ((AddListeners<T>)registers).OnEvent(Event);
+                typedListeners.OnEvent(Event);
             }
         }
 
-        /// <summary>
-        /// 添加监听事件
-        /// </summary>
         public IRemoveListener AddListener<T>(Action<T> onEvent)
         {
             Type type = TypeHelper<T>.Type;
-            IAddListeners registers;
 
-            if (!registerDic.TryGetValue(type, out registers))
+            if (!registerDic.TryGetValue(type, out var listeners))
             {
-                registers = new AddListeners<T>();
-                registerDic.Add(type, registers);
+                listeners = new EventListeners<T>();
+                registerDic.Add(type, listeners);
             }
-            ((AddListeners<T>)registers).OnEvent += onEvent;
+
+            var typedListeners = (EventListeners<T>)listeners;
+            typedListeners.OnEvent += onEvent;
 
             return new EventSystemUnRegister<T>
             {
@@ -101,45 +136,72 @@ namespace FFramework
             };
         }
 
-        /// <summary>
-        /// 移除监听事件
-        /// </summary>
         public void RemoveListener<T>(Action<T> onEvent)
         {
-            IAddListeners registers;
-            if (registerDic.TryGetValue(TypeHelper<T>.Type, out registers))
+            Type type = TypeHelper<T>.Type;
+            if (registerDic.TryGetValue(type, out var listeners) && listeners is EventListeners<T> typedListeners)
             {
-                ((AddListeners<T>)registers).OnEvent -= onEvent;
+                typedListeners.OnEvent -= onEvent;
             }
         }
-    }
 
-    /// <summary>
-    /// 自动移除监听事件扩展
-    /// </summary>
-    public static class EventSystemExtension
-    {
-        /// <summary>
-        /// 在物体销毁时移除监听事件
-        /// 自动附加 EventSystemAutoRemoveListener
-        /// </summary>
-        public static void RemoveListenerWhenGameObjectDestory(this IRemoveListener unRegister, GameObject gameObject)
+        #endregion
+
+        #region 带事件ID的方法实现
+
+        public void Send<T>(object eventId, T Event)
         {
-            EventSystemAutoRemoveListener trigger = gameObject.GetComponent<EventSystemAutoRemoveListener>();
-            if (trigger == null)
+            Type type = TypeHelper<T>.Type;
+            if (idRegisterDic.TryGetValue(type, out var eventDic) &&
+                eventDic.TryGetValue(eventId, out var delegateObj))
             {
-                trigger = gameObject.AddComponent<EventSystemAutoRemoveListener>();
+                (delegateObj as Action<T>)?.Invoke(Event);
             }
-            trigger.AddUnRegister(unRegister);
         }
+
+        public IRemoveListener AddListener<T>(object eventId, Action<T> onEvent)
+        {
+            Type type = TypeHelper<T>.Type;
+            var eventDic = idRegisterDic.GetOrAdd(type, _ => new ConcurrentDictionary<object, Delegate>());
+
+            eventDic.AddOrUpdate(eventId, onEvent, (_, existing) =>
+                Delegate.Combine(existing, onEvent));
+
+            return new EventSystemUnRegisterWithId<T>
+            {
+                TypeEventSystem = this,
+                EventId = eventId,
+                OnEvent = onEvent
+            };
+        }
+
+        public void RemoveListener<T>(object eventId, Action<T> onEvent)
+        {
+            Type type = TypeHelper<T>.Type;
+            if (idRegisterDic.TryGetValue(type, out var eventDic) &&
+                eventDic.TryGetValue(eventId, out var currentDelegate))
+            {
+                var updatedDelegate = Delegate.Remove(currentDelegate, onEvent);
+                if (updatedDelegate == null)
+                {
+                    eventDic.TryRemove(eventId, out _);
+                }
+                else
+                {
+                    eventDic[eventId] = updatedDelegate;
+                }
+            }
+        }
+
+        #endregion
     }
 
     /// <summary>
-    /// 移除监听事件类
+    /// 自动移除监听器组件
     /// </summary>
     public class EventSystemAutoRemoveListener : MonoBehaviour
     {
-        private HashSet<IRemoveListener> unRegisters = new HashSet<IRemoveListener>();
+        private readonly HashSet<IRemoveListener> unRegisters = new HashSet<IRemoveListener>();
 
         public void AddUnRegister(IRemoveListener unRegister)
         {
@@ -153,6 +215,25 @@ namespace FFramework
                 unRegister.RemoveListener();
             }
             unRegisters.Clear();
+        }
+    }
+
+    /// <summary>
+    /// 事件系统扩展方法
+    /// </summary>
+    public static class EventSystemExtension
+    {
+        /// <summary>
+        /// 在物体销毁时自动移除监听事件
+        /// </summary>
+        public static void RemoveListenerWhenGameObjectDestroy(this IRemoveListener unRegister, GameObject gameObject)
+        {
+            var trigger = gameObject.GetComponent<EventSystemAutoRemoveListener>();
+            if (trigger == null)
+            {
+                trigger = gameObject.AddComponent<EventSystemAutoRemoveListener>();
+            }
+            trigger.AddUnRegister(unRegister);
         }
     }
 }

@@ -9,7 +9,7 @@ namespace SkillEditorExamples
         {
             // 注册技能事件
             AddSkillEventListener<GameObject>("OnInjuryDetection", OnInjuryDetection);
-            AddSkillEventListener("Log", () => Debug.Log("Log event triggered"));
+            AddSkillEventListener("Log", () => Debug.Log("Kill You !!!"));
         }
 
         public void OnInjuryDetection(GameObject target)

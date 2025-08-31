@@ -34,7 +34,7 @@ namespace SkillEditor
         private class EffectInstance
         {
             public GameObject effectObject;          // 特效实例对象
-            public EffectTrack.EffectClip clipData; // 特效片段配置数据
+            public EffectTrack.EffectClip clipData;  // 特效片段配置数据
             public string effectKey;                 // 特效唯一标识（用于查找和管理）
             public bool isActive;                    // 当前帧是否活跃
 
@@ -146,8 +146,8 @@ namespace SkillEditor
             HideAllEffects();
             UpdateEffectInstancesData();
 
-            // 激活当前帧应该显示的特效
-            ActivateEffectsAtFrame(frame, true);
+            // 激活当前帧应该显示的特效（不强制隐藏其它）
+            ActivateEffectsAtFrame(frame, false);
 
             // 获取当前帧的轨道数据并应用特效变换
             var frameData = skillConfig.GetTrackDataAtFrame(frame);
@@ -694,7 +694,8 @@ namespace SkillEditor
             // 使用特效预制体名称和片段名称作为唯一标识，而不依赖可变的起始帧
             // 这样当起始帧发生变化时，仍能找到对应的特效实例
             string prefabName = effectClip.effectPrefab != null ? effectClip.effectPrefab.name : "null";
-            return $"{prefabName}_{effectClip.clipName}";
+            // 添加起始帧作为标识的一部分，确保每个片段都有唯一实例
+            return $"{prefabName}_{effectClip.clipName}_{effectClip.startFrame}";
         }
 
         #endregion

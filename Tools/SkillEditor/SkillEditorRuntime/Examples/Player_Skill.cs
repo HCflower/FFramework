@@ -17,7 +17,7 @@ namespace SkillEditorExamples
         public override void OnUpdate(FSMStateMachine<PlayerController> machine)
         {
             //TODO:添加技能可打断
-            if (!owner.skillRuntime.IsPlaying)
+            if (owner.skillRuntime.IsSkillFinished)
             {
                 // 如果没有移动输入，切回Idle
                 if (owner.velocity.magnitude <= 0.1f)
@@ -34,6 +34,7 @@ namespace SkillEditorExamples
         public override void OnExit(FSMStateMachine<PlayerController> machine)
         {
             owner.canRotate = true;
+            owner.canMove = true;
         }
     }
 }

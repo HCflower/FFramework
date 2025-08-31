@@ -142,7 +142,6 @@ namespace SkillEditor
             SetCutEffectFrameView(currentEffectData.cutEffectFrameOffset, cutEffectFrameView);
         }
 
-
         /// <summary>
         /// 创建特效轨道项数据对象
         /// </summary>

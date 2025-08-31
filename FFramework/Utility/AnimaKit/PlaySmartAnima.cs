@@ -25,7 +25,6 @@ namespace FFramework.Kit
         private AnimationMixerPlayable mixerPlayable;
         private AnimationClipPlayable[] clipPlayables = new AnimationClipPlayable[2];
         private bool isTransitioning = false;
-        private UniTask currentTransitionTask;
 
         public AnimationClip CurrentAnimaClip
         {
@@ -105,7 +104,7 @@ namespace FFramework.Kit
         {
             if (mixerPlayable.IsValid())
             {
-                UpdateMixerWeights();
+                // UpdateMixerWeights();
             }
         }
 

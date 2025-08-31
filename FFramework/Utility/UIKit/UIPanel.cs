@@ -8,8 +8,16 @@ namespace FFramework.Kit
     public abstract class UIPanel : MonoBehaviour
     {
         private CanvasGroup canvasGroup;
-        //初始化UI
-        public virtual void Init() { }
+
+        protected virtual void Awake()
+        {
+            Init();
+        }
+
+        /// <summary>
+        /// 初始化UI 
+        /// </summary>
+        public abstract void Init();
 
         //显示UI
         public virtual void Show()

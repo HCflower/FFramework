@@ -54,11 +54,12 @@ namespace SkillEditor
             if (!(resource is string eventName))
                 return null;
 
+            // 只在这里创建，不再重复添加到配置
             var newItem = CreateEventTrackItem(eventName, startFrame, 1, addToConfig);
 
+            // 不再重复调用 AddTrackItemDataToConfig
             if (addToConfig)
             {
-                AddTrackItemDataToConfig(eventName, startFrame, 1);
                 SkillEditorEvent.TriggerRefreshRequested();
             }
 

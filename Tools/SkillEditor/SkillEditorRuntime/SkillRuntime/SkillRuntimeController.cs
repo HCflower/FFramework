@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Cysharp.Threading.Tasks;
 using UnityEngine;
 using System;
 
@@ -57,6 +58,8 @@ namespace FFramework.Kit
 
         /// <summary>是否正在播放技能</summary>
         public bool IsPlaying => isPlaying;
+        /// <summary>技能是否播放完毕/// </summary>
+        public bool IsSkillFinished = false;
 
         /// <summary>当前播放帧</summary>
         public int CurrentFrame => currentFrame;
@@ -192,6 +195,7 @@ namespace FFramework.Kit
                 return;
             }
 
+            IsSkillFinished = false;
             isLoop = loop;
             playSpeed = Mathf.Max(0.1f, speed);
             isPlaying = true;
@@ -230,7 +234,7 @@ namespace FFramework.Kit
 
             // 恢复原始状态
             RestoreOriginalStates();
-
+            IsSkillFinished = true;
             Debug.Log($"SkillRuntimeController: 技能播放已停止");
         }
 
@@ -419,21 +423,20 @@ namespace FFramework.Kit
                 if (animClip.clip == null || !animClip.IsFrameInRange(frame)) continue;
 
                 currentAnimaClipName = animClip.clip.name;
-
-                // 设置根运动
                 skillAnimator.applyRootMotion = animClip.applyRootMotion;
 
-                // 将当前动画片段设置到AnimatorController对应的动画状态
-                // TODO：接入Playable API播放动画
                 PlaySmartAnima anima = Anima as PlaySmartAnima;
                 anima.playSpeed = animClip.animationPlaySpeed;
                 anima.isLoop = animClip.clip.isLooping;
-                // 设置过渡时间-保留两位小数
-                anima.ChangeAnima(animClip.clip, (float)Mathf.Round(animClip.transitionDurationFrame / skillConfig.frameRate * 100f) / 100f);
-                // 只播放第一个匹配的动画片段
+                // 计算过渡时间,保留两位小数
+                float transitionTime = (float)Mathf.Round(animClip.transitionDurationFrame / skillConfig.frameRate * 100f) / 100f;
+                //使用 .Forget() 表示"不用等待这个异步操作完成
+                anima.ChangeAnima(animClip.clip, transitionTime).Forget();
+
                 break;
             }
         }
+
 
         /// <summary>
         /// 执行Transform轨道

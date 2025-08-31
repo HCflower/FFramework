@@ -15,14 +15,22 @@ namespace FFramework.Kit
         public Transform GuideLayer;            //引导层 - 引导玩家操作    
         public Transform DebugLayer;            //调试层 - 创建和调试UI   
 
-        [Button("创建UI层级")]
-        private void CrateUILayer()
+        [ContextMenu("创建UI层级")]
+        private void CreateUILayer()
         {
             this.name = "UIRoot";
             // 必要组件
             if (!TryGetComponent<Canvas>(out _)) gameObject.AddComponent<Canvas>();
             if (!TryGetComponent<CanvasScaler>(out _)) gameObject.AddComponent<CanvasScaler>();
             if (!TryGetComponent<GraphicRaycaster>(out _)) gameObject.AddComponent<GraphicRaycaster>();
+
+            // 添加UI层
+            BackgroundLayer = CreateAndAddUIlayerInGameObject("BackgroundLayer", this.transform, false, false, false);
+            PostProcessingLayer = CreateAndAddUIlayerInGameObject("PostProcessingLayer", this.transform, true, true, false);
+            ContentLayer = CreateAndAddUIlayerInGameObject("ContentLayer", this.transform, true, true, false);
+            PopupLayer = CreateAndAddUIlayerInGameObject("PopupLayer", this.transform, false, true, false);
+            GuideLayer = CreateAndAddUIlayerInGameObject("GuideLayer", this.transform, true, true, false);
+            DebugLayer = CreateAndAddUIlayerInGameObject("DebugLayer", this.transform, true, true, false);
 
             // EventSystem
             if (transform.Find("EventSystem") == null)
@@ -32,13 +40,6 @@ namespace FFramework.Kit
                 es.AddComponent<UnityEngine.EventSystems.EventSystem>();
                 es.AddComponent<UnityEngine.EventSystems.StandaloneInputModule>();
             }
-            // 添加UI层
-            BackgroundLayer = CreateAndAddUIlayerInGameObject("BackgroundLayer", this.transform, false, false, false);
-            PostProcessingLayer = CreateAndAddUIlayerInGameObject("PostProcessingLayer", this.transform, true, true, false);
-            ContentLayer = CreateAndAddUIlayerInGameObject("ContentLayer", this.transform, true, true, false);
-            PopupLayer = CreateAndAddUIlayerInGameObject("PopupLayer", this.transform, false, true, false);
-            GuideLayer = CreateAndAddUIlayerInGameObject("GuideLayer", this.transform, true, true, false);
-            DebugLayer = CreateAndAddUIlayerInGameObject("DebugLayer", this.transform, true, true, false);
         }
 
         /// <summary>
@@ -61,16 +62,29 @@ namespace FFramework.Kit
                 canvasGroup.interactable = interactable;
                 canvasGroup.blocksRaycasts = blocksRaycasts;
                 canvasGroup.ignoreParentGroups = ignoreParentGroups;
-
+                // 如果不是RectTransform则替换
+                var rect = exist as RectTransform;
+                if (rect != null)
+                {
+                    rect.anchorMin = Vector2.zero;
+                    rect.anchorMax = Vector2.one;
+                    rect.offsetMin = Vector2.zero;
+                    rect.offsetMax = Vector2.zero;
+                }
                 return exist;
             }
 
-            // 创建新层级
-            GameObject uiLayer = new GameObject(uiLayerName);
-            uiLayer.transform.SetParent(parent, false); // 保持局部坐标
-            uiLayer.transform.localPosition = Vector3.zero;
-            uiLayer.transform.localRotation = Quaternion.identity;
-            uiLayer.transform.localScale = Vector3.one;
+            // 创建新层级（使用RectTransform）
+            GameObject uiLayer = new GameObject(uiLayerName, typeof(RectTransform));
+            var rectTransform = uiLayer.GetComponent<RectTransform>();
+            rectTransform.SetParent(parent, false); // 保持局部坐标
+            rectTransform.localPosition = Vector3.zero;
+            rectTransform.localRotation = Quaternion.identity;
+            rectTransform.localScale = Vector3.one;
+            rectTransform.anchorMin = Vector2.zero;
+            rectTransform.anchorMax = Vector2.one;
+            rectTransform.offsetMin = Vector2.zero;
+            rectTransform.offsetMax = Vector2.zero;
 
             // 添加CanvasGroup并设置属性
             var newCanvasGroup = uiLayer.GetComponent<CanvasGroup>();
@@ -79,7 +93,7 @@ namespace FFramework.Kit
             newCanvasGroup.blocksRaycasts = blocksRaycasts;
             newCanvasGroup.ignoreParentGroups = ignoreParentGroups;
 
-            return uiLayer.transform;
+            return rectTransform;
         }
     }
 
