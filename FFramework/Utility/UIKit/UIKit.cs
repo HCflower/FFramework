@@ -334,9 +334,13 @@ namespace FFramework.Kit
             }
 
             // 锁定当前面板
+            // 如果当前打开的是PopupLayer/PostProcessingLayer，则不锁定前一个面板
             if (panelStack.Count > 0)
             {
-                panelStack.Peek().OnLock();
+                if (layer != UILayer.PopupLayer || layer != UILayer.PostProcessingLayer)
+                {
+                    panelStack.Peek().OnLock();
+                }
             }
 
             uiPanel.Show();
@@ -376,9 +380,13 @@ namespace FFramework.Kit
             }
 
             // 锁定当前面板
+            // 如果当前打开的是PopupLayer/PostProcessingLayer，则不锁定前一个面板
             if (panelStack.Count > 0)
             {
-                panelStack.Peek().OnLock();
+                if (layer != UILayer.PopupLayer || layer != UILayer.PostProcessingLayer)
+                {
+                    panelStack.Peek().OnLock();
+                }
             }
             uiPanel.Show();
             panelStack.Push(uiPanel);
@@ -486,26 +494,6 @@ namespace FFramework.Kit
         {
             if (panelStack.Count == 0) return null;
             return panelStack.Peek() as T;
-        }
-
-        /// <summary>
-        /// 简化方法：打开UI面板（默认从Resources加载）
-        /// </summary>
-        /// <typeparam name="T">面板类型</typeparam>
-        /// <param name="layer">UI层级</param>
-        /// <returns>打开的面板实例</returns>
-        public static T OpenPanel<T>(UILayer layer = UILayer.ContentLayer) where T : UIPanel
-        {
-            return OpenUIPanelFromRes<T>(true, layer);
-        }
-
-        /// <summary>
-        /// 简化方法：关闭UI面板
-        /// </summary>
-        /// <typeparam name="T">面板类型</typeparam>
-        public static void ClosePanel<T>() where T : UIPanel
-        {
-            CloseUIPanel<T>();
         }
 
         /// <summary>

@@ -131,7 +131,7 @@ public static async UniTask<bool> LoadSceneAsyncTask(string sceneName, Action on
 - `sceneName`: 目标场景名称
 - `onChangeScene`: 场景切换开始时的回调（用于显示加载面板等）
 - `onComplete`: 完成回调，参数表示是否成功
-- **返回值**: UniTask`<bool>` - 可以 await 等待，返回操作是否成功
+- **返回值**: UniTask `<bool>` - 可以 await 等待，返回操作是否成功
 
 **优势：**
 
@@ -563,18 +563,15 @@ public class AdvancedSceneManager : MonoBehaviour
 
    - 创建至少两个测试场景
    - 将场景添加到 Build Settings 中
-
 2. **设置示例脚本**
 
    - 将 SimpleLoadSceneExample 脚本添加到 GameObject
    - 配置目标场景名称
-
 3. **测试功能**
 
    - 运行场景，按空格键切换场景
    - 按 P 键查看当前进度信息
    - 观察控制台输出
-
 4. **测试功能**
 
    - 运行场景，按空格键切换场景
@@ -784,54 +781,44 @@ public class LoadingUIPool : MonoBehaviour
 
    - 确保目标场景名称正确且已添加到 Build Settings
    - 区分大小写，确保名称完全匹配
-
 2. **避免重复操作**
 
    - 在场景切换过程中不要重复调用加载方法
    - 使用 `IsProcessing`属性检查当前状态
-
 3. **UniTask 依赖性**
 
    - 使用 UniTask 功能需要安装 Cysharp.UniTask 包
    - 在项目中添加 `using Cysharp.Threading.Tasks;`
-
 4. **内存管理**
 
    - 系统会自动清理内部引用，无需手动管理
    - UniTask 版本具有更好的内存效率
-
 5. **异常处理**
 
    - UniTask 版本支持原生 try-catch 异常处理
    - 协程版本的错误通过 onComplete 回调的 bool 参数表示
-
 6. **取消操作**
 
    - UniTask 版本支持取消令牌(CancellationToken)
    - 组件销毁时会自动取消相关操作
-
 7. **线程安全**
 
    - LoadSceneKit 在主线程上运行，是线程安全的
    - 回调和事件都在主线程中执行
-
 8. **兼容性**
 
    - 同时提供协程和 UniTask 两种实现
    - 可以根据项目需求选择合适的版本
    - 两种版本可以在同一项目中混用
    - 确保回调中不会持有大量对象引用
-
 9. **跨场景对象**
 
    - 使用 DontDestroyOnLoad 的对象来处理场景切换事件
    - 避免在即将销毁的对象中处理回调
-
 10. **进度精确性**
 
     - Unity 的异步加载进度可能不是线性的
     - 90%以上的进度可能停留较长时间
-
 11. **异常处理**
 
     - 系统内置了基础的异常处理
