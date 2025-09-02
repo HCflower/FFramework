@@ -10,7 +10,7 @@ namespace FFramework.Kit
 	/// - 支持批量创建与管理计时器
 	/// - 零GC设计，适合高性能场景
 	/// </summary>
-	public sealed class TimerManager
+	public sealed class FrameTimerManager
 	{
 		#region 字段
 

@@ -229,7 +229,7 @@ TimerKit.DelayInvoke(2.0f, () => Debug.Log("两秒后执行"));
 TimerKit.Loop(1.0f, () => Debug.Log("每秒执行一次"));
 ```
 
-[查看完整 TimerKit 文档](Framework/Utility/TimerKit/TimerManager_Documentation.md)
+[查看完整 TimerKit 文档](FFramework/Utility/TimerKit/TimerManager_Documentation.md)
 
 ---
 
