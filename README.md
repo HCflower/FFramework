@@ -132,7 +132,7 @@ var panel = UIKit.OpenPanel<MainMenuPanel>();
 UIKit.ClosePanel<MainMenuPanel>();
 ```
 
-[查看完整 UIKit 文档](./Utility/UIKit/UIKit_Documentation.md)
+[查看完整 UIKit 文档](FFramework/Utility/UIKit/UIKit_Documentation.md)
 
 ### 2. PoolKit - 对象池管理
 
