@@ -2,39 +2,54 @@
 
 ## 📖 目录
 
-1. [概述](#概述)
-2. [核心特性](#核心特性)
-3. [快速开始](#快速开始)
-4. [详细 API 文档](#详细-api-文档)
-5. [使用场景示例](#使用场景示例)
-6. [最佳实践](#最佳实践)
-7. [注意事项](#注意事项)
+- [1. 概述](#1-概述)
+- [2. 核心特性](#2-核心特性)
+  - [2.1 完整的事件支持](#21-完整的事件支持)
+  - [2.2 便捷的 API 设计](#22-便捷的-api-设计)
+- [3. 快速开始](#3-快速开始)
+  - [3.1 基础事件绑定](#31-基础事件绑定)
+  - [3.2 高级事件绑定](#32-高级事件绑定)
+  - [3.3 拖拽功能](#33-拖拽功能)
+- [4. 详细 API 文档](#4-详细-api-文档)
+  - [4.1 EventKit 核心类](#41-eventkit-核心类)
+  - [4.2 EventKitExtensions 扩展方法](#42-eventkitextensions-扩展方法)
+  - [4.3 DragKit 高级拖拽](#43-dragkit-高级拖拽)
+- [5. 使用场景示例](#5-使用场景示例)
+  - [5.1 UI 按钮增强](#51-ui-按钮增强)
+  - [5.2 拖拽排序列表](#52-拖拽排序列表)
+  - [5.3 图片查看器](#53-图片查看器)
+  - [5.4 右键菜单](#54-右键菜单)
+- [6. 最佳实践](#6-最佳实践)
+  - [6.1 性能优化](#61-性能优化)
+  - [6.2 代码组织](#62-代码组织)
+  - [6.3 调试技巧](#63-调试技巧)
+- [7. 注意事项](#7-注意事项)
 
 ---
 
-## 概述
+## 1. 概述
 
-EventKit 是一个强大的 Unity UI 事件系统封装工具，提供了所有 Unity EventSystem 接口的便捷绑定方式，让事件处理变得更加简单和优雅。
+EventKit 是一个强大的 Unity UI 事件系统封装工具，提供了所有 Unity EventSystem 接口的便捷绑定方式，让事件处理变得更加简单和优雅。EventKit 允许开发者使用链式调用和扩展方法，大大减少了 UI 事件处理所需的代码量，同时提高了代码的可读性和可维护性。
 
-## 核心特性
+## 2. 核心特性
 
-### 🎯 完整的事件支持
+### 2.1 完整的事件支持
 
 - **指针事件**: 进入、退出、按下、抬起、点击
 - **拖拽事件**: 初始化、开始、拖拽中、结束、放置
 - **输入事件**: 滚轮、选择、移动、提交、取消
 - **高级拖拽**: DragKit 提供可视化效果和约束功能
 
-### 🔧 便捷的 API 设计
+### 2.2 便捷的 API 设计
 
-- **链式调用**: 支持方法链式调用
-- **扩展方法**: 为 GameObject 和 Component 提供扩展方法
-- **静态便捷方法**: 一行代码绑定常用事件
-- **事件数据封装**: 提供便捷的事件数据处理方法
+- **链式调用**: 支持方法链式调用，使代码更简洁
+- **扩展方法**: 为 GameObject 和 Component 提供扩展方法，使用更自然
+- **静态便捷方法**: 一行代码绑定常用事件，减少重复代码
+- **事件数据封装**: 提供便捷的事件数据处理方法，简化常见操作
 
-## 快速开始
+## 3. 快速开始
 
-### 1. 基础事件绑定
+### 3.1 基础事件绑定
 
 ```csharp
 using FFramework.Kit;
@@ -56,7 +71,7 @@ gameObject.BindHover(
 );
 ```
 
-### 2. 高级事件绑定
+### 3.2 高级事件绑定
 
 ```csharp
 // 使用EventKit进行复杂事件绑定
@@ -67,7 +82,7 @@ EventKit.Get(gameObject)
     .SetOnDrag(eventData => Debug.Log("拖拽中"));
 ```
 
-### 3. 拖拽功能
+### 3.3 拖拽功能
 
 ```csharp
 // 基础拖拽
@@ -84,9 +99,9 @@ DragKit.Get(gameObject)
     .SetConstraints(constrainToParent: true);
 ```
 
-## 详细 API 文档
+## 4. 详细 API 文档
 
-### EventKit 核心类
+### 4.1 EventKit 核心类
 
 #### 静态方法
 
@@ -127,7 +142,7 @@ EventKit RemoveOnPointerClick(Action<PointerEventData> callback)
 EventKit ClearAllEvents() // 清除所有事件
 ```
 
-### EventKitExtensions 扩展方法
+### 4.2 EventKitExtensions 扩展方法
 
 #### GameObject 扩展
 
@@ -172,7 +187,7 @@ Vector3 worldPos = eventData.GetWorldPosition(camera);
 Vector2 uiPos = eventData.GetUIPosition(rectTransform);
 ```
 
-### DragKit 高级拖拽
+### 4.3 DragKit 高级拖拽
 
 #### 配置方法
 
@@ -198,9 +213,9 @@ bool IsReturning { get; } // 是否正在返回原位
 bool EnableDrag { get; set; } // 启用/禁用拖拽
 ```
 
-## 使用场景示例
+## 5. 使用场景示例
 
-### 1. UI 按钮增强
+### 5.1 UI 按钮增强
 
 ```csharp
 // 按钮点击音效
@@ -213,7 +228,7 @@ button.BindHover(
 );
 ```
 
-### 2. 拖拽排序列表
+### 5.2 拖拽排序列表
 
 ```csharp
 foreach (var item in listItems)
@@ -228,7 +243,7 @@ foreach (var item in listItems)
 }
 ```
 
-### 3. 图片查看器
+### 5.3 图片查看器
 
 ```csharp
 image.BindClickWithRaycast(eventData =>
@@ -246,7 +261,7 @@ image.BindDrag(delta =>
 });
 ```
 
-### 4. 右键菜单
+### 5.4 右键菜单
 
 ```csharp
 gameObject.BindClick(eventData =>
@@ -258,27 +273,27 @@ gameObject.BindClick(eventData =>
 });
 ```
 
-## 最佳实践
+## 6. 最佳实践
 
-### 1. 性能优化
+### 6.1 性能优化
 
 - 在对象销毁前调用 `ClearAllEvents()`清理事件
 - 对于临时 UI，使用 `RemoveOnXXX`方法移除特定事件
 - 避免在 Update 中频繁绑定/解绑事件
 
-### 2. 代码组织
+### 6.2 代码组织
 
 - 将相关事件绑定放在同一个方法中
 - 使用链式调用提高代码可读性
 - 为复杂交互创建专门的事件处理类
 
-### 3. 调试技巧
+### 6.3 调试技巧
 
 - 在事件回调中添加 Debug.Log 确认事件触发
 - 使用事件数据的详细信息进行问题排查
 - 检查 UI 元素的 raycastTarget 设置
 
-## 注意事项
+## 7. 注意事项
 
 1. **射线检测**: Image 和 Text 组件需要启用 `raycastTarget`才能接收事件
 2. **事件冲突**: 多个组件监听同一事件时要注意执行顺序
