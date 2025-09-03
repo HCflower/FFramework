@@ -25,12 +25,12 @@ namespace FFramework.Kit
             if (!TryGetComponent<GraphicRaycaster>(out _)) gameObject.AddComponent<GraphicRaycaster>();
 
             // 添加UI层
-            BackgroundLayer = CreateAndAddUIlayerInGameObject("BackgroundLayer", this.transform, false, false, false);
-            PostProcessingLayer = CreateAndAddUIlayerInGameObject("PostProcessingLayer", this.transform, true, true, false);
-            ContentLayer = CreateAndAddUIlayerInGameObject("ContentLayer", this.transform, true, true, false);
-            PopupLayer = CreateAndAddUIlayerInGameObject("PopupLayer", this.transform, false, true, false);
-            GuideLayer = CreateAndAddUIlayerInGameObject("GuideLayer", this.transform, true, true, false);
-            DebugLayer = CreateAndAddUIlayerInGameObject("DebugLayer", this.transform, true, true, false);
+            BackgroundLayer = CreateAndAddUIlayerInGameObject("BackgroundLayer", this.transform);
+            PostProcessingLayer = CreateAndAddUIlayerInGameObject("PostProcessingLayer", this.transform);
+            ContentLayer = CreateAndAddUIlayerInGameObject("ContentLayer", this.transform);
+            PopupLayer = CreateAndAddUIlayerInGameObject("PopupLayer", this.transform);
+            GuideLayer = CreateAndAddUIlayerInGameObject("GuideLayer", this.transform);
+            DebugLayer = CreateAndAddUIlayerInGameObject("DebugLayer", this.transform);
 
             // EventSystem
             if (transform.Find("EventSystem") == null)
@@ -47,21 +47,12 @@ namespace FFramework.Kit
         /// </summary>
         /// <param name="uiLayerName">ui层名称</param>
         /// <param name="parent">父级变换</param>
-        /// <param name="interactable">是否可交互</param>
-        /// <param name="blocksRaycasts">是否阻挡射线</param>
-        /// <param name="ignoreParentGroups">是否忽略父级组</param>
-        private Transform CreateAndAddUIlayerInGameObject(string uiLayerName, Transform parent, bool interactable, bool blocksRaycasts, bool ignoreParentGroups)
+        private Transform CreateAndAddUIlayerInGameObject(string uiLayerName, Transform parent)
         {
             // 优先查找已存在的层级
             Transform exist = parent.Find(uiLayerName);
             if (exist != null)
             {
-                // 查找或添加CanvasGroup，并设置属性
-                var canvasGroup = exist.GetComponent<CanvasGroup>();
-                if (canvasGroup == null) canvasGroup = exist.gameObject.AddComponent<CanvasGroup>();
-                canvasGroup.interactable = interactable;
-                canvasGroup.blocksRaycasts = blocksRaycasts;
-                canvasGroup.ignoreParentGroups = ignoreParentGroups;
                 // 如果不是RectTransform则替换
                 var rect = exist as RectTransform;
                 if (rect != null)
@@ -86,13 +77,6 @@ namespace FFramework.Kit
             rectTransform.offsetMin = Vector2.zero;
             rectTransform.offsetMax = Vector2.zero;
 
-            // 添加CanvasGroup并设置属性
-            var newCanvasGroup = uiLayer.GetComponent<CanvasGroup>();
-            if (newCanvasGroup == null) newCanvasGroup = uiLayer.AddComponent<CanvasGroup>();
-            newCanvasGroup.interactable = interactable;
-            newCanvasGroup.blocksRaycasts = blocksRaycasts;
-            newCanvasGroup.ignoreParentGroups = ignoreParentGroups;
-
             return rectTransform;
         }
     }
@@ -102,11 +86,34 @@ namespace FFramework.Kit
     /// </summary>
     public enum UILayer
     {
+        /// <summary> 
+        /// 背景层 - 静态背景
+        /// </summary>
         BackgroundLayer,
+
+        /// <summary> 
+        /// 后期处理层 - UI后期处理效果
+        /// </summary>
         PostProcessingLayer,
+
+        /// <summary>
+        /// 内容层 - 主要UI功能
+        /// </summary>
         ContentLayer,
+
+        /// <summary> 
+        /// 弹窗层 - 消息弹窗
+        /// </summary>
         PopupLayer,
+
+        /// <summary>
+        /// 引导层 - 引导玩家操作
+        /// </summary>
         GuideLayer,
+
+        /// <summary> 
+        /// 调试层 - 创建和调试UI
+        /// </summary>
         DebugLayer
     }
 }
