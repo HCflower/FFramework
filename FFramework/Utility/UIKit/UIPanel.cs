@@ -9,7 +9,7 @@ namespace FFramework.Kit
     {
         private CanvasGroup canvasGroup;
 
-        protected virtual void Awake()
+        protected virtual void OnEnable()
         {
             Init();
         }
