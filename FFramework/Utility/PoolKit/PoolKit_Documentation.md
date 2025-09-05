@@ -1,106 +1,94 @@
-# FFramework.Kit PoolKit 对象池模块文档
+# PoolKit 对象池模块文档
 
 ## 目录
 
 - [一、简介](#一简介)
-- [二、核心类说明](#二核心类说明)
-- [三、快速上手](#三快速上手)
-  - [1. 获取对象](#1-获取对象)
-  - [2. 回收对象](#2-回收对象)
-  - [3. 预加载对象池](#3-预加载对象池)
-  - [4. 清理对象池](#4-清理对象池)
-- [四、常用 API](#四常用-api)
-- [五、使用建议](#五使用建议)
-- [六、示例代码](#六示例代码)
-- [七、常见问题](#七常见问题)
+- [二、优势](#二优势)
+- [三、API 介绍](#三api介绍)
+- [四、核心功能](#四核心功能)
+- [五、快速上手](#五快速上手)
+- [六、使用场景示例](#六使用场景示例)
+- [七、性能优化](#七性能优化)
 
 ---
 
-## 一、简介
+## 一简介
 
-PoolKit 是 FFramework 的对象池工具，专为高效管理和复用游戏对象设计，适用于特效、子弹、UI 等场景，显著减少实例化和销毁带来的性能损耗。
-
----
-
-## 二、核心类说明
-
-- **ObjectPoolKit**：对象池管理器，负责对象的获取、回收和池的维护。
-- **PoolRoot**：对象池根节点，所有池对象的父级，便于统一管理和场景清理。
+PoolKit 是 FFramework 的高效对象池工具，专为游戏对象的复用与管理设计，适用于特效、子弹、UI 等场景，显著减少实例化和销毁带来的性能损耗。
 
 ---
 
-## 三、快速上手
+## 二优势
 
-### 1. 获取对象
+1. **高性能复用**：避免频繁实例化和销毁，提升帧率。
+2. **自动管理**：对象自动归类到池，场景切换自动清理。
+3. **灵活扩展**：支持多类型对象池，兼容 GameObject 和 Component。
+4. **易用性强**：API 简单，支持预加载、批量清理。
+5. **调试友好**：所有池对象挂在 PoolRoot 下，便于统一管理和调试。
+
+---
+
+## 三 api 介绍
+
+- `InitPool(GameObject prefab, int size)`：预加载指定数量对象到池中。
+- `GetPoolObject(GameObject prefab)`：从池中获取对象，池为空则自动实例化。
+- `GetPoolObject<T>(T prefab)`：按类型获取对象。
+- `GetPoolObject<T>()`：按类型创建对象。
+- `ReturnPool(GameObject obj)`：将对象回收到池中，自动隐藏并重置状态。
+
+---
+
+## 四核心功能
+
+1. **对象复用**：支持 GameObject 和 Component 的高效复用。
+2. **自动归类**：池对象自动归类到 PoolRoot 下，便于场景清理。
+3. **预加载机制**：支持批量预加载，减少运行时卡顿。
+4. **批量清理**：场景切换时可一键清理所有池对象。
+5. **类型兼容**：支持泛型获取和回收，灵活适配各种对象。
+
+---
+
+## 五快速上手
+
+### 1. 预加载对象池
 
 ```csharp
-GameObject obj = ObjectPoolKit.Spawn("PrefabName");
+ObjectPoolKit.InitPool(prefab, 10); // 预加载10个对象
 ```
 
-### 2. 回收对象
+### 2. 获取对象
 
 ```csharp
-ObjectPoolKit.Recycle(obj);
+GameObject obj = ObjectPoolKit.GetPoolObject(prefab);
 ```
 
-### 3. 预加载对象池
+### 3. 按类型获取对象
 
 ```csharp
-ObjectPoolKit.Preload("PrefabName", count: 10);
+var comp = ObjectPoolKit.GetPoolObject<MyComponent>(myPrefab);
 ```
 
-### 4. 清理对象池
+### 4. 回收对象
 
 ```csharp
-ObjectPoolKit.ClearAll();
-```
-
----
-
-## 四、常用 API
-
-- `Spawn(string prefabName)`：从池中获取对象，若池为空则自动实例化。
-- `Recycle(GameObject obj)`：将对象回收到池中，自动隐藏并重置状态。
-- `Preload(string prefabName, int count)`：预加载指定数量的对象到池中。
-- `Clear(string prefabName)`：清理指定类型的池对象。
-- `ClearAll()`：清理所有对象池。
-
----
-
-## 五、使用建议
-
-1. 预加载常用对象，提升运行时性能。
-2. 所有临时对象建议通过 `Recycle` 回收，而不是直接 `Destroy`。
-3. 所有池对象建议挂在 `PoolRoot` 下，便于场景清理和调试。
-4. 场景切换时调用 `ClearAll()`，避免残留对象影响新场景。
-
----
-
-## 六、示例代码
-
-```csharp
-// 预加载
-ObjectPoolKit.Preload("ExplosionEffect", 5);
-
-// 使用对象
-var effect = ObjectPoolKit.Spawn("ExplosionEffect");
-effect.transform.position = hitPoint;
-
-// 回收对象
-ObjectPoolKit.Recycle(effect);
-
-// 场景切换时清理
-ObjectPoolKit.ClearAll();
+ObjectPoolKit.ReturnPool(obj);
 ```
 
 ---
 
-## 七、常见问题
+## 六使用场景示例
 
-- 对象未回收：确保所有临时对象生命周期结束后调用 `Recycle`。
-- 池对象丢失：场景切换后建议重新预加载，或检查 `PoolRoot` 是否被销毁。
-- 性能问题：合理设置预加载数量，避免运行时频繁实例化。
+1. **特效复用**：爆炸、闪光等特效对象反复使用。
+2. **子弹管理**：射击类游戏中大量子弹的高效复用。
+3. **UI 弹窗**：弹窗、提示等 UI 元素的池化管理。
+4. **场景切换清理**：切换场景时自动清理所有池对象。
 
 ---
 
-如需扩展高级功能或自定义池逻辑，请参考源码注释或联系维护者。
+## 七性能优化
+
+1. **合理预加载**：根据实际需求预加载常用对象，减少运行时实例化。
+2. **自动归类管理**：所有池对象挂在 PoolRoot 下，便于统一清理。
+3. **批量回收**：场景切换时批量回收，避免残留对象影响新场景。
+4. **类型复用**：优先使用泛型接口，提升代码复用率。
+5. **调试工具**：通过 PoolRoot 统一查看和管理所有池对象。

@@ -3,28 +3,76 @@
 ## 目录
 
 - [一、简介](#一简介)
-- [二、快速上手](#二快速上手)
-  - [1. 创建面板脚本](#1-创建面板脚本)
-  - [2. 准备面板预制体](#2-准备面板预制体)
-  - [3. 打开/关闭面板](#3-打开关闭面板)
-- [三、核心功能](#三核心功能)
-  - [1. 面板管理](#1-面板管理)
-  - [2. 层级与排序](#2-层级与排序)
-  - [3. 组件查找](#3-组件查找)
-  - [4. 预加载与性能](#4-预加载与性能)
-- [四、示例代码](#四示例代码)
-- [五、常见问题](#五常见问题)
-- [六、最佳实践](#六最佳实践)
+- [二、优势](#二优势)
+- [三、API 介绍](#三api介绍)
+- [四、核心功能](#四核心功能)
+- [五、快速上手](#五快速上手)
+- [六、使用场景示例](#六使用场景示例)
+- [七、性能优化](#七性能优化)
 
 ---
 
 ## 一、简介
 
-`UIKit` 是 FFramework 的 UI 管理工具类，专为 Unity 单 Canvas 架构设计，支持 UI 面板的打开、关闭、层级管理、组件查找等功能。通过泛型和栈结构，提供高效、类型安全的 UI 操作体验。
+UIKit 是 FFramework 的 UI 管理工具，专为 Unity 单 Canvas 架构设计，支持 UI 面板的打开、关闭、层级管理、组件查找等功能。通过泛型和栈结构，提供高效、类型安全的 UI 操作体验。
 
 ---
 
-## 二、快速上手
+## 二、优势
+
+- 单 Canvas 架构，层级清晰，性能优越
+- 泛型 API，类型安全，易于扩展
+- 支持面板预加载与缓存，减少资源消耗
+- 组件查找与自动添加，开发效率高
+- 层级与排序灵活，满足复杂 UI 需求
+
+---
+
+## 三、API 介绍
+
+**面板管理**
+
+- `OpenPanel<T>(UILayer layer = UILayer.ContentLayer)`：打开面板
+- `ClosePanel<T>()`：关闭面板
+- `GetPanel<T>()`：获取面板实例
+- `GetTopPanel<T>()`：获取栈顶面板
+- `CloseAllPanelsInLayer(UILayer layer)`：批量关闭层级面板
+- `CleanupDestroyedPanels()`：清理已销毁面板引用
+
+**层级与排序**
+
+- `SetPanelSortOrder(UIPanel panel, int sortOrder)`：设置面板显示顺序
+- `BringPanelToFront(UIPanel panel)` / `SendPanelToBack(UIPanel panel)`：置前/置后显示
+- `SwapPanelOrder(UIPanel panel1, UIPanel panel2)`：交换面板顺序
+- `GetPanelSortOrder(UIPanel panel)`：查询面板顺序
+
+**组件查找**
+
+- `FindChildGameObject(GameObject panel, string childPath)`：查找子物体
+- `GetOrAddComponent<T>(GameObject panel, out T component)`：获取或添加组件
+- `GetOrAddComponentInChildren<T>(GameObject panel, string childName, out T component)`：在子物体中获取或添加组件
+
+**预加载与性能**
+
+- `PreloadPanel<T>(Action<T> callback = null)`：预加载面板
+- `GetActivePanelNames()`：获取活跃面板名称列表
+- `GetActivePanelCountInLayer(UILayer layer)`：获取层级活跃面板数量
+- `ClearAllUIPanel(bool destroyGameObjects = true)`：清理所有面板
+
+---
+
+## 四、核心功能
+
+1. 面板的打开、关闭、缓存与栈管理
+2. 多层级 UI 管理（背景、内容、弹窗、引导、调试等）
+3. 灵活的面板排序与层级调整
+4. 组件查找与自动添加，简化 UI 操作
+5. 支持面板预加载，提升响应速度
+6. 批量关闭、清理无效面板，优化内存
+
+---
+
+## 五、快速上手
 
 ### 1. 创建面板脚本
 
@@ -33,10 +81,10 @@ using FFramework.Kit;
 
 public class MainMenuPanel : UIPanel
 {
-    public override void Init()
-    {
-        // 初始化逻辑
-    }
+  public override void Init()
+  {
+    // 初始化逻辑
+  }
 }
 ```
 
@@ -62,41 +110,7 @@ UIKit.ClosePanel<MainMenuPanel>();
 
 ---
 
-## 三、核心功能
-
-### 1. 面板管理
-
-- 打开面板：`OpenPanel<T>(UILayer layer = UILayer.ContentLayer)`
-- 关闭面板：`ClosePanel<T>()`
-- 获取面板实例：`GetPanel<T>()`
-- 获取栈顶面板：`GetTopPanel<T>()`
-- 批量关闭层级面板：`CloseAllPanelsInLayer(UILayer layer)`
-- 清理已销毁面板引用：`CleanupDestroyedPanels()`
-
-### 2. 层级与排序
-
-- UI 层级枚举：`BackgroundLayer`、`PostProcessingLayer`、`ContentLayer`、`PopupLayer`、`GuideLayer`、`DebugLayer`
-- 设置面板显示顺序：`SetPanelSortOrder(UIPanel panel, int sortOrder)`
-- 置前/置后显示：`BringPanelToFront(UIPanel panel)` / `SendPanelToBack(UIPanel panel)`
-- 交换面板顺序：`SwapPanelOrder(UIPanel panel1, UIPanel panel2)`
-- 查询面板顺序：`GetPanelSortOrder(UIPanel panel)`
-
-### 3. 组件查找
-
-- 查找子物体：`FindChildGameObject(GameObject panel, string childPath)`
-- 获取或添加组件：`GetOrAddComponent<T>(GameObject panel, out T component)`
-- 在子物体中获取或添加组件：`GetOrAddComponentInChildren<T>(GameObject panel, string childName, out T component)`
-
-### 4. 预加载与性能
-
-- 预加载面板：`PreloadPanel<T>(Action<T> callback = null)`
-- 获取活跃面板名称列表：`GetActivePanelNames()`
-- 获取层级活跃面板数量：`GetActivePanelCountInLayer(UILayer layer)`
-- 清理所有面板：`ClearAllUIPanel(bool destroyGameObjects = true)`
-
----
-
-## 四、示例代码
+## 六、使用场景示例
 
 ### 打开主菜单并置于最前
 
@@ -121,21 +135,13 @@ if (startBtn != null) startBtn.onClick.AddListener(() => Debug.Log("开始游戏
 
 ---
 
-## 五、常见问题
+## 七、性能优化
 
-- 面板无法打开：检查预制体是否在 `Resources` 文件夹，名称是否与类名一致，脚本是否继承自 `UIPanel`
-- 排序不生效：确认面板在同一父对象下，避免多 Canvas 冲突
-- 内存占用高：定期调用 `CleanupDestroyedPanels()`，监控缓存数量
-
----
-
-## 六、最佳实践
-
-1. 预制体命名与脚本类名保持一致
-2. 所有 UI 面板均继承自 `UIPanel`
-3. 资源放在 `Resources` 文件夹
-4. 合理分配 UI 层级，避免频繁排序
-5. 场景切换时清理无效引用
+- 预加载常用面板，减少首次打开卡顿
+- 定期调用 `CleanupDestroyedPanels()` 清理无效引用
+- 合理分配 UI 层级，避免频繁排序和多 Canvas 冲突
+- 场景切换时调用 `ClearAllUIPanel()` 释放资源
+- 组件查找建议缓存引用，减少重复查找
 
 ---
 

@@ -1,59 +1,91 @@
-# FFramework.Kit EventKit 事件工具使用说明
+# EventKit 事件工具文档
 
-## 📖 目录
+## 目录
 
-- [1. 概述](#1-概述)
-- [2. 核心特性](#2-核心特性)
-  - [2.1 完整的事件支持](#21-完整的事件支持)
-  - [2.2 便捷的 API 设计](#22-便捷的-api-设计)
-- [3. 快速开始](#3-快速开始)
-  - [3.1 基础事件绑定](#31-基础事件绑定)
-  - [3.2 高级事件绑定](#32-高级事件绑定)
-  - [3.3 拖拽功能](#33-拖拽功能)
-- [4. 详细 API 文档](#4-详细-api-文档)
-  - [4.1 EventKit 核心类](#41-eventkit-核心类)
-  - [4.2 EventKitExtensions 扩展方法](#42-eventkitextensions-扩展方法)
-  - [4.3 DragKit 高级拖拽](#43-dragkit-高级拖拽)
-- [5. 使用场景示例](#5-使用场景示例)
-  - [5.1 UI 按钮增强](#51-ui-按钮增强)
-  - [5.2 拖拽排序列表](#52-拖拽排序列表)
-  - [5.3 图片查看器](#53-图片查看器)
-  - [5.4 右键菜单](#54-右键菜单)
-- [6. 最佳实践](#6-最佳实践)
-  - [6.1 性能优化](#61-性能优化)
-  - [6.2 代码组织](#62-代码组织)
-  - [6.3 调试技巧](#63-调试技巧)
-- [7. 注意事项](#7-注意事项)
+- [一、简介](#一简介)
+- [二、优势](#二优势)
+- [三、API 介绍](#三api介绍)
+  - [1. EventKit 核心类](#1-eventkit-核心类)
+  - [2. EventKitExtensions 扩展方法](#2-eventkitextensions-扩展方法)
+  - [3. DragKit 高级拖拽](#3-dragkit-高级拖拽)
+- [四、核心功能](#四核心功能)
+- [五、快速上手](#五快速上手)
+  - [1. 基础事件绑定](#1-基础事件绑定)
+  - [2. 高级事件绑定](#2-高级事件绑定)
+  - [3. 拖拽功能](#3-拖拽功能)
+- [六、使用场景示例](#六使用场景示例)
+- [七、性能优化](#七性能优化)
 
 ---
 
-## 1. 概述
+## 一、简介
 
-EventKit 是一个强大的 Unity UI 事件系统封装工具，提供了所有 Unity EventSystem 接口的便捷绑定方式，让事件处理变得更加简单和优雅。EventKit 允许开发者使用链式调用和扩展方法，大大减少了 UI 事件处理所需的代码量，同时提高了代码的可读性和可维护性。
+`EventKit` 是一个强大的 Unity UI 事件系统封装工具，提供了所有 Unity EventSystem 接口的便捷绑定方式。通过链式调用和扩展方法，开发者可以更高效地处理 UI 事件，提升代码的可读性和可维护性。
 
-## 2. 核心特性
+---
 
-### 2.1 完整的事件支持
+## 二、优势
 
-- **指针事件**: 进入、退出、按下、抬起、点击
-- **拖拽事件**: 初始化、开始、拖拽中、结束、放置
-- **输入事件**: 滚轮、选择、移动、提交、取消
-- **高级拖拽**: DragKit 提供可视化效果和约束功能
+1. **全面的事件支持**：涵盖指针事件、拖拽事件、输入事件等。
+2. **便捷的 API**：支持链式调用和扩展方法，减少代码量。
+3. **高级功能**：内置 `DragKit`，支持拖拽的视觉效果和约束。
+4. **易用性**：提供静态便捷方法，一行代码即可绑定事件。
+5. **高性能**：优化事件处理逻辑，减少性能开销。
 
-### 2.2 便捷的 API 设计
+---
 
-- **链式调用**: 支持方法链式调用，使代码更简洁
-- **扩展方法**: 为 GameObject 和 Component 提供扩展方法，使用更自然
-- **静态便捷方法**: 一行代码绑定常用事件，减少重复代码
-- **事件数据封装**: 提供便捷的事件数据处理方法，简化常见操作
+## 三、API 介绍
 
-## 3. 快速开始
+### 1. EventKit 核心类
 
-### 3.1 基础事件绑定
+- `SetOnPointerEnter(Action<PointerEventData> callback)`
+  - 设置指针进入事件。
+- `SetOnPointerExit(Action<PointerEventData> callback)`
+  - 设置指针退出事件。
+- `SetOnPointerClick(Action<PointerEventData> callback)`
+  - 设置指针点击事件。
+- `SetOnDrag(Action<PointerEventData> callback)`
+  - 设置拖拽中事件。
+- `SetOnBeginDrag(Action<PointerEventData> callback)`
+  - 设置开始拖拽事件。
+- `SetOnEndDrag(Action<PointerEventData> callback)`
+  - 设置结束拖拽事件。
+
+### 2. EventKitExtensions 扩展方法
+
+- `BindClick(Action callback)`
+  - 为 GameObject 或 Component 绑定点击事件。
+- `BindHover(Action onEnter, Action onExit)`
+  - 绑定悬停事件。
+- `BindDrag(Action<PointerEventData> onBeginDrag, Action<PointerEventData> onDrag, Action<PointerEventData> onEndDrag)`
+  - 绑定拖拽事件。
+
+### 3. DragKit 高级拖拽
+
+- `SetDragConfig(bool enableDrag, bool returnToOriginal, float returnSpeed)`
+  - 配置拖拽行为。
+- `SetVisualEffects(bool scaleOnDrag, bool fadeOnDrag)`
+  - 设置拖拽的视觉效果。
+- `SetConstraints(bool constrainToParent, bool constrainToScreen)`
+  - 设置拖拽的约束条件。
+
+---
+
+## 四、核心功能
+
+1. **指针事件**：进入、退出、按下、抬起、点击。
+2. **拖拽事件**：初始化、开始、拖拽中、结束、放置。
+3. **输入事件**：滚轮、选择、移动、提交、取消。
+4. **高级拖拽**：支持视觉效果（缩放、透明度）和位置约束。
+5. **事件扩展**：便捷绑定常见事件，减少重复代码。
+
+---
+
+## 五、快速上手
+
+### 1. 基础事件绑定
 
 ```csharp
-using FFramework.Kit;
-
 // 最简单的点击事件
 button.BindClick(() => Debug.Log("按钮被点击了！"));
 
@@ -71,10 +103,10 @@ gameObject.BindHover(
 );
 ```
 
-### 3.2 高级事件绑定
+### 2. 高级事件绑定
 
 ```csharp
-// 使用EventKit进行复杂事件绑定
+// 使用 EventKit 进行复杂事件绑定
 EventKit.Get(gameObject)
     .SetOnPointerClick(eventData => Debug.Log("点击"))
     .SetOnPointerEnter(eventData => Debug.Log("进入"))
@@ -82,7 +114,7 @@ EventKit.Get(gameObject)
     .SetOnDrag(eventData => Debug.Log("拖拽中"));
 ```
 
-### 3.3 拖拽功能
+### 3. 拖拽功能
 
 ```csharp
 // 基础拖拽
@@ -92,211 +124,47 @@ gameObject.BindDrag(
     onEndDrag: eventData => Debug.Log("结束拖拽")
 );
 
-// 高级拖拽（使用DragKit）
+// 高级拖拽（使用 DragKit）
 DragKit.Get(gameObject)
     .SetDragConfig(enableDrag: true, returnToOriginal: true, returnSpeed: 3f)
     .SetVisualEffects(scaleOnDrag: true, fadeOnDrag: true)
     .SetConstraints(constrainToParent: true);
 ```
 
-## 4. 详细 API 文档
+---
 
-### 4.1 EventKit 核心类
+## 六、使用场景示例
 
-#### 静态方法
+1. **UI 按钮增强**：
 
-```csharp
-// 获取或添加EventKit组件
-EventKit eventKit = EventKit.Get(gameObject);
-EventKit eventKit = EventKit.Get(component);
-```
+   - 使用 `BindClick` 为按钮添加点击事件。
 
-#### 事件设置方法（替换现有事件）
+2. **拖拽排序列表**：
 
-```csharp
-EventKit SetOnPointerClick(Action<PointerEventData> callback)
-EventKit SetOnPointerEnter(Action<PointerEventData> callback)
-EventKit SetOnPointerExit(Action<PointerEventData> callback)
-EventKit SetOnPointerDown(Action<PointerEventData> callback)
-EventKit SetOnPointerUp(Action<PointerEventData> callback)
-EventKit SetOnDrag(Action<PointerEventData> callback)
-EventKit SetOnBeginDrag(Action<PointerEventData> callback)
-EventKit SetOnEndDrag(Action<PointerEventData> callback)
-EventKit SetOnScroll(Action<PointerEventData> callback)
-// ... 更多事件方法
-```
+   - 使用 `DragKit` 实现拖拽排序功能。
 
-#### 事件添加方法（支持多个回调）
+3. **图片查看器**：
 
-```csharp
-EventKit AddOnPointerClick(Action<PointerEventData> callback)
-EventKit AddOnPointerEnter(Action<PointerEventData> callback)
-EventKit AddOnDrag(Action<PointerEventData> callback)
-// ... 更多添加方法
-```
+   - 使用拖拽事件实现图片的平移和缩放。
 
-#### 事件移除方法
+4. **右键菜单**：
+   - 使用 `BindClick` 和 `BindHover` 实现右键菜单功能。
 
-```csharp
-EventKit RemoveOnPointerClick(Action<PointerEventData> callback)
-EventKit ClearAllEvents() // 清除所有事件
-```
+---
 
-### 4.2 EventKitExtensions 扩展方法
+## 七、性能优化
 
-#### GameObject 扩展
+1. **事件解绑**：
 
-```csharp
-// 点击事件
-gameObject.BindClick(Action<PointerEventData> callback)
-gameObject.BindClick(Action callback) // 无参数版本
+   - 在对象销毁时解绑事件，避免内存泄漏。
 
-// 悬停事件
-gameObject.BindHover(Action onEnter, Action onExit = null)
-gameObject.BindHover(Action<PointerEventData> onEnter, Action<PointerEventData> onExit = null)
+2. **减少事件监听器**：
 
-// 拖拽事件
-gameObject.BindDrag(Action<PointerEventData> onBeginDrag, Action<PointerEventData> onDrag, Action<PointerEventData> onEndDrag)
-gameObject.BindDrag(Action<Vector2> onDrag) // 简化版本
-```
+   - 合理规划事件绑定，避免重复监听。
 
-#### UI 组件特殊扩展
+3. **优化拖拽逻辑**：
 
-```csharp
-// Button增强点击
-button.BindEnhancedClick(Action<PointerEventData> callback)
+   - 使用约束条件减少无效计算。
 
-// Image/Text启用射线检测并绑定点击
-image.BindClickWithRaycast(Action<PointerEventData> callback)
-text.BindClickWithRaycast(Action<PointerEventData> callback)
-
-// ScrollRect滚动事件
-scrollRect.BindScroll(Action<PointerEventData> callback)
-```
-
-#### 事件数据便捷方法
-
-```csharp
-// 检查鼠标按键
-bool isLeft = eventData.IsLeftClick();
-bool isRight = eventData.IsRightClick();
-bool isMiddle = eventData.IsMiddleClick();
-
-// 坐标转换
-Vector3 worldPos = eventData.GetWorldPosition(camera);
-Vector2 uiPos = eventData.GetUIPosition(rectTransform);
-```
-
-### 4.3 DragKit 高级拖拽
-
-#### 配置方法
-
-```csharp
-DragKit SetDragConfig(bool enableDrag, bool returnToOriginal, float returnSpeed)
-DragKit SetVisualEffects(bool scaleOnDrag, Vector3 dragScale, bool fadeOnDrag, float dragAlpha)
-DragKit SetConstraints(bool constrainToParent, bool constrainToScreen, Vector2 dragBounds)
-DragKit SetCallbacks(Action<PointerEventData> onBeginDrag, Action<PointerEventData> onDrag, Action<PointerEventData> onEndDrag)
-```
-
-#### 公共方法
-
-```csharp
-void ResetToOriginalPosition(bool immediate = false)
-void UpdateOriginalPosition()
-```
-
-#### 属性
-
-```csharp
-bool IsDragging { get; } // 是否正在拖拽
-bool IsReturning { get; } // 是否正在返回原位
-bool EnableDrag { get; set; } // 启用/禁用拖拽
-```
-
-## 5. 使用场景示例
-
-### 5.1 UI 按钮增强
-
-```csharp
-// 按钮点击音效
-button.BindClick(() => AudioManager.PlayClickSound());
-
-// 按钮悬停效果
-button.BindHover(
-    () => button.transform.DOScale(1.1f, 0.2f),
-    () => button.transform.DOScale(1f, 0.2f)
-);
-```
-
-### 5.2 拖拽排序列表
-
-```csharp
-foreach (var item in listItems)
-{
-    DragKit.Get(item)
-        .SetDragConfig(enableDrag: true, returnToOriginal: false)
-        .SetVisualEffects(scaleOnDrag: true, fadeOnDrag: true)
-        .SetCallbacks(
-            onBeginDrag: data => OnItemDragStart(item),
-            onEndDrag: data => OnItemDragEnd(item, data)
-        );
-}
-```
-
-### 5.3 图片查看器
-
-```csharp
-image.BindClickWithRaycast(eventData =>
-{
-    if (eventData.clickCount == 2) // 双击
-    {
-        OpenFullScreenView();
-    }
-});
-
-image.BindDrag(delta =>
-{
-    // 拖拽移动图片
-    image.rectTransform.anchoredPosition += delta;
-});
-```
-
-### 5.4 右键菜单
-
-```csharp
-gameObject.BindClick(eventData =>
-{
-    if (eventData.IsRightClick())
-    {
-        ShowContextMenu(eventData.position);
-    }
-});
-```
-
-## 6. 最佳实践
-
-### 6.1 性能优化
-
-- 在对象销毁前调用 `ClearAllEvents()`清理事件
-- 对于临时 UI，使用 `RemoveOnXXX`方法移除特定事件
-- 避免在 Update 中频繁绑定/解绑事件
-
-### 6.2 代码组织
-
-- 将相关事件绑定放在同一个方法中
-- 使用链式调用提高代码可读性
-- 为复杂交互创建专门的事件处理类
-
-### 6.3 调试技巧
-
-- 在事件回调中添加 Debug.Log 确认事件触发
-- 使用事件数据的详细信息进行问题排查
-- 检查 UI 元素的 raycastTarget 设置
-
-## 7. 注意事项
-
-1. **射线检测**: Image 和 Text 组件需要启用 `raycastTarget`才能接收事件
-2. **事件冲突**: 多个组件监听同一事件时要注意执行顺序
-3. **内存泄漏**: 记得在适当时候清理事件监听
-4. **坐标系统**: 注意世界坐标和 UI 坐标的转换
-5. **Canvas 设置**: 确保 Canvas 有 GraphicRaycaster 组件
+4. **调试工具**：
+   - 使用日志和断点调试事件逻辑，快速定位问题。
