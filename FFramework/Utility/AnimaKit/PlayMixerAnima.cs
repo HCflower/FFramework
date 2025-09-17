@@ -67,15 +67,6 @@ namespace FFramework.Kit
             }
         }
 
-        protected override void OnValidate()
-        {
-            if (mixerPlayable.IsValid())
-            {
-                mixerPlayable.SetInputWeight(0, 1 - weight);
-                mixerPlayable.SetInputWeight(1, weight);
-            }
-        }
-
         public override void PlayAnima()
         {
             mixerPlayable.SetSpeed(playSpeed);

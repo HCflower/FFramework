@@ -1,9 +1,9 @@
-using UnityEngine.UIElements;
+using System;
+using System.IO;
+using FFramework;
 using UnityEditor;
 using UnityEngine;
-using FFramework;
-using System.IO;
-using System;
+using UnityEngine.UIElements;
 
 namespace AssetBundleToolEditor
 {
@@ -23,7 +23,9 @@ namespace AssetBundleToolEditor
         public void Init(VisualElement visual)
         {
             mainContent = new VisualElement();
-            mainContent.styleSheets.Add(Resources.Load<StyleSheet>("USS/AssetBundlesSettingAndBuildingView"));
+            mainContent.styleSheets.Add(
+                Resources.Load<StyleSheet>("USS/AssetBundlesSettingAndBuildingView")
+            );
             mainContent.AddToClassList("MainContent");
             UpdateSettingView(mainContent);
             visual.Add(mainContent);
@@ -52,31 +54,49 @@ namespace AssetBundleToolEditor
             contentTitle.AddToClassList("ContentTitle");
             localSettingContent.Add(contentTitle);
             // 本地路径
-            AssetBundleSavePath(localSettingContent, "LocalSavePath:",
+            AssetBundleSavePath(
+                localSettingContent,
+                "LocalSavePath:",
                 AssetBundleEditorData.currentABConfig.LocalSavePath,
-                (newPath) => AssetBundleEditorData.currentABConfig.LocalSavePath = newPath);
+                (newPath) => AssetBundleEditorData.currentABConfig.LocalSavePath = newPath
+            );
 
             //构建本地AssetBundles
-            CreateButton(localSettingContent, () =>
-            {
-                if (AssetBundleEditorData.isClearFolderWhenBuild)
-                    AssetBundleEditorData.currentABConfig.ClearLocalAssetBundlesFolder();
-                //构建AssetBundles
-                AssetBundleEditorData.currentABConfig.CreateLocalAssetBundle();
-            }, "构建本地AssetBundles", "Setting");
+            CreateButton(
+                localSettingContent,
+                () =>
+                {
+                    if (AssetBundleEditorData.isClearFolderWhenBuild)
+                        AssetBundleEditorData.currentABConfig.ClearLocalAssetBundlesFolder();
+                    //构建AssetBundles
+                    AssetBundleEditorData.currentABConfig.CreateLocalAssetBundle();
+                },
+                "构建本地AssetBundles",
+                "Setting"
+            );
 
             //构建资源对比文件
-            CreateButton(localSettingContent, () =>
-            {
-                AssetBundleEditorData.currentABConfig.CreateLocalAssetBundleInfoFile();
-            }, "创建本地资源对比文件", "TextAssetIcon");
+            CreateButton(
+                localSettingContent,
+                () =>
+                {
+                    AssetBundleEditorData.currentABConfig.CreateLocalAssetBundleInfoFile();
+                },
+                "创建本地资源对比文件",
+                "TextAssetIcon"
+            );
 
-            //打开本地Application.persistentDataPath文件夹 
-            CreateButton(localSettingContent, () =>
-            {
-                string path = Application.persistentDataPath + "/";
-                UnityEditor.EditorUtility.RevealInFinder(path);
-            }, "打开持久数据文件夹", "SelectFolder");
+            //打开本地Application.persistentDataPath文件夹
+            CreateButton(
+                localSettingContent,
+                () =>
+                {
+                    string path = Application.persistentDataPath + "/";
+                    UnityEditor.EditorUtility.RevealInFinder(path);
+                },
+                "打开持久数据文件夹",
+                "SelectFolder"
+            );
 
             visual.Add(localSettingContent);
         }
@@ -96,31 +116,49 @@ namespace AssetBundleToolEditor
             contentTitle.AddToClassList("ContentTitle");
             remoteSettingContent.Add(contentTitle);
 
-            // 远程路径  
-            AssetBundleSavePath(remoteSettingContent, "UpdateResPath:",
+            // 远程路径
+            AssetBundleSavePath(
+                remoteSettingContent,
+                "UpdateResPath:",
                 AssetBundleEditorData.currentABConfig.RemoteSavePath,
-                (newPath) => AssetBundleEditorData.currentABConfig.RemoteSavePath = newPath);
+                (newPath) => AssetBundleEditorData.currentABConfig.RemoteSavePath = newPath
+            );
 
             //构建远端AssetBundles
-            CreateButton(remoteSettingContent, () =>
-            {
-                if (AssetBundleEditorData.isClearFolderWhenBuild)
-                    AssetBundleEditorData.currentABConfig.ClearRemoteAssetBundlesFolder();
-                //构建AssetBundles
-                AssetBundleEditorData.currentABConfig.CreateRemoteAssetBundle();
-            }, "构建远端AssetBundles", "Setting");
+            CreateButton(
+                remoteSettingContent,
+                () =>
+                {
+                    if (AssetBundleEditorData.isClearFolderWhenBuild)
+                        AssetBundleEditorData.currentABConfig.ClearRemoteAssetBundlesFolder();
+                    //构建AssetBundles
+                    AssetBundleEditorData.currentABConfig.CreateRemoteAssetBundle();
+                },
+                "构建远端AssetBundles",
+                "Setting"
+            );
 
             //构建资源对比文件
-            CreateButton(remoteSettingContent, () =>
-            {
-                AssetBundleEditorData.currentABConfig.CreateRemoteAssetBundleInfoFile();
-            }, "创建远端资源对比文件", "TextAssetIcon");
+            CreateButton(
+                remoteSettingContent,
+                () =>
+                {
+                    AssetBundleEditorData.currentABConfig.CreateRemoteAssetBundleInfoFile();
+                },
+                "创建远端资源对比文件",
+                "TextAssetIcon"
+            );
 
             //构建依赖文件
-            CreateButton(remoteSettingContent, () =>
-            {
-                Debug.Log("(资源可寻址加载)施工中~");
-            }, "创建依赖关系文件", "TextAssetIcon");
+            CreateButton(
+                remoteSettingContent,
+                () =>
+                {
+                    Debug.Log("(资源可寻址加载)施工中~");
+                },
+                "创建依赖关系文件",
+                "TextAssetIcon"
+            );
 
             visual.Add(remoteSettingContent);
         }
@@ -140,134 +178,188 @@ namespace AssetBundleToolEditor
             contentTitle.AddToClassList("ContentTitle");
             globalSettingContent.Add(contentTitle);
             //构建平台选择
-            CreateEnumField(globalSettingContent, "AB包构建平台选择",
-            AssetBundleEditorData.currentABConfig.BuildTarget,
-            (newvalue) =>
-            {
-                AssetBundleEditorData.currentABConfig.BuildTarget = (BuildTarget)newvalue;
-                // 根据平台自动更新远端保存路径
-                AssetBundleEditorData.currentABConfig.RemoteSavePath =
-                    $"HotUpdateRes/{AssetBundleEditorData.currentABConfig.BuildTarget}";
-                // 更新路径显示
-                if (assetBundlesSavePathField != null)
+            CreateEnumField(
+                globalSettingContent,
+                "AB包构建平台选择",
+                AssetBundleEditorData.currentABConfig.BuildTarget,
+                (newvalue) =>
                 {
-                    assetBundlesSavePathField.text = AssetBundleEditorData.currentABConfig.RemoteSavePath;
+                    AssetBundleEditorData.currentABConfig.BuildTarget = (BuildTarget)newvalue;
+                    // 根据平台自动更新远端保存路径
+                    AssetBundleEditorData.currentABConfig.RemoteSavePath =
+                        $"HotUpdateRes/{AssetBundleEditorData.currentABConfig.BuildTarget}";
+                    // 更新路径显示
+                    if (assetBundlesSavePathField != null)
+                    {
+                        assetBundlesSavePathField.text = AssetBundleEditorData
+                            .currentABConfig
+                            .RemoteSavePath;
+                    }
                 }
-            });
+            );
 
             //压缩格式选择
-            CreateEnumField(globalSettingContent, "AB包压缩格式选择",
-            AssetBundleEditorData.currentABConfig.CompressionType, (newvalue) =>
-            {
-                AssetBundleEditorData.currentABConfig.CompressionType = (CompressionType)newvalue;
-            });
+            CreateEnumField(
+                globalSettingContent,
+                "AB包压缩格式选择",
+                AssetBundleEditorData.currentABConfig.CompressionType,
+                (newvalue) =>
+                {
+                    AssetBundleEditorData.currentABConfig.CompressionType =
+                        (CompressionType)newvalue;
+                }
+            );
 
             //构建AssetBundle包时是否清理文件夹
-            CreateToggle(globalSettingContent, "构建时是否清理文件夹",
-            AssetBundleEditorData.isClearFolderWhenBuild,
-            (newValue) =>
-            {
-                AssetBundleEditorData.isClearFolderWhenBuild = newValue;
-                Debug.Log($"构建AssetBundles时是否清理文件夹:<color=yellow> {AssetBundleEditorData.isClearFolderWhenBuild}</color>");
-            });
+            CreateToggle(
+                globalSettingContent,
+                "构建时是否清理文件夹",
+                AssetBundleEditorData.isClearFolderWhenBuild,
+                (newValue) =>
+                {
+                    AssetBundleEditorData.isClearFolderWhenBuild = newValue;
+                    Debug.Log(
+                        $"构建AssetBundles时是否清理文件夹:<color=yellow> {AssetBundleEditorData.isClearFolderWhenBuild}</color>"
+                    );
+                }
+            );
 
             //版本号
-            CreateTextField(globalSettingContent, "设置版本号",
-            AssetBundleEditorData.currentABConfig.VersionID,
-            (newValue) =>
-            {
-                //TODO:关联到项目设置中的版本号
-                AssetBundleEditorData.currentABConfig.VersionID = newValue;
-            });
+            CreateTextField(
+                globalSettingContent,
+                "设置版本号",
+                AssetBundleEditorData.currentABConfig.VersionID,
+                (newValue) =>
+                {
+                    //TODO:关联到项目设置中的版本号
+                    AssetBundleEditorData.currentABConfig.VersionID = newValue;
+                }
+            );
 
             //下载服务器选择
-            CreateEnumField(globalSettingContent, "网络传输协议",
-            AssetBundleEditorData.currentABConfig.NetworkProtocolsType,
-            (newvalue) =>
-            {
-                AssetBundleEditorData.currentABConfig.NetworkProtocolsType = (NetworkProtocolsType)newvalue;
-                UpdateSettingView(mainContent);
-            });
+            CreateEnumField(
+                globalSettingContent,
+                "网络传输协议",
+                AssetBundleEditorData.currentABConfig.NetworkProtocolsType,
+                (newvalue) =>
+                {
+                    AssetBundleEditorData.currentABConfig.NetworkProtocolsType =
+                        (NetworkProtocolsType)newvalue;
+                    UpdateSettingView(mainContent);
+                }
+            );
 
-            if (AssetBundleEditorData.currentABConfig.NetworkProtocolsType == NetworkProtocolsType.FTP)
+            if (
+                AssetBundleEditorData.currentABConfig.NetworkProtocolsType
+                == NetworkProtocolsType.FTP
+            )
             {
                 //用户ID
-                CreateTextField(globalSettingContent, "用户ID",
-                AssetBundleEditorData.currentABConfig.ID,
-                (newValue) =>
-                {
-                    AssetBundleEditorData.currentABConfig.ID = newValue;
-                });
+                CreateTextField(
+                    globalSettingContent,
+                    "用户ID",
+                    AssetBundleEditorData.currentABConfig.ID,
+                    (newValue) =>
+                    {
+                        AssetBundleEditorData.currentABConfig.ID = newValue;
+                    }
+                );
 
                 //用户名密码
-                CreateTextField(globalSettingContent, "用户名密码",
-                AssetBundleEditorData.currentABConfig.Password,
-                (newValue) =>
-                {
-                    AssetBundleEditorData.currentABConfig.Password = newValue;
-                });
+                CreateTextField(
+                    globalSettingContent,
+                    "用户名密码",
+                    AssetBundleEditorData.currentABConfig.Password,
+                    (newValue) =>
+                    {
+                        AssetBundleEditorData.currentABConfig.Password = newValue;
+                    }
+                );
             }
 
             //服务器地址
-            CreateTextField(globalSettingContent, "服务器地址",
-            AssetBundleEditorData.currentABConfig.ResServerPath,
-            (newValue) =>
-            {
-                AssetBundleEditorData.currentABConfig.ResServerPath = newValue;
-            });
+            CreateTextField(
+                globalSettingContent,
+                "服务器地址",
+                AssetBundleEditorData.currentABConfig.ResServerPath,
+                (newValue) =>
+                {
+                    AssetBundleEditorData.currentABConfig.ResServerPath = newValue;
+                }
+            );
 
             //主文件夹名称
-            CreateTextField(globalSettingContent, "主文件夹名称",
-            AssetBundleEditorData.currentABConfig.MainFolderName,
-            (newValue) =>
-            {
-                AssetBundleEditorData.currentABConfig.MainFolderName = newValue;
-            });
+            CreateTextField(
+                globalSettingContent,
+                "主文件夹名称",
+                AssetBundleEditorData.currentABConfig.MainFolderName,
+                (newValue) =>
+                {
+                    AssetBundleEditorData.currentABConfig.MainFolderName = newValue;
+                }
+            );
 
             //添加资源下载管理器
-            CreateButton(globalSettingContent, () =>
-            {
-                Debug.Log("添加资源下载管理器");
-                // 在当前场景中查找
-                AssetBundlesDownLoadHandler handler = GameObject.FindObjectOfType<AssetBundlesDownLoadHandler>();
-                //设置资源地址
-                string resServer = AssetBundleEditorData.currentABConfig.ResServerPath?.TrimEnd('/');
-                string mainFolderName = AssetBundleEditorData.currentABConfig.MainFolderName?.TrimStart('/');
-                string buildTarget = AssetBundleEditorData.currentABConfig.BuildTarget.ToString();
+            CreateButton(
+                globalSettingContent,
+                () =>
+                {
+                    Debug.Log("添加资源下载管理器");
+                    // 在当前场景中查找
+                    AssetBundlesDownLoadHandler handler =
+                        GameObject.FindObjectOfType<AssetBundlesDownLoadHandler>();
+                    //设置资源地址
+                    string resServer = AssetBundleEditorData.currentABConfig.ResServerPath?.TrimEnd(
+                        '/'
+                    );
+                    string mainFolderName =
+                        AssetBundleEditorData.currentABConfig.MainFolderName?.TrimStart('/');
+                    string buildTarget =
+                        AssetBundleEditorData.currentABConfig.BuildTarget.ToString();
 
-                string resServerPath = $"{resServer}/{mainFolderName}/{buildTarget}";
-                if (handler != null)
-                {
-                    Debug.Log($"已存在AssetBundlesDownLoadHandler,位于 {handler.gameObject.name}");
-                    handler.ResServerPath = resServerPath;
-                    Debug.Log($"设置资源服务器路径: {resServerPath}");
-                    Selection.activeObject = handler.gameObject;
-                    return;
-                }
-                else
-                {
-                    GameObject managerObj = new GameObject("AssetBundlesDownLoadHandler");
-                    managerObj.transform.SetParent(null);
-                    handler = managerObj.AddComponent<AssetBundlesDownLoadHandler>();
-                    handler.ResServerPath = resServerPath;
-                    Debug.Log($"设置资源服务器路径: {resServerPath}");
-                    Debug.Log("已创建资源下载管理器", managerObj);
-                    Selection.activeObject = managerObj;
-                }
-            }, "添加资源下载管理器", "Setting");
+                    string resServerPath = $"{resServer}/{mainFolderName}/{buildTarget}";
+                    if (handler != null)
+                    {
+                        Debug.Log(
+                            $"已存在AssetBundlesDownLoadHandler,位于 {handler.gameObject.name}"
+                        );
+                        handler.ResServerPath = resServerPath;
+                        Debug.Log($"设置资源服务器路径: {resServerPath}");
+                        Selection.activeObject = handler.gameObject;
+                        return;
+                    }
+                    else
+                    {
+                        GameObject managerObj = new GameObject("AssetBundlesDownLoadHandler");
+                        managerObj.transform.SetParent(null);
+                        handler = managerObj.AddComponent<AssetBundlesDownLoadHandler>();
+                        handler.ResServerPath = resServerPath;
+                        Debug.Log($"设置资源服务器路径: {resServerPath}");
+                        Debug.Log("已创建资源下载管理器", managerObj);
+                        Selection.activeObject = managerObj;
+                    }
+                },
+                "添加资源下载管理器",
+                "Setting"
+            );
 
             //构建所有远端AssetBundles
-            CreateButton(globalSettingContent, () =>
-            {
-                if (AssetBundleEditorData.isClearFolderWhenBuild)
+            CreateButton(
+                globalSettingContent,
+                () =>
                 {
-                    AssetBundleEditorData.currentABConfig.ClearLocalAssetBundlesFolder();
-                    AssetBundleEditorData.currentABConfig.ClearRemoteAssetBundlesFolder();
-                }
-                //构建AssetBundles
-                AssetBundleEditorData.currentABConfig.CreateLocalAssetBundle();
-                AssetBundleEditorData.currentABConfig.CreateRemoteAssetBundle();
-            }, "构建所有AssetBundles", "Setting");
+                    if (AssetBundleEditorData.isClearFolderWhenBuild)
+                    {
+                        AssetBundleEditorData.currentABConfig.ClearLocalAssetBundlesFolder();
+                        AssetBundleEditorData.currentABConfig.ClearRemoteAssetBundlesFolder();
+                    }
+                    //构建AssetBundles
+                    AssetBundleEditorData.currentABConfig.CreateLocalAssetBundle();
+                    AssetBundleEditorData.currentABConfig.CreateRemoteAssetBundle();
+                },
+                "构建所有AssetBundles",
+                "Setting"
+            );
 
             visual.Add(globalSettingContent);
         }
@@ -277,7 +369,12 @@ namespace AssetBundleToolEditor
         #region  Common
 
         // 资源保存路径
-        private Label AssetBundleSavePath(VisualElement visual, string titleText, string pathText, System.Action<string> updateAction)
+        private Label AssetBundleSavePath(
+            VisualElement visual,
+            string titleText,
+            string pathText,
+            System.Action<string> updateAction
+        )
         {
             VisualElement pathContent = new VisualElement();
             pathContent.AddToClassList("SettingItemContent");
@@ -340,13 +437,18 @@ namespace AssetBundleToolEditor
                 // 转换为Unity项目相对路径
                 if (selectedPath.StartsWith(Application.dataPath))
                 {
-                    string relativePath = "Assets" + selectedPath.Substring(Application.dataPath.Length);
+                    string relativePath =
+                        "Assets" + selectedPath.Substring(Application.dataPath.Length);
                     Debug.Log($"<color=green>已选择路径: {relativePath}</color>");
                     return relativePath;
                 }
                 else
                 {
-                    EditorUtility.DisplayDialog("路径错误", "请选择项目Assets文件夹内的目录!", "确定");
+                    EditorUtility.DisplayDialog(
+                        "路径错误",
+                        "请选择项目Assets文件夹内的目录!",
+                        "确定"
+                    );
                 }
             }
 
@@ -354,7 +456,12 @@ namespace AssetBundleToolEditor
         }
 
         //创建控制按钮
-        private void CreateButton(VisualElement visual, Action buttonAction, string buttonTitle, string iconPath = null)
+        private void CreateButton(
+            VisualElement visual,
+            Action buttonAction,
+            string buttonTitle,
+            string iconPath = null
+        )
         {
             Button button = new Button();
             button.AddToClassList("ControllButton");
@@ -370,7 +477,12 @@ namespace AssetBundleToolEditor
         }
 
         //创建枚举类型选择
-        private void CreateEnumField(VisualElement visual, string labelText, Enum defaultEnumValue, Action<Enum> onValueChanged)
+        private void CreateEnumField(
+            VisualElement visual,
+            string labelText,
+            Enum defaultEnumValue,
+            Action<Enum> onValueChanged
+        )
         {
             // 创建容器
             VisualElement enumContainer = new VisualElement();
@@ -397,7 +509,12 @@ namespace AssetBundleToolEditor
         }
 
         //创建Toggle
-        private void CreateToggle(VisualElement visual, string labelText, bool initialValue, Action<bool> onValueChanged)
+        private void CreateToggle(
+            VisualElement visual,
+            string labelText,
+            bool initialValue,
+            Action<bool> onValueChanged
+        )
         {
             // 创建容器
             VisualElement toggleContainer = new VisualElement();
@@ -407,10 +524,7 @@ namespace AssetBundleToolEditor
             titleLabel.AddToClassList("Title");
             toggleContainer.Add(titleLabel);
             // 创建Toggle控件
-            Toggle toggle = new Toggle()
-            {
-                value = initialValue
-            };
+            Toggle toggle = new Toggle() { value = initialValue };
             toggle.AddToClassList("Toggle");
             // 注册值变更回调
             toggle.RegisterValueChangedCallback(evt =>
@@ -423,7 +537,12 @@ namespace AssetBundleToolEditor
         }
 
         //创建文本输入区域
-        private void CreateTextField(VisualElement visual, string labelText, string initialValue, Action<string> onValueChanged)
+        private void CreateTextField(
+            VisualElement visual,
+            string labelText,
+            string initialValue,
+            Action<string> onValueChanged
+        )
         {
             // 创建容器
             VisualElement textFieldContainer = new VisualElement();
@@ -438,10 +557,7 @@ namespace AssetBundleToolEditor
             }
 
             // 创建文本输入框
-            TextField textField = new TextField
-            {
-                value = initialValue ?? string.Empty
-            };
+            TextField textField = new TextField { value = initialValue ?? string.Empty };
             textField.AddToClassList("InputContent");
 
             // 注册值变更回调
@@ -455,6 +571,5 @@ namespace AssetBundleToolEditor
         }
 
         #endregion
-
     }
 }

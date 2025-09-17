@@ -465,7 +465,6 @@ namespace FFramework.Kit
                 shakePreset.fadeOutDuration = Mathf.Max(0, shakePreset.fadeOutDuration);
             }
         }
-    }
-
 #endif
+    }
 }

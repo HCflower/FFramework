@@ -4,7 +4,7 @@ namespace FFramework.Kit
     /// 状态基类
     /// </summary>
     /// <typeparam name="T">状态持有者</typeparam>
-    public abstract class StateBase<T> : IState<T> where T : class
+    public abstract class FSMStateBase<T> : IFSMState<T> where T : class
     {
         public T owner;
         public void Init(T owner)

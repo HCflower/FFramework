@@ -59,14 +59,6 @@ namespace FFramework.Kit
             }
         }
 
-        protected override void OnValidate()
-        {
-            if (animationPlayable.IsValid())
-            {
-                animationPlayable.SetSpeed(playSpeed);
-            }
-        }
-
         public override void PlayAnima()
         {
             animationPlayable.SetSpeed(playSpeed);

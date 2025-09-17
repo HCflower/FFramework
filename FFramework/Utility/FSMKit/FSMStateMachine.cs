@@ -9,11 +9,11 @@ namespace FFramework.Kit
     public class FSMStateMachine<T> where T : class
     {
         // 当前状态
-        private IState<T> currentState;
+        private IFSMState<T> currentState;
         // 状态机的拥有者
         private T owner;
         // 存储状态实例的字典
-        private Dictionary<Type, IState<T>> stateCache = new Dictionary<Type, IState<T>>();
+        private Dictionary<Type, IFSMState<T>> stateCache = new Dictionary<Type, IFSMState<T>>();
 
         public FSMStateMachine(T owner)
         {
@@ -24,14 +24,14 @@ namespace FFramework.Kit
         /// 设置默认状态
         /// </summary>
         /// <typeparam name="TState">状态类型</typeparam>
-        public void SetDefault<TState>() where TState : IState<T>, new()
+        public void SetDefault<TState>() where TState : IFSMState<T>, new()
         {
             var stateType = typeof(TState);
             if (!stateCache.TryGetValue(stateType, out var defaultState))
             {
                 defaultState = new TState();
                 // 如果需要初始化 owner，可在这里处理
-                if (defaultState is StateBase<T> stateBase)
+                if (defaultState is FSMStateBase<T> stateBase)
                 {
                     stateBase.Init(owner);
                 }
@@ -45,10 +45,10 @@ namespace FFramework.Kit
         /// 设置默认状态
         /// </summary>
         /// <param name="defaultState">默认状态</param>
-        public void SetDefault(IState<T> defaultState)
+        public void SetDefault(IFSMState<T> defaultState)
         {
             // 自动初始化 owner
-            if (defaultState is StateBase<T> stateBase)
+            if (defaultState is FSMStateBase<T> stateBase)
             {
                 stateBase.Init(owner);
             }
@@ -63,7 +63,7 @@ namespace FFramework.Kit
         /// 切换状态
         /// </summary>
         /// <typeparam name="TState">状态类型</typeparam>
-        public void ChangeState<TState>() where TState : IState<T>, new()
+        public void ChangeState<TState>() where TState : IFSMState<T>, new()
         {
             var stateType = typeof(TState);
             if (currentState != null && currentState.GetType() == stateType) return;
@@ -71,7 +71,7 @@ namespace FFramework.Kit
             if (!stateCache.TryGetValue(stateType, out var newState))
             {
                 newState = new TState();
-                if (newState is StateBase<T> stateBase)
+                if (newState is FSMStateBase<T> stateBase)
                 {
                     stateBase.Init(owner);
                 }
@@ -87,13 +87,13 @@ namespace FFramework.Kit
         /// 切换状态
         /// </summary>
         /// <param name="newState">新状态</param>
-        public void ChangeState(IState<T> newState)
+        public void ChangeState(IFSMState<T> newState)
         {
             if (currentState == newState) return;
             if (newState == null) return;
 
             // 自动初始化 owner
-            if (newState is StateBase<T> stateBase)
+            if (newState is FSMStateBase<T> stateBase)
             {
                 stateBase.Init(owner);
             }

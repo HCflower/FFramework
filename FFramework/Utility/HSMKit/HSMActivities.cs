@@ -1,6 +1,6 @@
-using System;
-using System.Threading;
 using System.Threading.Tasks;
+using System.Threading;
+using System;
 
 namespace FFramework.Kit
 {
@@ -10,22 +10,22 @@ namespace FFramework.Kit
     public enum HSMActivityMode
     {
         /// <summary>
-        /// 停止
+        /// 未激活状态
         /// </summary>
         Inactive,
 
         /// <summary>
-        /// 激活中
+        /// 正在激活
         /// </summary>
         Activating,
 
         /// <summary>
-        /// 激活
+        /// 已激活状态
         /// </summary>
         Active,
 
         /// <summary>
-        /// 使无效
+        /// 正在失效
         /// </summary>
         Deactivating,
     }

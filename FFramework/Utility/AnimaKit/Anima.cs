@@ -31,18 +31,24 @@ namespace FFramework.Kit
             }
         }
 
-        [Button("播放动画")]
+        [ContextMenu("播放动画")]
         public abstract void PlayAnima();
-        [Button("暂停动画")]
+        [ContextMenu("暂停动画")]
         public abstract void PauseAnima();
-        [Button("切换动画")]
+        [ContextMenu("切换动画")]
         public abstract void ChangeAnima();
         // 获取动画播放进度
         public virtual void SetAnimaPlayProgress() { }
+    }
 
-#if UNITY_EDITOR
-        protected abstract void OnValidate();
-#endif
-
+    /// <summary>
+    /// 动画接口
+    /// </summary>
+    public interface IAnima
+    {
+        public abstract void PlayAnima();
+        public abstract void PauseAnima();
+        public abstract void ChangeAnima();
+        public void SetAnimaPlayProgress();
     }
 }

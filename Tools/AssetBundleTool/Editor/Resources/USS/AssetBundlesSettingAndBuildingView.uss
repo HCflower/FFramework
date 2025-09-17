@@ -123,22 +123,18 @@
     margin-left: 0px;
     margin-right: 1px;
 
-    padding-left: 0px;
-    padding-right: 0px;
+    padding: 0px;
 
-    border-top-width:0px;
-    border-bottom-width:0px;
-    border-left-width:0px;
-    border-right-width:0px;
-
-    border-top-left-radius:2px;
-    border-top-right-radius:2px;
-    border-bottom-left-radius:2px;
-    border-bottom-right-radius:2px; 
-    
+    border-width:0px;
+    border-radius:2px;
+ 
     font-size: 12px;
     -unity-text-align: middle-center;
     /* -unity-font-style: bold; */
+}
+.ControllButton:hover{
+    border-width:1px;
+    border-color:white;
 }
 
 /* 控制按钮图标 */

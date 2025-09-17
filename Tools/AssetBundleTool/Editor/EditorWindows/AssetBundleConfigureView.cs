@@ -1,8 +1,8 @@
 using System.Collections.Generic;
-using UnityEngine.UIElements;
-using UnityEngine;
-using UnityEditor;
 using System.IO;
+using UnityEditor;
+using UnityEngine;
+using UnityEngine.UIElements;
 
 namespace AssetBundleToolEditor
 {
@@ -23,8 +23,8 @@ namespace AssetBundleToolEditor
 
         #region  数据
 
-        private string configureName = "AssetBundleConfigure";  // 配置名称
-        private string savePath;                                // 保存路径
+        private string configureName = "AssetBundleConfigure"; // 配置名称
+        private string savePath; // 保存路径
         private bool isOpencreateConfigure = false;
         private List<AssetBundleConfig> assetBundleConfigList = new List<AssetBundleConfig>();
 
@@ -32,7 +32,9 @@ namespace AssetBundleToolEditor
         public void Init(VisualElement visual)
         {
             mainContent = new VisualElement();
-            mainContent.styleSheets.Add(Resources.Load<StyleSheet>("USS/AssetBundlesConfigureView"));
+            mainContent.styleSheets.Add(
+                Resources.Load<StyleSheet>("USS/AssetBundlesConfigureView")
+            );
             mainContent.AddToClassList("MainContent");
             // 注册鼠标点击事件
             mainContent.RegisterCallback<MouseDownEvent>(OnMouseDown);
@@ -85,7 +87,12 @@ namespace AssetBundleToolEditor
             TextField textField = new TextField();
             textField.AddToClassList("CreateConfigureInput");
             textField.value = configureName;
-            textField.RegisterValueChangedCallback((evt) => { configureName = evt.newValue; });
+            textField.RegisterValueChangedCallback(
+                (evt) =>
+                {
+                    configureName = evt.newValue;
+                }
+            );
 
             controlContent.Add(textField);
             CreateConfigureButton(controlContent);
@@ -101,7 +108,12 @@ namespace AssetBundleToolEditor
             savePathTextField = new TextField();
             savePathTextField.AddToClassList("CreateConfigureInput");
             savePathTextField.value = savePath;
-            savePathTextField.RegisterValueChangedCallback((evt) => { savePath = evt.newValue; });
+            savePathTextField.RegisterValueChangedCallback(
+                (evt) =>
+                {
+                    savePath = evt.newValue;
+                }
+            );
             controlContent.Add(savePathTextField);
             SaveConfigureButton(controlContent);
             visual.Add(controlContent);
@@ -120,10 +132,14 @@ namespace AssetBundleToolEditor
                     string fullPath = Path.Combine(savePath, configureName);
                     if (File.Exists(fullPath))
                     {
-                        Debug.LogError($"<color=red>错误：路径 {fullPath} 已存在同名配置文件！</color>");
+                        Debug.LogError(
+                            $"<color=red>错误：路径 {fullPath} 已存在同名配置文件！</color>"
+                        );
                         return;
                     }
-                    Debug.Log($"AssetBundleConfigure已保存到<color=yellow>{savePath}路径下.</color>");
+                    Debug.Log(
+                        $"AssetBundleConfigure已保存到<color=yellow>{savePath}路径下.</color>"
+                    );
                     isOpencreateConfigure = false;
                     CreateAssetsBundlesHandles.CreateConfigureData(savePath, configureName);
                     savePath = string.Empty;
@@ -191,6 +207,7 @@ namespace AssetBundleToolEditor
         {
             configureScrollView = new ScrollView();
             configureScrollView.AddToClassList("ConfigureScrollView");
+            configureScrollView.tooltip = "右键创建配置文件";
             if (configureScrollView != null)
             {
                 var scrollViewContent = configureScrollView.contentContainer;
@@ -206,7 +223,11 @@ namespace AssetBundleToolEditor
         }
 
         //创建配置项
-        private void CreateConfigureItemView(AssetBundleConfig data, VisualElement visual, bool isSelected = false)
+        private void CreateConfigureItemView(
+            AssetBundleConfig data,
+            VisualElement visual,
+            bool isSelected = false
+        )
         {
             Button assetBundleConfigItem = new Button();
             assetBundleConfigItem.AddToClassList("DefaultConfigureItem");
@@ -217,7 +238,9 @@ namespace AssetBundleToolEditor
             assetBundleConfigItem.Add(assetBundleConfigName);
             //图标
             Image icon = new Image();
-            icon.AddToClassList(isSelected == true ? "SelectConfigureItemImage" : "DefaultConfigureItemImage");
+            icon.AddToClassList(
+                isSelected == true ? "SelectConfigureItemImage" : "DefaultConfigureItemImage"
+            );
             assetBundleConfigItem.Add(icon);
             //选中
             assetBundleConfigItem.clicked += () =>

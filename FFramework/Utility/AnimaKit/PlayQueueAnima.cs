@@ -45,17 +45,6 @@ namespace FFramework.Kit
         {
             animaQueuePlayable.GetBehaviour().PauseAnimation();
         }
-
-#if UNITY_EDITOR
-        private void OnValidate()
-        {
-            if (animaQueuePlayable.IsValid())
-            {
-                animaQueuePlayable.GetBehaviour().SetPlaySpeed(playSpeed);
-                animaQueuePlayable.GetBehaviour().SetLoop(isLoop);
-            }
-        }
-#endif
     }
 
     /// <summary>

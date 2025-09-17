@@ -143,6 +143,22 @@
     padding-left:1px;
 }
 
+/* AB包项数量统计 */
+.ABItemQuantityStatistics{
+    width: 80px;
+    height: 15px;
+    margin-left: 0px;
+    margin-right: 0px;
+
+    border-width:1px;
+    border-color:gray;
+    border-radius: 4px;
+    radius:2px;
+    -unity-text-align: middle-center;
+    -unity-font-style: bold;
+}
+
+/* 包元素数据信息栏 */
 .ABItemDataInfoBar{
     width: 100%;
     height: 18px;
@@ -154,9 +170,11 @@
     flex-direction: row;       
     display: flex;             
     justify-content: space-between;  
-    align-items: center;       
+    align-items: center;      
+
 }
 
+/* 数据信息 */
 .ABItemDataInfo{
     height: 18px;
 
@@ -187,7 +205,7 @@
     width: 18px;
     height: 18px;
     margin-left:1px;
-    margin-right:1px;
+    margin-right:0px;
     background-image: resource("Icon/AB-Refresh");
 }
 
@@ -212,30 +230,32 @@
     padding-right: 1px;
 
     flex-direction: row;       
-    justify-content: center;
+    justify-content: flex-left;
     align-items: center;
     font-size: 12px;
     -unity-font-style: bold;  
     white-space: normal;
 }
 .DefaultAssetBundleItem:hover{
-    background-color: rgba(131, 131, 131, 0.85);
+    background-color: rgb(131, 131, 131);
 }
-
 .SelectAssetBundleItem{
-    background-color: rgb(214, 166, 99);
+    border-width: 1px;
+    border-color: rgba(251, 192, 110, 1);
 }
 
-/* 当前AB包是否构建 */
-.BuildToggle{
+/* AB包组图标 */
+.AssetBundleGroupIcon{
     width: 18px;
     height: 18px;
-    margin: 0px;
+    margin-left:2px;
+    margin-right:2px;
+    background-image: resource("Icon/AssetBundle");
 }
 
 /* ABGroup名称  */
 .AssetBundleItemTitle{
-    width: 90px;
+    width: 100px;
     height: 20px;
     font-size: 12px;
 
@@ -249,35 +269,41 @@
     -unity-font-style: bold;
 }
 
-/* 删除ABGroupButton */
-.DeleteABGroupButton{
+/* 提示图标区域 */
+.TipsIconArea{
+    width: 60px;
+    height: 100%;
+    margin:0px;
+    margin-left:1px;
+    margin-right:2px;
+    padding: 0px;
+    border-width: 0px;
+
+    flex-direction: row;       
+    align-items: center;     
+}
+
+/* 提示图标 */
+.TipsIcon{
+    width: 16px;
+    height: 16px;
+    margin: 0px;
+    padding: 0px;
+    border-width: 0px;
+    background-size: 90% 90%;
+}
+
+/* ABGroupButton设置选项 */
+.ABGroupMoreOptionsButton{
     width:18px;
     height: 18px;
-
     margin-left:1px;
     margin-right:1px;
-
-    padding-left:0px;
-    padding-right:0px;
-
+    padding:0px;
     border-width: 0px;
-
-    background-color:  #D94040;
-    background-image: resource("Icon/DeletedIcon");
-
+    /* background-color: #454545; */
+    background-image: resource("Icon/MoreOptions");
     -unity-font-style: bold;
-}
-
-.BuildPathTypeEnumField{
-    width:65px;
-    height: 18px;
-    border-width: 0px;
-    margin-left:0px;
-    margin-right:0px;
-}
-.BuildPathTypeEnumField > .unity-base-field__input{
-    border-width: 0px;
-    background-color:#454545;
 }
 
 /* AB包数据项区域 */
@@ -307,7 +333,8 @@
     background-color: #454545;
 }
 .SelectAssetBundlesDataItem{
-    background-color: rgb(214, 166, 99);
+    border-width: 1px;
+    border-color: rgba(251, 192, 110, 1);
 }
 
 .AssetBundlesDataItemInfo{
@@ -330,19 +357,19 @@
     -unity-font-style: bold;
 }
 
-.CancelAsset{
+/* 删除资产 */
+.DeleteAsset{
     width: 16px;
     height: 16px;
 
-    position:absolute;
+    margin: 0px; 
+    padding: 0px;
     border-width: 0px;
-    padding:0px;
-    margin:0px;
-    right:0px;
-    align-self:center;
-
-    background-color:  #D94040;
+    align-self:flex-end;
     -unity-font-style: bold;
+
+    background-color:  rgba(227, 74, 74, 1);
+    background-size: 90% 90%;
     background-image: resource("Icon/DeletedIcon");
 
 }

@@ -6,7 +6,7 @@ using UnityEngine;
 namespace FFramework.Kit
 {
     /// <summary>
-    /// 播放智能动画 - 支持双动画混合过渡
+    /// 播放智能动画 - 支持双动画混合过渡 (重构版本)
     /// </summary>
     [AddComponentMenu("Anima/PlaySmartAnima")]
     public class PlaySmartAnima : Anima
@@ -32,37 +32,64 @@ namespace FFramework.Kit
             private set => currentAnimaClip = value;
         }
 
+        public bool IsTransitioning => isTransitioning;
+
+        // 新增：动画完成事件
+        public System.Action<AnimationClip> OnAnimationComplete;
+
+        // 新增：跟踪非循环动画的播放状态
+        private bool isTrackingNonLoopAnimation = false;
+        private float nonLoopAnimationStartTime = 0f;
+
         protected override void Awake()
         {
             base.Awake();
             InitializePlayableGraph();
         }
 
+        private void Update()
+        {
+            if (!mixerPlayable.IsValid() || !playableGraph.IsValid()) return;
+            UpdatePlayProgress();
+
+            // 检查非循环动画是否播放完成
+            CheckNonLoopAnimationComplete();
+        }
+
+        protected override void OnDestroy()
+        {
+            CleanupPlayables();
+            base.OnDestroy();
+        }
+
         private void InitializePlayableGraph()
         {
-            // 设置初始当前动画
             CurrentAnimaClip = animaClip1 ?? animaClip2;
-
-            // 创建混合器
             mixerPlayable = AnimationMixerPlayable.Create(playableGraph, 2);
 
-            // 创建动画片段Playable
             clipPlayables[0] = CreateClipPlayable(animaClip1);
             clipPlayables[1] = CreateClipPlayable(animaClip2);
 
-            // 连接输入
             mixerPlayable.ConnectInput(0, clipPlayables[0], 0);
             mixerPlayable.ConnectInput(1, clipPlayables[1], 0);
-
-            // 设置初始权重
             UpdateMixerWeights();
 
-            // 设置输出
             var output = AnimationPlayableOutput.Create(playableGraph, "Anima", animator);
             output.SetSourcePlayable(mixerPlayable);
 
             isLoop = CurrentAnimaClip.isLooping;
             playableGraph.Play();
+        }
+
+        private void CleanupPlayables()
+        {
+            for (int i = 0; i < clipPlayables.Length; i++)
+            {
+                if (clipPlayables[i].IsValid())
+                {
+                    clipPlayables[i].Destroy();
+                }
+            }
         }
 
         private AnimationClipPlayable CreateClipPlayable(AnimationClip clip)
@@ -74,38 +101,8 @@ namespace FFramework.Kit
 
         private AnimationClip CreateEmptyClip()
         {
-            var emptyClip = new AnimationClip();
-            emptyClip.name = "EmptyClip";
+            var emptyClip = new AnimationClip { name = "EmptyClip" };
             return emptyClip;
-        }
-
-        private void Update()
-        {
-            if (!mixerPlayable.IsValid() || !playableGraph.IsValid()) return;
-
-            UpdatePlayProgress();
-        }
-
-        protected override void OnDestroy()
-        {
-            // 清理Playable
-            for (int i = 0; i < 2; i++)
-            {
-                if (clipPlayables[i].IsValid())
-                {
-                    clipPlayables[i].Destroy();
-                }
-            }
-
-            base.OnDestroy();
-        }
-
-        protected override void OnValidate()
-        {
-            if (mixerPlayable.IsValid())
-            {
-                // UpdateMixerWeights();
-            }
         }
 
         private void UpdatePlayProgress()
@@ -127,6 +124,22 @@ namespace FFramework.Kit
             else
             {
                 playProgress = Mathf.Clamp01((float)currentTime / clipLength);
+            }
+        }
+
+        /// <summary>
+        /// 检查非循环动画是否播放完成
+        /// </summary>
+        private void CheckNonLoopAnimationComplete()
+        {
+            if (!isTrackingNonLoopAnimation || CurrentAnimaClip == null || CurrentAnimaClip.isLooping)
+                return;
+
+            // 检查动画是否播放完成
+            if (Time.time - nonLoopAnimationStartTime >= CurrentAnimaClip.length)
+            {
+                isTrackingNonLoopAnimation = false;
+                OnAnimationComplete?.Invoke(CurrentAnimaClip);
             }
         }
 
@@ -183,21 +196,23 @@ namespace FFramework.Kit
                 return false;
             }
 
-            // 移除 isTransitioning 检查，允许中断正在进行的过渡
-            // if (isTransitioning) 这行被移除
-
             return true;
         }
 
+        /// <summary>
+        /// 切换到指定动画并设置过渡时间
+        /// </summary>
+        /// <param name="newClip">目标动画片段</param>
+        /// <param name="transitionDuration">过渡时间</param>
         public async UniTask ChangeAnima(AnimationClip newClip, float transitionDuration)
         {
             if (!CanChangeAnima(newClip, transitionDuration)) return;
 
-            // 如果正在过渡，先标记为不过渡状态，然后立即开始新的过渡
+            // 如果正在过渡中，先停止当前过渡
             if (isTransitioning)
             {
-                // Debug.Log("中断当前过渡，开始新的动画切换");
-                isTransitioning = false; // 重置状态以允许新过渡
+                isTransitioning = false;
+                await UniTask.Yield(); // 等待一帧确保状态更新
             }
 
             isTransitioning = true;
@@ -206,6 +221,13 @@ namespace FFramework.Kit
             {
                 await PerformAnimationTransition(newClip, transitionDuration);
                 CompleteTransition(newClip);
+
+                // 如果是非循环动画，开始跟踪其完成状态
+                if (!newClip.isLooping)
+                {
+                    isTrackingNonLoopAnimation = true;
+                    nonLoopAnimationStartTime = Time.time;
+                }
             }
             finally
             {
@@ -218,7 +240,6 @@ namespace FFramework.Kit
             int currentIndex = GetClipIndex(CurrentAnimaClip);
             int targetIndex = GetClipIndex(newClip, currentIndex);
 
-            // 如果目标动画不在当前插槽中，先设置到空闲插槽
             if (targetIndex == -1)
             {
                 targetIndex = currentIndex == 0 ? 1 : 0;
@@ -226,10 +247,15 @@ namespace FFramework.Kit
             }
 
             float startWeight = weight;
-            float targetWeight = currentIndex == 0 ? 1f : 0f;
+            float targetWeight = targetIndex == 0 ? 0f : 1f; // 修复：正确的权重计算
             float elapsedTime = 0f;
 
-            // 移除 isTransitioning 检查，只根据时间判断
+            // 确保目标动画从时间0开始播放
+            if (clipPlayables[targetIndex].IsValid())
+            {
+                clipPlayables[targetIndex].SetTime(0);
+            }
+
             while (elapsedTime < duration)
             {
                 elapsedTime += Time.deltaTime;
@@ -240,13 +266,15 @@ namespace FFramework.Kit
 
                 await UniTask.Yield();
 
-                // 如果被外部中断（新的切换请求），立即退出
                 if (!isTransitioning)
                 {
-                    // Debug.Log("过渡被新请求中断");
                     break;
                 }
             }
+
+            // 确保最终权重设置正确
+            weight = targetWeight;
+            UpdateMixerWeights();
         }
 
         private int GetClipIndex(AnimationClip clip, int excludeIndex = -1)
@@ -280,17 +308,16 @@ namespace FFramework.Kit
             CurrentAnimaClip = newClip;
             weight = GetClipIndex(newClip) == 0 ? 0f : 1f;
             UpdateMixerWeights();
-
-            // Debug.Log($"动画切换完成: {CurrentAnimaClip.name}");
         }
 
-        // 立即切换动画（无过渡）
+        /// <summary>
+        /// 立即切换动画（无过渡）
+        /// </summary>
+        /// <param name="newClip">目标动画片段</param>
         public void ChangeAnimaImmediate(AnimationClip newClip)
         {
-            // 移除 CanChangeAnima 检查，允许强制立即切换
             if (newClip == null || CurrentAnimaClip == newClip) return;
 
-            // 中断任何正在进行的过渡
             isTransitioning = false;
 
             int targetIndex = GetClipIndex(newClip);
@@ -305,6 +332,57 @@ namespace FFramework.Kit
             UpdateMixerWeights();
 
             Debug.Log($"立即切换到: {CurrentAnimaClip.name}");
+        }
+
+        /// <summary>
+        /// 等待当前动画播放完成（仅对非循环动画有效）
+        /// </summary>
+        /// <returns></returns>
+        public async UniTask WaitForAnimationComplete()
+        {
+            if (CurrentAnimaClip == null || CurrentAnimaClip.isLooping)
+                return;
+
+            bool animationCompleted = false;
+            System.Action<AnimationClip> completeHandler = (clip) =>
+            {
+                if (clip == CurrentAnimaClip)
+                    animationCompleted = true;
+            };
+
+            OnAnimationComplete += completeHandler;
+
+            try
+            {
+                // 等待动画完成或超时
+                float timeout = CurrentAnimaClip.length + 0.1f; // 添加0.1秒超时保护
+                float startTime = Time.time;
+
+                while (!animationCompleted && (Time.time - startTime) < timeout)
+                {
+                    await UniTask.Yield();
+                }
+            }
+            finally
+            {
+                OnAnimationComplete -= completeHandler;
+            }
+        }
+
+        /// <summary>
+        /// 检查动画是否真的播放完成（基于播放时间）
+        /// </summary>
+        public bool IsCurrentAnimationComplete()
+        {
+            if (CurrentAnimaClip == null || CurrentAnimaClip.isLooping)
+                return false;
+
+            int primaryIndex = weight >= 0.5f ? 1 : 0;
+            if (!clipPlayables[primaryIndex].IsValid())
+                return false;
+
+            double currentTime = clipPlayables[primaryIndex].GetTime();
+            return currentTime >= CurrentAnimaClip.length;
         }
     }
 }

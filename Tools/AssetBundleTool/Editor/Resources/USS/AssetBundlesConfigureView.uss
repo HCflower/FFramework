@@ -134,7 +134,7 @@
    margin-top:5px;
    padding-bottom: 2px;
    background-size: 85% 85%;
-   -unity-background-image-tint-color:rgb(241, 180, 95);
+   -unity-background-image-tint-color:rgb(251, 192, 110);
    background-image: resource("Icon/CreateConfigIcon");
 }
 

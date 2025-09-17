@@ -1,7 +1,7 @@
 namespace FFramework.Kit
 {
     //状态接口
-    public interface IState<T> where T : class
+    public interface IFSMState<T> where T : class
     {
         void OnEnter(FSMStateMachine<T> machine);         //当状态进入时调用
         void OnUpdate(FSMStateMachine<T> machine);        //当状态更新时调用

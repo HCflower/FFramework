@@ -1,8 +1,8 @@
-using UnityEditor.UIElements;
-using UnityEngine.UIElements;
-using UnityEditor;
-using UnityEngine;
 using System;
+using UnityEditor;
+using UnityEditor.UIElements;
+using UnityEngine;
+using UnityEngine.UIElements;
 
 namespace AssetBundleToolEditor
 {
@@ -23,7 +23,7 @@ namespace AssetBundleToolEditor
         public static void SkillEditorCreateWindow()
         {
             AssetBundleEditor window = GetWindow<AssetBundleEditor>();
-            window.minSize = new Vector2(800, 450);
+            window.minSize = new Vector2(900, 450);
             window.titleContent = new GUIContent("AssetBundleToolEditor");
             window.Show();
         }
@@ -51,65 +51,112 @@ namespace AssetBundleToolEditor
             abToolbar = new Toolbar();
             abToolbar.AddToClassList("ABToolBar");
             // 创建配置文件
-            CreateControllerButton(abToolbar, "CreateConfigure", () =>
-            {
-                mainContent.Clear();
-                ChangeABConfigureView(mainContent);
-            }, out Label CreateConfigIcon);
-            CreateConfigIcon.style.backgroundImage = Resources.Load<Texture2D>("Icon/CreateConfigIcon");
+            CreateControllerButton(
+                abToolbar,
+                "CreateConfigure",
+                () =>
+                {
+                    mainContent.Clear();
+                    ChangeABConfigureView(mainContent);
+                },
+                out Label CreateConfigIcon
+            );
+            CreateConfigIcon.style.backgroundImage = Resources.Load<Texture2D>(
+                "Icon/CreateConfigIcon"
+            );
 
             // AB包数据
-            CreateControllerButton(abToolbar, "AssetBundleData", () =>
-            {
-                mainContent.Clear();
-                ChangeABDataView(mainContent);
-            }, out Label AssetBundlesDataIcon);
-            AssetBundlesDataIcon.style.backgroundImage = Resources.Load<Texture2D>("Icon/AssetBundle");
+            CreateControllerButton(
+                abToolbar,
+                "AssetBundleData",
+                () =>
+                {
+                    mainContent.Clear();
+                    ChangeABDataView(mainContent);
+                },
+                out Label AssetBundlesDataIcon
+            );
+            AssetBundlesDataIcon.style.backgroundImage = Resources.Load<Texture2D>(
+                "Icon/AssetBundle"
+            );
 
             // 设置和构建
-            CreateControllerButton(abToolbar, "Setting/Building", () =>
-            {
-                mainContent.Clear();
-                ChangeSettingAndBuildingView(mainContent);
-            }, out Label BuildAndSettingIcon);
+            CreateControllerButton(
+                abToolbar,
+                "Setting/Building",
+                () =>
+                {
+                    mainContent.Clear();
+                    ChangeSettingAndBuildingView(mainContent);
+                },
+                out Label BuildAndSettingIcon
+            );
             BuildAndSettingIcon.style.backgroundImage = Resources.Load<Texture2D>("Icon/Setting");
 
             // 刷新配置
-            CreateControllerButton(abToolbar, "UpdateConfigure", () =>
-            {
-                if (AssetBundleEditorData.currentABConfig != null)
+            CreateControllerButton(
+                abToolbar,
+                "UpdateConfigure",
+                () =>
                 {
-                    AssetBundleEditorData.currentABConfig.GenerateJSON();
-                    AssetBundleEditorData.currentABConfig.LoadFromJSON();
-                }
-                else Debug.Log("未选择没有配置文件!");
-            }, out Label UpdateConfigureIcon);
-            UpdateConfigureIcon.style.backgroundImage = Resources.Load<Texture2D>("Icon/AB-Refresh");
+                    if (AssetBundleEditorData.currentABConfig != null)
+                    {
+                        AssetBundleEditorData.currentABConfig.GenerateJSON();
+                        AssetBundleEditorData.currentABConfig.LoadFromJSON();
+                    }
+                    else
+                        Debug.Log("未选择没有配置文件!");
+                },
+                out Label UpdateConfigureIcon
+            );
+            UpdateConfigureIcon.style.backgroundImage = Resources.Load<Texture2D>(
+                "Icon/AB-Refresh"
+            );
 
             // 保存配置
-            CreateControllerButton(abToolbar, "SaveConfigure", () =>
-            {
-                if (AssetBundleEditorData.currentABConfig != null)
-                    AssetBundleEditorData.currentABConfig.SaveData();
-                else Debug.Log("未选择没有配置文件!");
-            }, out Label SaveIcon);
+            CreateControllerButton(
+                abToolbar,
+                "SaveConfigure",
+                () =>
+                {
+                    if (AssetBundleEditorData.currentABConfig != null)
+                        AssetBundleEditorData.currentABConfig.SaveData();
+                    else
+                        Debug.Log("未选择没有配置文件!");
+                },
+                out Label SaveIcon
+            );
             SaveIcon.style.backgroundImage = Resources.Load<Texture2D>("Icon/Save");
 
             // 上传资源到服务器
-            CreateControllerButton(abToolbar, "UploadToServer", () =>
-               {
-                   string assetspath = AssetBundleEditorData.currentABConfig.RemoteSavePath;
-                   //资源地址
-                   string resServer = AssetBundleEditorData.currentABConfig.ResServerPath;
-                   string mainFolderName = AssetBundleEditorData.currentABConfig.MainFolderName;
-                   string buildTarget = AssetBundleEditorData.currentABConfig.BuildTarget.ToString();
-                   string resServerPath = resServer + "/" + mainFolderName + "/" + buildTarget;
+            CreateControllerButton(
+                abToolbar,
+                "UploadToServer",
+                () =>
+                {
+                    string assetspath = AssetBundleEditorData.currentABConfig.RemoteSavePath;
+                    //资源地址
+                    string resServer = AssetBundleEditorData.currentABConfig.ResServerPath;
+                    string mainFolderName = AssetBundleEditorData.currentABConfig.MainFolderName;
+                    string buildTarget =
+                        AssetBundleEditorData.currentABConfig.BuildTarget.ToString();
+                    string resServerPath = resServer + "/" + mainFolderName + "/" + buildTarget;
 
-                   string ftpUser = AssetBundleEditorData.currentABConfig.ID;
-                   string ftpPwd = AssetBundleEditorData.currentABConfig.Password;
-                   NetworkProtocolsType networkProtocolsType = AssetBundleEditorData.currentABConfig.NetworkProtocolsType;
-                   CreateAssetsBundlesHandles.UploadAllAssetBundlesFile(assetspath, resServerPath, networkProtocolsType, ftpUser, ftpPwd);
-               }, out Label RefreshIcon);
+                    string ftpUser = AssetBundleEditorData.currentABConfig.ID;
+                    string ftpPwd = AssetBundleEditorData.currentABConfig.Password;
+                    NetworkProtocolsType networkProtocolsType = AssetBundleEditorData
+                        .currentABConfig
+                        .NetworkProtocolsType;
+                    CreateAssetsBundlesHandles.UploadAllAssetBundlesFile(
+                        assetspath,
+                        resServerPath,
+                        networkProtocolsType,
+                        ftpUser,
+                        ftpPwd
+                    );
+                },
+                out Label RefreshIcon
+            );
             RefreshIcon.style.backgroundImage = Resources.Load<Texture2D>("Icon/Upload");
             visual.Add(abToolbar);
         }
@@ -157,7 +204,12 @@ namespace AssetBundleToolEditor
         }
 
         //创建控制按钮
-        private void CreateControllerButton(VisualElement visual, string buttonName, Action action, out Label button)
+        private void CreateControllerButton(
+            VisualElement visual,
+            string buttonName,
+            Action action,
+            out Label button
+        )
         {
             Button changeViewButton = new Button();
             changeViewButton.AddToClassList("ControllerButton");

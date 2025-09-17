@@ -6,7 +6,7 @@ namespace SkillEditorExamples
     /// <summary>
     /// 编辑器示例-玩家待机状态
     /// </summary>
-    public class Player_Idle : StateBase<PlayerController>
+    public class Player_Idle : FSMStateBase<PlayerController>
     {
         public override async void OnEnter(FSMStateMachine<PlayerController> machine)
         {

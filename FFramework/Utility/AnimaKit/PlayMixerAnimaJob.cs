@@ -63,18 +63,6 @@ namespace FFramework.Kit
         {
             jobPlayable.SetSpeed(0);
         }
-
-#if UNITY_EDITOR
-        private void OnValidate()
-        {
-            if (jobPlayable.IsValid())
-            {
-                MixerJob job = jobPlayable.GetJobData<MixerJob>();
-                job.weight = weight;
-                jobPlayable.SetJobData(job);
-            }
-        }
-#endif
     }
 
     public struct MixerJob : IAnimationJob

@@ -6,7 +6,7 @@ namespace SkillEditorExamples
     /// <summary>
     /// 编辑器示例-玩家奔跑状态
     /// </summary>
-    public class Player_Run : StateBase<PlayerController>
+    public class Player_Run : FSMStateBase<PlayerController>
     {
         private float lastMovementTime;
         private const float MOVEMENT_BUFFER = 0.2f; // 200ms缓冲

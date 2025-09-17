@@ -51,18 +51,5 @@ namespace FFramework.Kit
             // mixerPlayable.Pause();
             mixerPlayable.SetSpeed(0f);
         }
-
-#if UNITY_EDITOR
-        private void OnValidate()
-        {
-            if (mixerPlayable.IsValid())
-            {
-                mixerPlayable.SetInputWeight(0, 1 - weight);
-                mixerPlayable.SetInputWeight(1, weight);
-
-                mixerPlayable.SetSpeed(playSpeed);
-            }
-        }
-#endif
     }
 }

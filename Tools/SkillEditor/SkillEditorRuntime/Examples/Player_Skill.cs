@@ -5,7 +5,7 @@ namespace SkillEditorExamples
     /// <summary>
     /// 编辑器示例-玩家技能状态
     /// </summary>
-    public class Player_Skill : StateBase<PlayerController>
+    public class Player_Skill : FSMStateBase<PlayerController>
     {
         public override void OnEnter(FSMStateMachine<PlayerController> machine)
         {
