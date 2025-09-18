@@ -624,7 +624,7 @@ namespace AssetBundleToolEditor
             // 当前AssetBundle是否构建
             Label icon = new Label();
             icon.AddToClassList("AssetBundleGroupIcon");
-            icon.style.unityBackgroundImageTintColor = assetBundleGroup.isBuild ? DefaultColor : DisabledColor;
+            icon.style.unityBackgroundImageTintColor = assetBundleGroup.isEnableBuild ? DefaultColor : DisabledColor;
             assetBundleItem.Add(icon);
 
             // 标题
@@ -655,8 +655,10 @@ namespace AssetBundleToolEditor
             AddTipIcon("LocalData", assetBundleGroup.buildPathType == BuildPathType.Local);
             // 保存到远端
             AddTipIcon("RemoteData", assetBundleGroup.buildPathType == BuildPathType.Remote);
-            // 是否拆分AB包
-            AddTipIcon("AssetBundleSplit", assetBundleGroup.isSplitFile);
+            // 是否启用拆分AB包
+            AddTipIcon("AssetBundlePackSeparately", assetBundleGroup.isEnablePackSeparately);
+            // 是否启用可寻址资源定位系统
+            AddTipIcon("ResourceAddressing", assetBundleGroup.isEnableAddressable);
 
             assetBundleItem.Add(tipsIconArea);
 
@@ -688,14 +690,14 @@ namespace AssetBundleToolEditor
 
             var assetBundleGroup = AssetBundleEditorData.currentAssetBundleGroup;
             // 获取当前AB包组是否可以构建
-            bool isBuild = assetBundleGroup.isBuild;
+            bool isEnableBuild = assetBundleGroup.isEnableBuild;
             // 根据当前是否可以构建状态显示相反操作
-            if (isBuild)
+            if (isEnableBuild)
             {
                 menu.AddDisabledItem(new GUIContent("√当前为可构建状态"));
                 menu.AddItem(new GUIContent("设置为不可构建"), false, () =>
                 {
-                    assetBundleGroup.isBuild = false;
+                    assetBundleGroup.isEnableBuild = false;
                     UpdateAssetBundlesItem();
                 });
             }
@@ -703,7 +705,7 @@ namespace AssetBundleToolEditor
             {
                 menu.AddItem(new GUIContent("设置为可构建"), false, () =>
                 {
-                    assetBundleGroup.isBuild = true;
+                    assetBundleGroup.isEnableBuild = true;
                     UpdateAssetBundlesItem();
                 });
                 menu.AddDisabledItem(new GUIContent("√当前为不可构建状态"));
@@ -734,13 +736,13 @@ namespace AssetBundleToolEditor
             menu.AddSeparator("");
 
             // 是否分割AB包文件 - 构建时一个文件一个AB包
-            bool isSplitFile = assetBundleGroup.isSplitFile;
-            if (isSplitFile)
+            bool isEnablePackSeparately = assetBundleGroup.isEnablePackSeparately;
+            if (isEnablePackSeparately)
             {
                 menu.AddDisabledItem(new GUIContent("√使用单文件AB包构建"));
                 menu.AddItem(new GUIContent("设置为不使用单文件AB包构建"), false, () =>
                 {
-                    assetBundleGroup.isSplitFile = false;
+                    assetBundleGroup.isEnablePackSeparately = false;
                     UpdateAssetBundlesItem();
                 });
             }
@@ -748,12 +750,36 @@ namespace AssetBundleToolEditor
             {
                 menu.AddItem(new GUIContent("设置为使用单文件AB包构建"), false, () =>
                 {
-                    assetBundleGroup.isSplitFile = true;
+                    assetBundleGroup.isEnablePackSeparately = true;
                     UpdateAssetBundlesItem();
                 });
                 menu.AddDisabledItem(new GUIContent("√不使用单文件AB包构建"));
             }
             menu.AddSeparator("");
+
+            // 是否启用可寻址资源定位系统
+            bool isEnableAddressable = assetBundleGroup.isEnableAddressable;
+            if (isEnableAddressable)
+            {
+                menu.AddDisabledItem(new GUIContent("√使用可寻址资源定位系统"));
+                menu.AddItem(new GUIContent("设置为不使用可寻址资源定位系统"), false, () =>
+                {
+                    assetBundleGroup.isEnableAddressable = false;
+                    UpdateAssetBundlesItem();
+                });
+            }
+            else
+            {
+                menu.AddItem(new GUIContent("设置为使用可寻址资源定位系统"), false, () =>
+                {
+                    assetBundleGroup.isEnableAddressable = true;
+                    UpdateAssetBundlesItem();
+                });
+                menu.AddDisabledItem(new GUIContent("√不使用可寻址资源定位系统"));
+            }
+            menu.AddSeparator("");
+
+            // 是否使用AB包名作为前缀
             bool prefixIsAssetBundleName = assetBundleGroup.prefixIsAssetBundleName;
             if (prefixIsAssetBundleName)
             {
@@ -1007,6 +1033,51 @@ namespace AssetBundleToolEditor
             }
         }
 
+        /// <summary>
+        /// 根据资源类型获取对应的Icon路径
+        /// </summary>
+        private string GetIconPathByAssetType(UnityEngine.Object asset)
+        {
+            if (asset == null) return "Icon/DefaultAssetIcon";
+
+            System.Type assetType = asset.GetType();
+            string typeName = assetType.Name;
+
+            // 根据资源类型映射Icon路径
+            switch (typeName)
+            {
+                case "Texture2D":
+                    return "Icon/TextureIcon";
+                case "Sprite":
+                    return "Icon/SpriteIcon";
+                case "Material":
+                    return "Icon/MaterialIcon";
+                case "Mesh":
+                    return "Icon/MeshIcon";
+                case "GameObject":
+                    return "Icon/PrefabIcon";
+                case "AudioClip":
+                    return "Icon/AudioClipIcon";
+                case "AnimationClip":
+                    return "Icon/AnimationClipIcon";
+                case "AnimatorController":
+                    return "Icon/AnimatorControllerIcon";
+                case "Font":
+                    return "Icon/FontIcon";
+                case "Shader":
+                    return "Icon/ShaderIcon";
+                case "TextAsset":
+                    return "Icon/TextAssetIcon";
+                default:
+                    // 检查是否继承自ScriptableObject
+                    if (typeof(ScriptableObject).IsAssignableFrom(assetType))
+                    {
+                        return "Icon/ScriptableObjectIcon";
+                    }
+                    return "Icon/DefaultAssetIcon";
+            }
+        }
+
         //AB包数据
         private void AddAssetBundlesDataItem(VisualElement visual, AssetBundleAssetsData asset, bool isSelect = false)
         {
@@ -1016,11 +1087,10 @@ namespace AssetBundleToolEditor
             // 红蓝交错显示，选中状态优先
             string styleClass = isSelect
                 ? "SelectAssetBundlesDataItem"
-                : (
-                    visual.childCount % 2 == 0
-                        ? "DefaultAssetBundlesDataItem"
-                        : "DefaultAssetBundlesDataItem-Gray"
-                );
+                : (visual.childCount % 2 == 0
+                ? "DefaultAssetBundlesDataItem"
+                : "DefaultAssetBundlesDataItem-Gray");
+
             assetBundlesDataItemContent.AddToClassList(styleClass);
             assetBundlesDataItemContent.clicked += () =>
             {
@@ -1031,9 +1101,7 @@ namespace AssetBundleToolEditor
             // 资源Icon
             Label assetIcon = new Label();
             assetIcon.AddToClassList("TipsIcon");
-            assetIcon.style.backgroundImage = new StyleBackground(
-                Resources.Load<Texture2D>($"Icon/DefaultAssetIcon")
-            );
+            assetIcon.style.backgroundImage = new StyleBackground(Resources.Load<Texture2D>($"{GetIconPathByAssetType(asset.AssetsObject)}"));
             assetIcon.style.position = Position.Absolute;
             assetBundlesDataItemContent.Add(assetIcon);
             //资源名称
@@ -1047,6 +1115,8 @@ namespace AssetBundleToolEditor
             AssetDataInfo(assetBundlesDataItemContent, asset.AssetsObject.GetType().Name, true);
             //资源控制器
             AddAssetController(assetBundlesDataItemContent, asset);
+            // 刷新一下计数
+            UpdateItemQuantityStatistics();
             visual.Add(assetBundlesDataItemContent);
         }
 
@@ -1101,9 +1171,7 @@ namespace AssetBundleToolEditor
             // 应用搜索过滤
             if (!string.IsNullOrEmpty(searchText))
             {
-                result = result.Where(asset =>
-                    asset.assetName.IndexOf(searchText, StringComparison.OrdinalIgnoreCase) >= 0
-                );
+                result = result.Where(asset => asset.assetName.IndexOf(searchText, StringComparison.OrdinalIgnoreCase) >= 0);
             }
 
             return result;
@@ -1156,11 +1224,11 @@ namespace AssetBundleToolEditor
             removeAsset.AddToClassList("DeleteAsset");
             removeAsset.clicked += () =>
             {
-                if (
-                    !EditorUtility.DisplayDialog("确认删除", $"确定删除资源: '{asset.assetName}' ?", "是", "否")
-                )
+                if (!EditorUtility.DisplayDialog("确认删除", $"确定删除资源: '{asset.assetName}' ?", "是", "否"))
                     return;
                 AssetBundleEditorData.currentAssetBundleGroup.assets.Remove(asset);
+                // 刷新一下计数
+                UpdateItemQuantityStatistics();
                 UpdateAssetBundlesDataItem();
             };
             dataInfo.Add(removeAsset);

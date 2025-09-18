@@ -255,7 +255,7 @@
 
 /* ABGroup名称  */
 .AssetBundleItemTitle{
-    width: 100px;
+    width: 80px;
     height: 20px;
     font-size: 12px;
 
@@ -342,7 +342,8 @@
     flex-grow: 1;               
     flex-shrink: 1;             
     flex-basis: 0%;             
-    
+    padding-left:10px;
+    padding-right: 10px;
     border-left-width: 2px;
     background-color: rgba(125, 125, 125, 0.25);
     border-right-width: 1px;
@@ -364,6 +365,7 @@
 
     margin: 0px; 
     padding: 0px;
+    right: -8px;
     border-width: 0px;
     align-self:flex-end;
     -unity-font-style: bold;
