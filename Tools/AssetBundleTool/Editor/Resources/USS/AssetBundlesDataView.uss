@@ -209,6 +209,16 @@
     background-image: resource("Icon/AB-Refresh");
 }
 
+.DebugDependencyCollectionButton{
+    width: 18px;
+    height: 18px;
+    margin-left:1px;
+    margin-right:0px;
+
+    background-size: 85% 85%;
+    background-image: resource("Icon/DebugDependencyCollection");
+}
+
 /* 搜索图标 */
 .SearchIcon{
     width: 18px;

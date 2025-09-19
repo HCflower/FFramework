@@ -26,6 +26,11 @@ namespace AssetBundleToolEditor
                 var bundleData = new BundleData
                 {
                     bundleName = group.assetBundleName,
+                    buildPathType = group.buildPathType,
+                    isEnableBuild = group.isEnableBuild,
+                    isEnablePackSeparately = group.isEnablePackSeparately,
+                    prefixIsAssetBundleName = group.prefixIsAssetBundleName,
+                    isEnableAddressable = group.isEnableAddressable,
                     assets = new List<AssetData>()
                 };
 
@@ -47,7 +52,9 @@ namespace AssetBundleToolEditor
             string jsonPath = GetAssociatedJSONPath(config);
             File.WriteAllText(jsonPath, JsonUtility.ToJson(jsonData, true));
             config.JsonAsset = AssetDatabase.LoadAssetAtPath<TextAsset>(jsonPath);
+            config.JosnPath = jsonPath;
             config.JosnGuid = AssetDatabase.AssetPathToGUID(jsonPath);
+            EditorUtility.SetDirty(config);
             AssetDatabase.Refresh();
             Debug.Log($"JSON文件生成成功: {jsonPath}");
         }
@@ -102,6 +109,7 @@ namespace AssetBundleToolEditor
                 {
                     config.JosnPath = jsonPath;
                     config.JosnGuid = AssetDatabase.AssetPathToGUID(jsonPath);
+                    config.JsonAsset = AssetDatabase.LoadAssetAtPath<TextAsset>(jsonPath);
                     EditorUtility.SetDirty(config);
                     Debug.Log($"<color=yellow>更新JSON引用:</color> {jsonPath}");
                 }
@@ -135,6 +143,11 @@ namespace AssetBundleToolEditor
                 var group = new AssetBundleGroup
                 {
                     assetBundleName = bundleData.bundleName,
+                    buildPathType = bundleData.buildPathType,
+                    isEnableBuild = bundleData.isEnableBuild,
+                    isEnablePackSeparately = bundleData.isEnablePackSeparately,
+                    prefixIsAssetBundleName = bundleData.prefixIsAssetBundleName,
+                    isEnableAddressable = bundleData.isEnableAddressable,
                     assets = new List<AssetBundleAssetsData>()
                 };
 
@@ -165,7 +178,6 @@ namespace AssetBundleToolEditor
                 Object asset = AssetDatabase.LoadAssetAtPath<Object>(path);
                 if (asset != null)
                 {
-                    Debug.Log($"<color=yellow>[路径加载成功]</color> {assetName} ({path})");
                     return asset;
                 }
             }
@@ -179,14 +191,14 @@ namespace AssetBundleToolEditor
                     Object asset = AssetDatabase.LoadAssetAtPath<Object>(guidPath);
                     if (asset != null)
                     {
-                        Debug.LogWarning($"<color=yellow>[GUID回退加载]</color> {assetName}\n" + $"原路径: {path}\n" + $"新路径: {guidPath}");
+                        Debug.LogWarning($"<color=yellow>[GUID回退加载]</color> {assetName}\n原路径: {path}\n新路径: {guidPath}");
                         return asset;
                     }
                 }
             }
 
             // 3. 双重加载均失败
-            Debug.LogError($"<color=red>[加载失败]</color> {assetName}\n" + $"路径: {path}\n" + $"GUID: {guid}");
+            Debug.LogError($"<color=red>[加载失败]</color> {assetName}\n路径: {path}\nGUID: {guid}");
             return null;
         }
 
@@ -201,6 +213,11 @@ namespace AssetBundleToolEditor
         private class BundleData
         {
             public string bundleName;
+            public BuildPathType buildPathType;
+            public bool isEnableBuild = true;
+            public bool isEnablePackSeparately = false;
+            public bool prefixIsAssetBundleName = false;
+            public bool isEnableAddressable = false;
             public List<AssetData> assets;
         }
 

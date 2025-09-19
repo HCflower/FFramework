@@ -1,10 +1,10 @@
-using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using UnityEngine.UIElements;
 using UnityEditor;
 using UnityEngine;
+using System.Linq;
+using System.IO;
+using System;
 
 namespace AssetBundleToolEditor
 {
@@ -43,8 +43,8 @@ namespace AssetBundleToolEditor
             CreateMainContent();
             SetupABListSection();
             SetupABItemSection();
-            visual.Add(mainContent);
             UpdateAssetBundlesDataItem();
+            visual.Add(mainContent);
         }
 
         private void CreateMainContent()
@@ -170,6 +170,7 @@ namespace AssetBundleToolEditor
             CreateItemShowTypeControl(searchContainer);
             CreateQuantityStatistics(searchContainer);
             CreateRefreshButton(searchContainer);
+            CreateDebugDependencyCollectionButton(searchContainer);
 
             // 最后设置搜索逻辑
             SetupItemSearchLogic(searchInput, searchContainer);
@@ -296,6 +297,19 @@ namespace AssetBundleToolEditor
             refreshButton.clicked += RefreshAllPanelData;
             visual.Add(refreshButton);
         }
+
+        private void CreateDebugDependencyCollectionButton(VisualElement visual)
+        {
+            var debugButton = new Button();
+            debugButton.AddToClassList("DebugDependencyCollectionButton");
+            debugButton.tooltip = "测试AssetBundle组依赖项收集";
+            debugButton.clicked += () =>
+            {
+                AssetBundleEditorData.currentABConfig.DebugDependencyCollection(AssetBundleEditorData.currentAssetBundleGroup);
+            };
+            visual.Add(debugButton);
+        }
+
         #endregion
 
         #region 数据刷新
@@ -307,8 +321,6 @@ namespace AssetBundleToolEditor
             try
             {
                 Debug.Log("<color=cyan>开始刷新面板数据...</color>");
-
-                AssetDatabase.Refresh();
                 ValidateAndCleanAssets();
                 ResetSearchTypeToSelf();
                 UpdateAllDisplays();
@@ -978,9 +990,7 @@ namespace AssetBundleToolEditor
                     )
                 )
                 {
-                    Debug.LogWarning(
-                        $"<color=red>已经存在同名AssetBundleGroup: {groupNameText}</color>"
-                    );
+                    Debug.LogWarning($"<color=red>已经存在同名AssetBundleGroup: {groupNameText}</color>");
                     return;
                 }
 

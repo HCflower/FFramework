@@ -61,9 +61,7 @@ namespace AssetBundleToolEditor
                 },
                 out Label CreateConfigIcon
             );
-            CreateConfigIcon.style.backgroundImage = Resources.Load<Texture2D>(
-                "Icon/CreateConfigIcon"
-            );
+            CreateConfigIcon.style.backgroundImage = Resources.Load<Texture2D>("Icon/CreateConfigIcon");
 
             // AB包数据
             CreateControllerButton(
@@ -76,9 +74,7 @@ namespace AssetBundleToolEditor
                 },
                 out Label AssetBundlesDataIcon
             );
-            AssetBundlesDataIcon.style.backgroundImage = Resources.Load<Texture2D>(
-                "Icon/AssetBundle"
-            );
+            AssetBundlesDataIcon.style.backgroundImage = Resources.Load<Texture2D>("Icon/AssetBundle");
 
             // 设置和构建
             CreateControllerButton(
@@ -109,9 +105,7 @@ namespace AssetBundleToolEditor
                 },
                 out Label UpdateConfigureIcon
             );
-            UpdateConfigureIcon.style.backgroundImage = Resources.Load<Texture2D>(
-                "Icon/AB-Refresh"
-            );
+            UpdateConfigureIcon.style.backgroundImage = Resources.Load<Texture2D>("Icon/AB-Refresh");
 
             // 保存配置
             CreateControllerButton(
