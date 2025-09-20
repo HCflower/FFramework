@@ -168,7 +168,8 @@ namespace AssetBundleToolEditor
 
             foreach (var asset in group.assets)
             {
-                if (string.IsNullOrEmpty(asset.assetPath)) continue;
+                // 只处理启用构建的资源
+                if (!asset.isEnableBuild || string.IsNullOrEmpty(asset.assetPath)) continue;
 
                 Debug.Log($"--- 主资源: {asset.assetName} ---");
 
@@ -415,6 +416,10 @@ namespace AssetBundleToolEditor
 
             foreach (var asset in validAssets)
             {
+                // 只处理启用构建的资源
+                if (!asset.isEnableBuild || string.IsNullOrEmpty(asset.assetPath))
+                    continue;
+
                 if (group.isEnableAddressable)
                 {
                     // 启用可寻址资源定位系统 - 收集所有依赖项
@@ -499,17 +504,17 @@ namespace AssetBundleToolEditor
         }
 
         /// <summary>
-        /// 创建分离的AssetBundle包（修改版 - 每个资源单独打包）
+        /// 创建分离的AssetBundle包（每个资源单独打包）
         /// </summary>
         private void CreateSeparateAssetBundles(AssetBundleGroup group, List<string> assetPaths, List<AssetBundleBuild> builds)
         {
             if (group.isEnableAddressable)
             {
-                var mainAssets = group.assets.Select(a => a.assetPath).ToHashSet();
+                var mainAssets = group.assets.Where(a => a.isEnableBuild && !string.IsNullOrEmpty(a.assetPath)).Select(a => a.assetPath).ToHashSet();
                 var dependencyAssets = assetPaths.Where(path => !mainAssets.Contains(path)).ToList();
 
-                // 为每个主资源创建独立包
-                foreach (var asset in group.assets.Where(a => !string.IsNullOrEmpty(a.assetPath)))
+                // 为每个主资源创建独立包（只处理 isEnableBuild 为 true 的资源）
+                foreach (var asset in group.assets.Where(a => a.isEnableBuild && !string.IsNullOrEmpty(a.assetPath)))
                 {
                     string assetBundleName = group.prefixIsAssetBundleName
                         ? $"{group.assetBundleName}_{asset.assetName}"
@@ -527,7 +532,11 @@ namespace AssetBundleToolEditor
                 // 为每个依赖项创建独立包
                 foreach (string dependencyPath in dependencyAssets)
                 {
-                    // 检查是否已被其他组处理
+                    // 检查依赖资源是否在资源列表中且 isEnableBuild=false
+                    var assetData = group.assets.FirstOrDefault(a => a.assetPath == dependencyPath);
+                    if (assetData != null && assetData.isEnableBuild == false)
+                        continue; // 跳过未启用构建的依赖资源
+
                     if (globalDependencyTracker.ContainsKey(dependencyPath))
                     {
                         Debug.Log($"<color=yellow>依赖项 '{dependencyPath}' 已被组 '{globalDependencyTracker[dependencyPath]}' 打包，跳过重复打包</color>");
@@ -538,7 +547,6 @@ namespace AssetBundleToolEditor
                     var dependencyAsset = AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(dependencyPath);
                     string assetTypeName = GetAssetTypeName(dependencyAsset);
 
-                    // 生成依赖项包名
                     string dependencyBundleName = group.prefixIsAssetBundleName
                         ? $"{group.assetBundleName}_{dependencyAssetName}_{assetTypeName}"
                         : $"{dependencyAssetName}_{assetTypeName}";
@@ -549,18 +557,16 @@ namespace AssetBundleToolEditor
                         assetNames = new[] { dependencyPath }
                     });
 
-                    // 记录该依赖项已被处理
                     globalDependencyTracker[dependencyPath] = group.assetBundleName;
 
                     Debug.Log($"<color=green>依赖项包 '{dependencyBundleName}' 已创建，路径: {dependencyPath}</color>");
                 }
-
-                Debug.Log($"<color=cyan>可寻址AB包组 '{group.assetBundleName}' 生成了 {group.assets.Count} 个主资源包和 {dependencyAssets.Count} 个依赖项包</color>");
             }
             else
             {
-                // 普通分离模式 - 每个资源一个包
-                foreach (string assetPath in assetPaths)
+                // 普通分离模式 - 只处理 isEnableBuild 为 true 的资源
+                var enabledAssetPaths = group.assets.Where(a => a.isEnableBuild && !string.IsNullOrEmpty(a.assetPath)).Select(a => a.assetPath).ToList();
+                foreach (string assetPath in enabledAssetPaths)
                 {
                     var assetName = Path.GetFileNameWithoutExtension(assetPath);
                     string assetBundleName = group.prefixIsAssetBundleName
@@ -574,7 +580,7 @@ namespace AssetBundleToolEditor
                     });
                 }
 
-                Debug.Log($"<color=cyan>AB包组 '{group.assetBundleName}' 启用文件分割，生成了 {assetPaths.Count} 个独立AB包</color>");
+                Debug.Log($"<color=cyan>AB包组 '{group.assetBundleName}' 启用文件分割，生成了 {enabledAssetPaths.Count} 个独立AB包</color>");
             }
         }
 
@@ -657,12 +663,7 @@ namespace AssetBundleToolEditor
                     //注意:AssetBundle没有后缀
                     if (info.Extension == "")
                     {
-                        assetBundleCompareInfo +=
-                            info.Name
-                            + "/"
-                            + info.Length
-                            + "/"
-                            + CreateAssetsBundlesHandles.GetMD5(info.FullName);
+                        assetBundleCompareInfo += info.Name + "/" + info.Length + "/" + CreateAssetsBundlesHandles.GetMD5(info.FullName);
                         //添加分隔符
                         assetBundleCompareInfo += "|";
                     }
@@ -680,6 +681,22 @@ namespace AssetBundleToolEditor
                 Debug.Log($"AssetBundle对比文件创建成功:{Path + "/AssetBundleCompareInfo.txt"}");
             }
         }
+
+        /// <summary>
+        /// 清空AB包组数据
+        /// </summary>
+        /// <param name="group">AB包组</param>
+        public void ClearABGroupData(AssetBundleGroup group)
+        {
+            foreach (var ABGroup in AssetBundleList)
+            {
+                if (ABGroup.assetBundleName == group.assetBundleName)
+                {
+                    ABGroup.assets.Clear();
+                }
+            }
+        }
+
     }
 
     // AB包组和数据类
@@ -695,7 +712,7 @@ namespace AssetBundleToolEditor
         [Tooltip("是否启用构建")]
         public bool isEnableBuild = true;
 
-        [Tooltip("是否分割文件")]
+        [Tooltip("是否拆分文件")]
         public bool isEnablePackSeparately = false;
 
         [Tooltip("是添加前缀 - 启用文件分割时应用")]
@@ -723,14 +740,10 @@ namespace AssetBundleToolEditor
             }
         }
 
-        [ShowOnly]
-        public string assetName;
-
-        [ShowOnly]
-        public string assetPath;
-
-        [ShowOnly]
-        public string assetGuid;
+        [ShowOnly] public bool isEnableBuild = true; // 是否参与构建AB包(只有启用拆分文件时才有效)
+        [ShowOnly] public string assetName;          // 资源名称
+        [ShowOnly] public string assetPath;          // 资源路径
+        [ShowOnly] public string assetGuid;          // 资源GUID
 
         public void UpdateAssetInfo()
         {

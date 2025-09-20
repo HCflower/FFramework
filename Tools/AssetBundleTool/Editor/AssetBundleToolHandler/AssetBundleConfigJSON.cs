@@ -40,6 +40,7 @@ namespace AssetBundleToolEditor
 
                     bundleData.assets.Add(new AssetData
                     {
+                        isEnableBuild = asset.isEnableBuild,
                         name = asset.assetName,
                         path = asset.assetPath,
                         guid = asset.assetGuid
@@ -157,6 +158,7 @@ namespace AssetBundleToolEditor
 
                     group.assets.Add(new AssetBundleAssetsData
                     {
+                        isEnableBuild = assetData.isEnableBuild,
                         assetName = assetData.name,
                         assetPath = asset ? AssetDatabase.GetAssetPath(asset) : assetData.path,
                         assetGuid = assetData.guid,
@@ -224,6 +226,7 @@ namespace AssetBundleToolEditor
         [System.Serializable]
         private class AssetData
         {
+            public bool isEnableBuild;
             public string name;
             public string path;
             public string guid;

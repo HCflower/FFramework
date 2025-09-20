@@ -77,14 +77,25 @@ namespace AssetBundleToolEditor
     //AB包过滤显示类型
     public enum ABItemShowType
     {
-        All, //全部
-        Scene, //场景
-        Asset, //资源
-        GameObject, //游戏对象
-        Texture2D, //贴图
-        AudioClip, //音频
-        Animation, //动画
-        Material, //材质
-        TextAsset, //文本
+        All,           // 全部
+        Scene,         // 场景
+        Asset,         // 资源
+        GameObject,    // 游戏对象（预制体）
+        Texture2D,     // 贴图
+        Sprite,        // 精灵
+        AudioClip,     // 音频
+        AnimationClip, // 动画片段
+        Material,      // 材质
+        Mesh,          // 网格
+        Font,          // 字体
+        TextAsset,     // 文本
+        Shader,        // Shader
+        ScriptableObject, // 脚本对象
+        AnimatorController, // 动画控制器
+        Prefab,             // 预制体
+        ParticleSystem,     // 粒子系统
+        TrailRenderer,      // 拖尾特效
+        VisualEffect,       // Visual Effectt特效
+        Other               // 其他
     }
 }

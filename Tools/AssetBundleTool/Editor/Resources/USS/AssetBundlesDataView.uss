@@ -209,13 +209,24 @@
     background-image: resource("Icon/AB-Refresh");
 }
 
+/* AB包资源清理按钮 */
+.ClearABGroupDataButton{
+    width: 18px;
+    height: 18px;
+    margin-left:1px;
+    margin-right:0px;
+    background-size: 90% 90%;
+    background-color: rgba(222, 70, 70, 1);
+    background-image: resource("Icon/ClearData");
+}
+
 .DebugDependencyCollectionButton{
     width: 18px;
     height: 18px;
     margin-left:1px;
     margin-right:0px;
 
-    background-size: 85% 85%;
+    background-size: 90% 90%;
     background-image: resource("Icon/DebugDependencyCollection");
 }
 
@@ -358,8 +369,8 @@
     background-color: rgba(125, 125, 125, 0.25);
     border-right-width: 1px;
     border-right-color:  rgba(131, 131, 131, 0.85);
-    justify-content: center;
-
+    justify-content: flex-end;
+    flex-direction: row;  
     font-size: 10px;
     overflow: hidden;          /* 隐藏超出部分 */
     white-space: nowrap;       /* 禁止文本换行 */
@@ -368,20 +379,32 @@
     -unity-font-style: bold;
 }
 
-/* 删除资产 */
-.DeleteAsset{
+/* 控制按钮 */
+.ControlButton{
     width: 16px;
     height: 16px;
 
     margin: 0px; 
+    margin-left: 2px; 
     padding: 0px;
     right: -8px;
     border-width: 0px;
-    align-self:flex-end;
+    align-self:center;
     -unity-font-style: bold;
+}
 
-    background-color:  rgba(227, 74, 74, 1);
+/* 删除资产 */
+.DeleteAssetButton{
+    background-color:  rgba(222, 70, 70, 1);
     background-size: 90% 90%;
     background-image: resource("Icon/DeletedIcon");
+}
 
+/* 是否资产启用构建 */
+.AssetIsEnableBuildToggle{}
+
+.AssetIsEnableBuildToggle .unity-toggle__checkmark{
+    width: 16px;
+    height: 16px;
+    border-width: 4px;
 }
