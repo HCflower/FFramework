@@ -59,14 +59,6 @@ namespace AssetBundleToolEditor
         HTTP, //Http
     }
 
-    //构建平台选择
-    public enum BuildTarget
-    {
-        Windows,
-        Android,
-        IOS,
-    }
-
     //搜索范围类型
     public enum ABItemSearchType
     {

@@ -356,6 +356,7 @@ namespace AssetBundleToolEditor
             }
         }
 
+        // 刷新搜索范围类型
         private void ResetSearchTypeToSelf()
         {
             if (AssetBundleEditorData.currentAssetBundleGroup != null)
@@ -366,6 +367,7 @@ namespace AssetBundleToolEditor
             }
         }
 
+        // 刷新所有显示
         private void UpdateAllDisplays()
         {
             UpdateAssetSizeDisplay();
@@ -645,22 +647,22 @@ namespace AssetBundleToolEditor
         // AddAssetBundles 方法
         private void AddAssetBundles(VisualElement visual, AssetBundleGroup assetBundleGroup, bool isSelect = false)
         {
-            Button assetBundleItem = new Button();
-            assetBundleItem.AddToClassList("DefaultAssetBundleItem");
+            Button ABGroupControl = new Button();
+            ABGroupControl.AddToClassList("DefaultAssetBundleItem");
             if (isSelect)
-                assetBundleItem.AddToClassList("SelectAssetBundleItem");
+                ABGroupControl.AddToClassList("SelectAssetBundleItem");
 
             // 当前AssetBundle是否构建
             Label icon = new Label();
             icon.AddToClassList("AssetBundleGroupIcon");
             icon.style.unityBackgroundImageTintColor = assetBundleGroup.isEnableBuild ? DefaultColor : DisabledColor;
-            assetBundleItem.Add(icon);
+            ABGroupControl.Add(icon);
 
             // 标题
             Label title = new Label();
             title.AddToClassList("AssetBundleItemTitle");
             title.text = assetBundleGroup.assetBundleName;
-            assetBundleItem.Add(title);
+            ABGroupControl.Add(title);
 
             // 提示图标区域
             VisualElement tipsIconArea = new VisualElement();
@@ -689,10 +691,10 @@ namespace AssetBundleToolEditor
             // 是否启用可寻址资源定位系统
             AddTipIcon("ResourceAddressing", assetBundleGroup.isEnableAddressable);
 
-            assetBundleItem.Add(tipsIconArea);
+            ABGroupControl.Add(tipsIconArea);
 
             // 点击事件
-            assetBundleItem.clicked += () =>
+            ABGroupControl.clicked += () =>
             {
                 AssetBundleEditorData.currentAssetBundleGroup = assetBundleGroup;
                 AssetBundleEditorData.currentABItemSearchType = ABItemSearchType.Self;
@@ -705,16 +707,16 @@ namespace AssetBundleToolEditor
             moreOptions.AddToClassList("ABGroupMoreOptionsButton");
             moreOptions.clicked += () =>
             {
-                ShowDropdownMenu(moreOptions, assetBundleGroup);
+                ShowDropdownMenu(ABGroupControl, moreOptions, assetBundleGroup);
             };
-            assetBundleItem.Add(moreOptions);
+            ABGroupControl.Add(moreOptions);
 
-            visual.Add(assetBundleItem);
+            visual.Add(ABGroupControl);
         }
 
         #region 下拉菜单
         // 显示AB包组的配置设置下拉菜单
-        private void ShowDropdownMenu(VisualElement button, AssetBundleGroup assetBundleGroup)
+        private void ShowDropdownMenu(VisualElement visual, VisualElement button, AssetBundleGroup assetBundleGroup)
         {
             GenericMenu menu = new GenericMenu();
 
@@ -739,7 +741,7 @@ namespace AssetBundleToolEditor
             menu.AddSeparator("");
 
             // 操作选项
-            AddOperationOptions(menu, assetBundleGroup);
+            AddOperationOptions(visual, menu, assetBundleGroup);
 
             // 显示菜单
             ShowMenuAtPosition(menu, button);
@@ -859,11 +861,34 @@ namespace AssetBundleToolEditor
         }
 
         // 添加操作选项
-        private void AddOperationOptions(GenericMenu menu, AssetBundleGroup group)
+        private void AddOperationOptions(VisualElement visual, GenericMenu menu, AssetBundleGroup group)
         {
             menu.AddItem(new GUIContent("更改当前轨道名称"), false, () =>
             {
-                UpdateAssetBundlesItem();
+                TextField changeABGroupName = new TextField();
+                changeABGroupName.value = group.assetBundleName;
+                changeABGroupName.AddToClassList("ChangeABGroupName");
+                changeABGroupName.tooltip = "请输入新的AssetBundle组名称(Esc:取消修改,Enter:确认修改)";
+                visual.Add(changeABGroupName);
+                changeABGroupName.RegisterCallback<KeyDownEvent>(evt =>
+                {
+                    if (evt.keyCode == KeyCode.Return || evt.keyCode == KeyCode.KeypadEnter)
+                    {
+                        group.assetBundleName = changeABGroupName.value;
+                        // 保存数据
+                        AssetBundleEditorData.currentABConfig.SaveData();
+                        // 刷新界面
+                        UpdateAssetBundlesItem();
+                        evt.StopPropagation();
+                    }
+                    if (evt.keyCode == KeyCode.Escape)
+                    {
+                        visual.Remove(changeABGroupName);
+                        // 刷新界面
+                        UpdateAssetBundlesItem();
+                        evt.StopPropagation();
+                    }
+                });
             });
 
             menu.AddItem(new GUIContent("删除当前轨道"), false, () =>
@@ -949,7 +974,7 @@ namespace AssetBundleToolEditor
                 TextField groupName = new TextField();
                 groupName.AddToClassList("AddABGroupInput");
                 groupName.tooltip = "请输入AssetBundle组名";
-                groupName.value = ""; // 确保初始值为空
+                groupName.value = "DefaultGroup";
                 addABGroupButton.Add(groupName);
                 // 创建确认按钮
                 Button sureAddABGroup = new Button();
@@ -1002,10 +1027,10 @@ namespace AssetBundleToolEditor
             string groupNameText = groupName.value?.Trim();
             // 移除UI元素
             RemoveInputElements(addButton, groupName, sureButton, cancelButton);
-            // 验证输入
+            // 校验：只允许字母和空格
             if (string.IsNullOrWhiteSpace(groupNameText))
             {
-                Debug.LogWarning("<color=yellow>AB包组名称不能为空!</color>");
+                Debug.LogWarning("<color=yellow>AB包组名称不能为空或只有空格!</color>");
                 return;
             }
 
@@ -1219,12 +1244,12 @@ namespace AssetBundleToolEditor
             //主体区域
             Button assetBundlesDataItemContent = new Button();
             assetBundlesDataItemContent.AddToClassList("AssetBundlesDataItemContent");
-            // 红蓝交错显示，选中状态优先
-            string styleClass = isSelect
-                ? "SelectAssetBundlesDataItem"
-                : (visual.childCount % 2 == 0
+            // 红蓝交错显示，选中状态优先（叠加样式）
+            string styleClass = (visual.childCount % 2 == 0)
                 ? "DefaultAssetBundlesDataItem"
-                : "DefaultAssetBundlesDataItem-Gray");
+                : "DefaultAssetBundlesDataItem-Gray";
+            assetBundlesDataItemContent.AddToClassList(styleClass);
+            if (isSelect) assetBundlesDataItemContent.AddToClassList("SelectAssetBundlesDataItem");
 
             assetBundlesDataItemContent.AddToClassList(styleClass);
             assetBundlesDataItemContent.clicked += () =>
@@ -1241,13 +1266,13 @@ namespace AssetBundleToolEditor
                 Resources.Load<Texture2D>($"{GetIconPathByAssetType(asset.AssetsObject, asset.assetPath)}")
             );
             assetIcon.style.position = Position.Absolute;
-            if (asset.isEnableBuild)
+            if (AssetBundleEditorData.currentAssetBundleGroup.isEnablePackSeparately && !asset.isEnableBuild)
             {
-                assetIcon.style.unityBackgroundImageTintColor = Color.white;
+                assetIcon.style.unityBackgroundImageTintColor = Color.gray;
             }
             else
             {
-                assetIcon.style.unityBackgroundImageTintColor = Color.gray;
+                assetIcon.style.unityBackgroundImageTintColor = Color.white;
             }
             assetBundlesDataItemContent.Add(assetIcon);
             // 资源名称

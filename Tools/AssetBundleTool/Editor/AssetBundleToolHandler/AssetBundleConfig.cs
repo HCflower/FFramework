@@ -35,11 +35,11 @@ namespace AssetBundleToolEditor
         public CompressionType CompressionType = CompressionType.Lz4;
 
         [Tooltip("AssetBundle包构建平台")]
-        public BuildTarget BuildTarget = BuildTarget.Windows;
+        public BuildTarget BuildTarget = BuildTarget.StandaloneWindows64;
 
         [Header("ResServer")]
         [Tooltip("AssetBundle包传输方式")]
-        public NetworkProtocolsType NetworkProtocolsType = NetworkProtocolsType.FTP;
+        public NetworkProtocolsType NetworkProtocolsType = NetworkProtocolsType.HTTP;
 
         [Tooltip("资源服务器地址")]
         public string ResServerPath = "127.0.0.1";
@@ -232,7 +232,7 @@ namespace AssetBundleToolEditor
         }
 
         // 根据路径类型创建AssetBundle
-        // 在 CreateAssetBundleInternal 方法中，构建完成后添加清理调用
+        // 构建时，每个单独的AB包组单独创建一个文件夹，用于分离保存
         private void CreateAssetBundleInternal(string savePath, BuildPathType pathType)
         {
             // 清理全局依赖项跟踪器
@@ -244,9 +244,7 @@ namespace AssetBundleToolEditor
             }
 
             // 过滤可构建的组
-            var filteredGroups = AssetBundleList
-                .Where(g => g.buildPathType == pathType && g.isEnableBuild)
-                .ToList();
+            var filteredGroups = AssetBundleList.Where(g => g.buildPathType == pathType && g.isEnableBuild).ToList();
 
             if (filteredGroups.Count == 0)
             {
@@ -256,40 +254,55 @@ namespace AssetBundleToolEditor
 
             try
             {
-                // 确保目录存在
+                // 确保主目录存在
                 Directory.CreateDirectory(savePath);
 
-                // 配置构建选项
-                var options = GetBuildOptions();
-
-                // 构建AssetBundleBuild列表
-                var builds = CreateAssetBundleBuilds(filteredGroups);
-
-                if (builds.Count == 0)
+                // 为每个组单独构建到其专属文件夹
+                foreach (var group in filteredGroups)
                 {
-                    Debug.LogError("没有有效的AB包可构建");
-                    return;
+                    // 为每个组创建单独的文件夹，添加前缀避免冲突
+                    string safeFolderName = $"AB_{group.assetBundleName}"; // 添加前缀避免与AB包名冲突
+                    string groupFolderPath = Path.Combine(savePath, safeFolderName);
+                    Directory.CreateDirectory(groupFolderPath);
+
+                    // 配置构建选项
+                    var options = GetBuildOptions();
+
+                    // 构建单个组的AssetBundleBuild列表
+                    var builds = CreateAssetBundleBuildsForSingleGroup(group);
+
+                    if (builds.Count == 0)
+                    {
+                        Debug.LogWarning($"AB包组 '{group.assetBundleName}' 没有有效的AB包可构建,跳过");
+                        continue;
+                    }
+
+                    // 执行构建到组专属文件夹
+                    var manifest = BuildPipeline.BuildAssetBundles(
+                        groupFolderPath,
+                        builds.ToArray(),
+                        options,
+                        BuildTarget // 使用配置的BuildTarget而不是EditorUserBuildSettings.activeBuildTarget
+                    );
+
+                    // 检查构建结果
+                    if (manifest == null)
+                    {
+                        Debug.LogError($"构建AB包组 '{group.assetBundleName}' 失败");
+                        continue;
+                    }
+
+                    // 如果是可寻址分离模式，将依赖项AB包移动到Dependencies文件夹（与AB_GroupName同级）
+                    if (group.isEnableAddressable && group.isEnablePackSeparately)
+                    {
+                        MoveDependenciesToSeparateFolder(savePath, group.assetBundleName, groupFolderPath);
+                    }
+
+                    // 清理多余的manifest文件，只保留主manifest
+                    CleanupExtraManifestFiles(groupFolderPath);
+
+                    Debug.Log($"<color=green>成功构建AB包组 '{group.assetBundleName}' 的{manifest.GetAllAssetBundles().Length}个{pathType} AssetBundle</color>\n保存路径: {groupFolderPath}");
                 }
-
-                // 执行构建
-                var manifest = BuildPipeline.BuildAssetBundles(
-                    savePath,
-                    builds.ToArray(),
-                    options,
-                    EditorUserBuildSettings.activeBuildTarget
-                );
-
-                // 检查构建结果
-                if (manifest == null)
-                {
-                    Debug.LogError("构建AssetBundle失败");
-                    return;
-                }
-
-                // 清理多余的manifest文件，只保留主manifest
-                CleanupExtraManifestFiles(savePath);
-
-                Debug.Log($"<color=green>成功构建{manifest.GetAllAssetBundles().Length}个{pathType} AssetBundle</color>\n保存路径: {savePath}");
             }
             catch (System.Exception e)
             {
@@ -299,6 +312,51 @@ namespace AssetBundleToolEditor
             {
                 AssetDatabase.Refresh();
             }
+        }
+
+        /// <summary>
+        /// 为单个组创建AssetBundleBuild列表
+        /// </summary>
+        private List<AssetBundleBuild> CreateAssetBundleBuildsForSingleGroup(AssetBundleGroup group)
+        {
+            var builds = new List<AssetBundleBuild>();
+
+            if (string.IsNullOrEmpty(group.assetBundleName))
+            {
+                Debug.LogWarning("跳过未命名的AB包组");
+                return builds;
+            }
+
+            var validAssets = group.assets
+                .Where(a => !string.IsNullOrEmpty(a.assetPath))
+                .ToArray();
+
+            if (validAssets.Length == 0)
+            {
+                Debug.LogWarning($"AB包组 '{group.assetBundleName}' 没有有效资源，跳过构建");
+                return builds;
+            }
+
+            // 收集所有需要打包的资源（包括依赖项）
+            var allAssetPaths = CollectAssetsWithDependencies(group, validAssets);
+
+            if (allAssetPaths.Count == 0)
+            {
+                Debug.LogWarning($"AB包组 '{group.assetBundleName}' 没有有效资源，跳过构建");
+                return builds;
+            }
+
+            // 检查是否分割文件
+            if (group.isEnablePackSeparately)
+            {
+                CreateSeparateAssetBundles(group, allAssetPaths, builds);
+            }
+            else
+            {
+                CreateSingleAssetBundle(group, allAssetPaths, builds);
+            }
+
+            return builds;
         }
 
         /// <summary>
@@ -358,52 +416,6 @@ namespace AssetBundleToolEditor
             }
 
             return options;
-        }
-
-        // 创建AssetBundleBuild列表
-        private List<AssetBundleBuild> CreateAssetBundleBuilds(List<AssetBundleGroup> groups)
-        {
-            var builds = new List<AssetBundleBuild>();
-
-            foreach (var group in groups)
-            {
-                if (string.IsNullOrEmpty(group.assetBundleName))
-                {
-                    Debug.LogWarning("跳过未命名的AB包组");
-                    continue;
-                }
-
-                var validAssets = group.assets
-                    .Where(a => !string.IsNullOrEmpty(a.assetPath))
-                    .ToArray();
-
-                if (validAssets.Length == 0)
-                {
-                    Debug.LogWarning($"AB包组 '{group.assetBundleName}' 没有有效资源，跳过构建");
-                    continue;
-                }
-
-                // 收集所有需要打包的资源（包括依赖项）
-                var allAssetPaths = CollectAssetsWithDependencies(group, validAssets);
-
-                if (allAssetPaths.Count == 0)
-                {
-                    Debug.LogWarning($"AB包组 '{group.assetBundleName}' 没有有效资源，跳过构建");
-                    continue;
-                }
-
-                // 检查是否分割文件
-                if (group.isEnablePackSeparately)
-                {
-                    CreateSeparateAssetBundles(group, allAssetPaths, builds);
-                }
-                else
-                {
-                    CreateSingleAssetBundle(group, allAssetPaths, builds);
-                }
-            }
-
-            return builds;
         }
 
         /// <summary>
@@ -510,80 +522,250 @@ namespace AssetBundleToolEditor
         {
             if (group.isEnableAddressable)
             {
-                var mainAssets = group.assets.Where(a => a.isEnableBuild && !string.IsNullOrEmpty(a.assetPath)).Select(a => a.assetPath).ToHashSet();
-                var dependencyAssets = assetPaths.Where(path => !mainAssets.Contains(path)).ToList();
-
-                // 为每个主资源创建独立包（只处理 isEnableBuild 为 true 的资源）
-                foreach (var asset in group.assets.Where(a => a.isEnableBuild && !string.IsNullOrEmpty(a.assetPath)))
-                {
-                    string assetBundleName = group.prefixIsAssetBundleName
-                        ? $"{group.assetBundleName}_{asset.assetName}"
-                        : asset.assetName;
-
-                    builds.Add(new AssetBundleBuild
-                    {
-                        assetBundleName = assetBundleName,
-                        assetNames = new[] { asset.assetPath }
-                    });
-
-                    Debug.Log($"<color=cyan>主资源包 '{assetBundleName}' 已创建</color>");
-                }
-
-                // 为每个依赖项创建独立包
-                foreach (string dependencyPath in dependencyAssets)
-                {
-                    // 检查依赖资源是否在资源列表中且 isEnableBuild=false
-                    var assetData = group.assets.FirstOrDefault(a => a.assetPath == dependencyPath);
-                    if (assetData != null && assetData.isEnableBuild == false)
-                        continue; // 跳过未启用构建的依赖资源
-
-                    if (globalDependencyTracker.ContainsKey(dependencyPath))
-                    {
-                        Debug.Log($"<color=yellow>依赖项 '{dependencyPath}' 已被组 '{globalDependencyTracker[dependencyPath]}' 打包，跳过重复打包</color>");
-                        continue;
-                    }
-
-                    var dependencyAssetName = Path.GetFileNameWithoutExtension(dependencyPath);
-                    var dependencyAsset = AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(dependencyPath);
-                    string assetTypeName = GetAssetTypeName(dependencyAsset);
-
-                    string dependencyBundleName = group.prefixIsAssetBundleName
-                        ? $"{group.assetBundleName}_{dependencyAssetName}_{assetTypeName}"
-                        : $"{dependencyAssetName}_{assetTypeName}";
-
-                    builds.Add(new AssetBundleBuild
-                    {
-                        assetBundleName = dependencyBundleName,
-                        assetNames = new[] { dependencyPath }
-                    });
-
-                    globalDependencyTracker[dependencyPath] = group.assetBundleName;
-
-                    Debug.Log($"<color=green>依赖项包 '{dependencyBundleName}' 已创建，路径: {dependencyPath}</color>");
-                }
+                // 可寻址分离模式 - 主资源和依赖项分别打包
+                CreateAddressableSeparateAssetBundles(group, assetPaths, builds);
             }
             else
             {
-                // 普通分离模式 - 只处理 isEnableBuild 为 true 的资源
-                var enabledAssetPaths = group.assets.Where(a => a.isEnableBuild && !string.IsNullOrEmpty(a.assetPath)).Select(a => a.assetPath).ToList();
-                foreach (string assetPath in enabledAssetPaths)
-                {
-                    var assetName = Path.GetFileNameWithoutExtension(assetPath);
-                    string assetBundleName = group.prefixIsAssetBundleName
-                        ? $"{group.assetBundleName}_{assetName}"
-                        : assetName;
-
-                    builds.Add(new AssetBundleBuild
-                    {
-                        assetBundleName = assetBundleName,
-                        assetNames = new[] { assetPath }
-                    });
-                }
-
-                Debug.Log($"<color=cyan>AB包组 '{group.assetBundleName}' 启用文件分割，生成了 {enabledAssetPaths.Count} 个独立AB包</color>");
+                // 普通分离模式 - 只处理主资源
+                CreateNormalSeparateAssetBundles(group, builds);
             }
         }
 
+        /// <summary>
+        /// 创建可寻址分离AssetBundle包
+        /// </summary>
+        private void CreateAddressableSeparateAssetBundles(AssetBundleGroup group, List<string> assetPaths, List<AssetBundleBuild> builds)
+        {
+            var mainAssets = group.assets.Where(a => a.isEnableBuild && !string.IsNullOrEmpty(a.assetPath)).Select(a => a.assetPath).ToHashSet();
+            var dependencyAssets = assetPaths.Where(path => !mainAssets.Contains(path)).ToList();
+
+            // 第一阶段：为每个主资源创建独立包，并将所有依赖项一起构建以建立依赖关系
+            foreach (var asset in group.assets.Where(a => a.isEnableBuild && !string.IsNullOrEmpty(a.assetPath)))
+            {
+                string assetBundleName = group.prefixIsAssetBundleName
+                    ? $"{group.assetBundleName}_{asset.assetName}"
+                    : asset.assetName;
+
+                assetBundleName = assetBundleName.ToLower();
+
+                // 主资源包只包含主资源本身
+                builds.Add(new AssetBundleBuild
+                {
+                    assetBundleName = assetBundleName,
+                    assetNames = new[] { asset.assetPath }
+                });
+
+                Debug.Log($"<color=cyan>主资源包 '{assetBundleName}' 已创建</color>");
+            }
+
+            // 第二阶段：为依赖项创建AB包，这些将在主资源构建完成后移动到Dependencies文件夹
+            var dependencyBuilds = new List<AssetBundleBuild>();
+            var dependencyBundleNames = new List<string>(); // 记录依赖项AB包名称，用于后续移动
+
+            foreach (string dependencyPath in dependencyAssets)
+            {
+                var assetData = group.assets.FirstOrDefault(a => a.assetPath == dependencyPath);
+                if (assetData != null && assetData.isEnableBuild == false)
+                    continue;
+
+                if (globalDependencyTracker.ContainsKey(dependencyPath))
+                {
+                    Debug.Log($"<color=yellow>依赖项 '{dependencyPath}' 已被组 '{globalDependencyTracker[dependencyPath]}' 打包，跳过重复打包</color>");
+                    continue;
+                }
+
+                var dependencyAssetName = Path.GetFileNameWithoutExtension(dependencyPath);
+                var dependencyAsset = AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(dependencyPath);
+                string assetTypeName = GetAssetTypeName(dependencyAsset);
+
+                string dependencyBundleName = group.prefixIsAssetBundleName
+                    ? $"{group.assetBundleName}_{dependencyAssetName}_{assetTypeName}"
+                    : $"{dependencyAssetName}_{assetTypeName}";
+
+                dependencyBundleName = dependencyBundleName.ToLower();
+
+                // 将依赖项添加到主构建列表，这样Unity会在manifest中记录依赖关系
+                builds.Add(new AssetBundleBuild
+                {
+                    assetBundleName = dependencyBundleName,
+                    assetNames = new[] { dependencyPath }
+                });
+
+                // 记录依赖项信息，用于后续移动到Dependencies文件夹
+                dependencyBundleNames.Add(dependencyBundleName);
+                globalDependencyTracker[dependencyPath] = group.assetBundleName;
+
+                Debug.Log($"<color=green>依赖项包 '{dependencyBundleName}' 已添加到构建列表</color>");
+            }
+
+            // 存储需要移动到Dependencies文件夹的AB包名称
+            StoreDependencyBundleNames(group.assetBundleName, dependencyBundleNames);
+
+            Debug.Log($"<color=cyan>可寻址AB包组 '{group.assetBundleName}' 生成了 {mainAssets.Count} 个主资源包和 {dependencyBundleNames.Count} 个依赖项包</color>");
+        }
+
+        /// <summary>
+        /// 存储需要移动到Dependencies文件夹的AB包名称
+        /// </summary>
+        private static readonly Dictionary<string, List<string>> dependencyBundleNamesStorage = new Dictionary<string, List<string>>();
+
+        private void StoreDependencyBundleNames(string groupName, List<string> dependencyBundleNames)
+        {
+            if (dependencyBundleNames.Count > 0)
+            {
+                dependencyBundleNamesStorage[groupName] = dependencyBundleNames;
+            }
+        }
+
+        /// <summary>
+        /// 将依赖项AB包从组文件夹移动到Dependencies文件夹
+        /// </summary>
+        private void MoveDependenciesToSeparateFolder(string savePath, string groupName, string groupFolderPath)
+        {
+            if (!dependencyBundleNamesStorage.ContainsKey(groupName))
+                return;
+
+            var dependencyBundleNames = dependencyBundleNamesStorage[groupName];
+            if (dependencyBundleNames.Count == 0)
+                return;
+
+            try
+            {
+                // 创建Dependencies文件夹（与AB_groupName同级）
+                string dependenciesPath = Path.Combine(savePath, "Dependencies");
+                Directory.CreateDirectory(dependenciesPath);
+
+                int movedCount = 0;
+                foreach (string bundleName in dependencyBundleNames)
+                {
+                    // 只移动AB包文件，不移动manifest文件
+                    string sourceAbFile = Path.Combine(groupFolderPath, bundleName);
+                    string destAbFile = Path.Combine(dependenciesPath, bundleName);
+
+                    if (File.Exists(sourceAbFile))
+                    {
+                        // 如果目标文件已存在，先删除（处理重复依赖的情况）
+                        if (File.Exists(destAbFile))
+                        {
+                            File.Delete(destAbFile);
+                        }
+                        File.Move(sourceAbFile, destAbFile);
+
+                        // 删除源文件夹中的依赖项manifest文件（因为依赖项不需要manifest）
+                        string sourceManifestFile = sourceAbFile + ".manifest";
+                        if (File.Exists(sourceManifestFile))
+                        {
+                            File.Delete(sourceManifestFile);
+                            Debug.Log($"<color=yellow>删除依赖项manifest文件: {Path.GetFileName(sourceManifestFile)}</color>");
+                        }
+
+                        movedCount++;
+                        Debug.Log($"<color=cyan>依赖项AB包已移动到Dependencies文件夹: {bundleName}</color>");
+                    }
+                    else
+                    {
+                        Debug.LogWarning($"<color=yellow>未找到依赖项AB包文件: {sourceAbFile}</color>");
+                    }
+                }
+
+                if (movedCount > 0)
+                {
+                    Debug.Log($"<color=green>成功移动 {movedCount} 个依赖项AB包到Dependencies文件夹</color>");
+                }
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogError($"移动依赖项到Dependencies文件夹时出错: {e.Message}");
+            }
+            finally
+            {
+                // 清理存储的依赖项信息
+                dependencyBundleNamesStorage.Remove(groupName);
+            }
+        }
+
+        /// <summary>
+        /// 创建普通分离AssetBundle包
+        /// </summary>
+        private void CreateNormalSeparateAssetBundles(AssetBundleGroup group, List<AssetBundleBuild> builds)
+        {
+            // 普通分离模式 - 只处理 isEnableBuild 为 true 的资源
+            var enabledAssetPaths = group.assets.Where(a => a.isEnableBuild && !string.IsNullOrEmpty(a.assetPath)).Select(a => a.assetPath).ToList();
+            foreach (string assetPath in enabledAssetPaths)
+            {
+                var assetName = Path.GetFileNameWithoutExtension(assetPath);
+                string assetBundleName = group.prefixIsAssetBundleName
+                    ? $"{group.assetBundleName}_{assetName}"
+                    : assetName;
+
+                builds.Add(new AssetBundleBuild
+                {
+                    assetBundleName = assetBundleName,
+                    assetNames = new[] { assetPath }
+                });
+            }
+
+            Debug.Log($"<color=cyan>AB包组 '{group.assetBundleName}' 启用文件分割，生成了 {enabledAssetPaths.Count} 个独立AB包</color>");
+        }
+
+        /// <summary>
+        /// 存储依赖项构建信息，用于稍后构建到Dependencies文件夹
+        /// </summary>
+        private static readonly Dictionary<string, List<AssetBundleBuild>> dependencyBuildsStorage = new Dictionary<string, List<AssetBundleBuild>>();
+
+
+        /// <summary>
+        /// 构建依赖项AB包到Dependencies文件夹（与AB_groupName同级）
+        /// </summary>
+        private void BuildDependenciesToSeparateFolder(string savePath, string groupName)
+        {
+            if (!dependencyBuildsStorage.ContainsKey(groupName))
+                return;
+
+            var dependencyBuilds = dependencyBuildsStorage[groupName];
+            if (dependencyBuilds.Count == 0)
+                return;
+
+            try
+            {
+                // 创建Dependencies文件夹（与AB_groupName同级）
+                string dependenciesPath = Path.Combine(savePath, "Dependencies");
+                Directory.CreateDirectory(dependenciesPath);
+
+                // 配置构建选项
+                var options = GetBuildOptions();
+
+                // 构建依赖项AB包到Dependencies文件夹
+                var manifest = BuildPipeline.BuildAssetBundles(
+                    dependenciesPath,
+                    dependencyBuilds.ToArray(),
+                    options,
+                    BuildTarget // 使用配置的BuildTarget
+                );
+
+                if (manifest != null)
+                {
+                    Debug.Log($"<color=green>成功构建 {dependencyBuilds.Count} 个依赖项AB包到Dependencies文件夹</color>");
+
+                    // 清理Dependencies文件夹中多余的manifest文件
+                    CleanupExtraManifestFiles(dependenciesPath);
+                }
+                else
+                {
+                    Debug.LogError($"构建依赖项AB包到Dependencies文件夹失败");
+                }
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogError($"构建依赖项到Dependencies文件夹时出错: {e.Message}");
+            }
+            finally
+            {
+                // 清理存储的依赖项构建信息
+                dependencyBuildsStorage.Remove(groupName);
+            }
+        }
         /// <summary>
         /// 创建单个AssetBundle包
         /// </summary>

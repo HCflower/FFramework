@@ -2,174 +2,144 @@
 
 ## 目录
 
-- [一、简介](#一简介)
-- [二、优势](#二优势)
-- [三、API 介绍](#三api介绍)
-  - [1. Resources 加载方法](#1-resources-加载方法)
-  - [2. AssetBundle 加载方法](#2-assetbundle-加载方法)
-- [四、核心功能](#四核心功能)
-- [五、快速上手](#五快速上手)
-  - [1. Resources 文件夹加载](#1-resources-文件夹加载)
-  - [2. AssetBundle 加载](#2-assetbundle-加载)
-- [六、使用场景示例](#六使用场景示例)
-- [七、性能优化](#七性能优化)
+- [简介](#简介)
+- [主要功能](#主要功能)
+- [API 说明](#api-说明)
+  - [Resources 加载](#resources-加载)
+  - [AssetBundle 加载](#assetbundle-加载)
+- [快速入门](#快速入门)
+- [典型场景](#典型场景)
+- [性能建议](#性能建议)
 
 ---
 
-## 一简介
+## 简介
 
-`LoadAssetKit` 是一个功能强大的 Unity 资源加载工具，支持从 Resources 文件夹和 AssetBundle 加载资源。它集成了 UniTask 提供高效的异步加载功能，并包含智能的资源缓存和引用计数管理系统，适用于多种资源加载场景。通过灵活的 API 和高性能的设计，`LoadAssetKit` 能够显著提升资源加载的效率和开发体验。
-
----
-
-## 二优势
-
-1. **多种加载方式**：支持同步加载和异步加载，兼容回调和 async/await 两种方式。
-2. **高性能**：内置资源缓存和引用计数管理，避免重复加载资源，提升性能。
-3. **依赖管理**：自动管理 AssetBundle 的依赖关系，简化开发流程。
-4. **类型安全**：提供泛型支持，确保资源加载的类型安全，减少运行时错误。
-5. **灵活性**：支持取消令牌（CancellationToken），便于任务管理和资源加载的中断控制。
-6. **兼容性强**：支持传统回调方式和现代异步方式，适配不同开发需求。
+**LoadAssetKit** 是一套高效的 Unity 资源加载工具，支持同步与异步加载 Resources 和 AssetBundle 资源，集成 UniTask 异步方案，具备缓存、依赖管理和引用计数等功能，适合多种项目资源管理需求。
 
 ---
 
-## 三 api 介绍
+## 主要功能
 
-### 1-resources-加载方法
+- **同步/异步加载**：支持回调和 async/await 两种异步方式。
+- **资源缓存**：自动缓存已加载资源，避免重复加载。
+- **依赖管理**：AssetBundle 自动加载依赖包。
+- **引用计数**：自动管理资源包引用，安全卸载。
+- **类型安全**：泛型接口，类型检查更安全。
+- **灵活卸载与清理**：支持单资源、单包和全部资源的卸载与清理。
+
+---
+
+## API 说明
+
+### Resources 加载
 
 - `LoadAssetFromRes<T>(string resPath, Action<T> callback = null, bool isCache = true)`
-  - 同步或异步加载 Resources 文件夹中的资源。
-  - **参数**：
-    - `resPath`：资源路径。
-    - `callback`：异步加载完成后的回调函数。
-    - `isCache`：是否缓存加载的资源。
+  - 同步加载资源，或异步加载（带回调）。
 - `LoadAssetFromResAsync<T>(string resPath, bool isCache = true, CancellationToken cancellationToken = default)`
-  - 异步加载 Resources 文件夹中的资源。
-  - **参数**：
-    - `resPath`：资源路径。
-    - `isCache`：是否缓存加载的资源。
-    - `cancellationToken`：取消令牌。
+  - 异步加载资源，支持 async/await。
 - `UnloadAsset(string resPath)`
   - 卸载指定资源。
-  - **参数**：
-    - `resPath`：资源路径。
 - `ClearCache()`
   - 清理所有缓存资源。
 
-### 2-assetbundle-加载方法
+### AssetBundle 加载（需配合 LoadAssetBundleHandler 使用）
 
-- `SetAssetBundleLoadPath(string path)`
-  - 设置 AssetBundle 加载路径。
-  - **参数**：
-    - `path`：新的加载路径（需要以 `/` 结尾）。
-- `GetAssetBundleLoadPath()`
-  - 获取当前 AssetBundle 加载路径。
-- `LoadAssetFromAssetBundle<T>(string abName, string resName)`
-  - 同步加载 AssetBundle 中的资源。
-  - **参数**：
-    - `abName`：AssetBundle 包名。
-    - `resName`：资源名。
-- `LoadResAsync<T>(string abName, string resName, Action<T> callBack)`
-  - 异步加载 AssetBundle 中的资源。
-  - **参数**：
-    - `abName`：AssetBundle 包名。
-    - `resName`：资源名。
-    - `callBack`：加载完成后的回调函数。
-- `UnLoadAssetBundle(string abName)`
-  - 卸载单个 AssetBundle。
-  - **参数**：
-    - `abName`：AssetBundle 包名。
-- `UnLoadAllAssetBundle()`
-  - 卸载所有 AssetBundle。
-- `ClearAllCache()`
-  - 清理所有缓存（包括 Resources 和 AssetBundle）。
+- `LoadAsset<T>(string bundleName, string assetName)`
+  - 同步加载 AssetBundle 资源，自动加载依赖。
+- `LoadAssetAsync<T>(string bundleName, string assetName, Action<bool> isSuccess = null, Action<float> progress = null)`
+  - 异步加载 AssetBundle 资源，自动加载依赖，支持进度与完成回调。
+- `UnloadBundle(string bundleName, bool unloadAllLoadedObjects = false)`
+  - 卸载指定资源包及其依赖。
+- `UnloadBundleAsync(string bundleName, bool unloadAllLoadedObjects = false)`
+  - 异步卸载指定资源包及其依赖。
+- `ClearAllBundles(bool unloadAllLoadedObjects = false)`
+  - 清理所有已加载的资源包。
+- `ClearAllBundlesAsync(bool unloadAllLoadedObjects = false)`
+  - 异步清理所有已加载的资源包。
 
 ---
 
-## 四核心功能
+## 快速入门
 
-1. **Resources 文件夹加载**：支持同步和异步加载，兼容回调和 async/await。
-2. **AssetBundle 加载**：支持依赖管理和引用计数，提供同步和异步加载方法。
-3. **资源缓存**：自动缓存加载的资源，减少重复加载。
-4. **资源卸载**：提供资源卸载和缓存清理功能，释放内存。
-5. **取消支持**：支持取消令牌，便于任务管理。
+### Resources 加载
 
----
-
-## 五快速上手
-
-### 1-resources-文件夹加载
-
-#### 同步加载
+**同步加载：**
 
 ```csharp
 var sprite = LoadAssetKit.LoadAssetFromRes<Sprite>("UI/Icons/player_icon");
 ```
 
-#### 异步加载（回调方式）
+**异步加载（回调）：**
 
 ```csharp
 LoadAssetKit.LoadAssetFromRes<Sprite>("UI/Icons/player_icon", sprite => {
-    if (sprite != null)
-    {
-        myImage.sprite = sprite;
-    }
+    if (sprite != null) myImage.sprite = sprite;
 });
 ```
 
-#### 异步加载（async/await）
+**异步加载（async/await）：**
 
 ```csharp
-public async UniTask LoadPlayerIcon()
-{
-    var sprite = await LoadAssetKit.LoadAssetFromResAsync<Sprite>("UI/Icons/player_icon");
-    if (sprite != null)
-    {
-        myImage.sprite = sprite;
-    }
-}
+var sprite = await LoadAssetKit.LoadAssetFromResAsync<Sprite>("UI/Icons/player_icon");
 ```
 
-### 2-assetbundle-加载
+### AssetBundle 加载
 
-#### 设置加载路径
+**初始化加载器：**
 
 ```csharp
-LoadAssetKit.SetAssetBundleLoadPath(Application.streamingAssetsPath + "/AssetBundles/");
+var handler = new LoadAssetBundleHandler(Application.streamingAssetsPath, "AB_Group1", "AB_Group1");
 ```
 
-#### 同步加载
+**同步加载资源：**
 
 ```csharp
-var prefab = LoadAssetKit.LoadAssetFromAssetBundle<GameObject>("ui_bundle", "PlayerUI");
+var prefab = handler.LoadAsset<GameObject>("uigameinfopanel", "UIGameInfoPanel");
 ```
 
-#### 异步加载
+**异步加载资源：**
 
 ```csharp
-LoadAssetKit.LoadResAsync<GameObject>("ui_bundle", "PlayerUI", prefab => {
-    if (prefab != null)
-    {
-        Instantiate(prefab);
-    }
-});
+var prefab = await handler.LoadAssetAsync<GameObject>("uigameinfopanel", "UIGameInfoPanel",
+    progress: p => Debug.Log("进度:" + p),
+    isDone: done=> Debug.Log("加载结果:" + done));
+```
+
+**卸载资源包：**
+
+```csharp
+handler.UnloadBundle("uigameinfopanel");
+await handler.UnloadBundleAsync("uigameinfopanel");
+```
+
+**清理所有资源包：**
+
+```csharp
+handler.ClearAllBundles();
+await handler.ClearAllBundlesAsync(false,
+    progress: p => Debug.Log("进度:" + p),
+    isDone: done=> Debug.Log("卸载结果:" + done));
 ```
 
 ---
 
-## 六使用场景示例
+## 典型场景
 
-1. **UI 动态加载**：使用 Resources 文件夹加载 UI 资源。
-2. **游戏关卡加载**：使用 AssetBundle 加载关卡资源。
-3. **音效管理**：动态加载和卸载音效资源。
-4. **资源优化**：使用缓存和引用计数减少内存占用。
+- UI 动态加载与卸载
+- 关卡/场景资源按需加载
+- 音效、特效等大资源异步加载
+- 资源包依赖自动管理
+- 内存优化与资源回收
 
 ---
 
-## 七性能优化
+## 性能建议
 
-1. **资源缓存**：合理使用缓存，避免重复加载。
-2. **引用计数管理**：确保正确管理 AssetBundle 的引用计数，避免内存泄漏。
-3. **异步加载**：使用异步加载减少主线程阻塞。
-4. **资源卸载**：定期清理不再使用的资源，释放内存。
-5. **调试工具**：使用日志和调试工具监控资源加载和卸载情况。
+- 合理使用缓存，避免重复加载资源。
+- 及时卸载不再使用的资源和资源包，释放内存。
+- 使用异步加载减少主线程阻塞，提升运行流畅度。
+- 关注引用计数，防止资源泄漏。
+- 利用进度回调优化加载体验。
+
+---
