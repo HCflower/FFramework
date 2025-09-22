@@ -623,7 +623,8 @@ namespace AssetBundleToolEditor
         {
             Label dataInfo = new Label();
             dataInfo.AddToClassList("ABItemDataInfoBar");
-            DataInfoItem(dataInfo, "Asset Name", out Label _);
+            DataInfoItem(dataInfo, "Asset Name", out Label assetName);
+            assetName.style.paddingLeft = 10;
             DataInfoItem(dataInfo, "Size", out assetBundleSizeField, GetTotalAssetsSize());
             DataInfoItem(dataInfo, "Path", out Label _);
             DataInfoItem(dataInfo, "Type", out Label _);
@@ -1241,13 +1242,18 @@ namespace AssetBundleToolEditor
         //AB包数据
         private void AddAssetBundlesDataItem(VisualElement visual, AssetBundleAssetsData asset, bool isSelect = false)
         {
-            //主体区域
+            // 主体区域
+            VisualElement mainABGroupItemArea = new VisualElement();
+            mainABGroupItemArea.AddToClassList("MainABGroupItemArea");
+            visual.Add(mainABGroupItemArea);
+
+            // 主体按钮
             Button assetBundlesDataItemContent = new Button();
             assetBundlesDataItemContent.AddToClassList("AssetBundlesDataItemContent");
+            mainABGroupItemArea.Add(assetBundlesDataItemContent);
+
             // 红蓝交错显示，选中状态优先（叠加样式）
-            string styleClass = (visual.childCount % 2 == 0)
-                ? "DefaultAssetBundlesDataItem"
-                : "DefaultAssetBundlesDataItem-Gray";
+            string styleClass = (visual.childCount % 2 == 0) ? "DefaultAssetBundlesDataItem" : "DefaultAssetBundlesDataItem-Gray";
             assetBundlesDataItemContent.AddToClassList(styleClass);
             if (isSelect) assetBundlesDataItemContent.AddToClassList("SelectAssetBundlesDataItem");
 
@@ -1266,29 +1272,27 @@ namespace AssetBundleToolEditor
                 Resources.Load<Texture2D>($"{GetIconPathByAssetType(asset.AssetsObject, asset.assetPath)}")
             );
             assetIcon.style.position = Position.Absolute;
-            if (AssetBundleEditorData.currentAssetBundleGroup.isEnablePackSeparately && !asset.isEnableBuild)
-            {
-                assetIcon.style.unityBackgroundImageTintColor = Color.gray;
-            }
-            else
-            {
-                assetIcon.style.unityBackgroundImageTintColor = Color.white;
-            }
+            assetIcon.style.unityBackgroundImageTintColor =
+                AssetBundleEditorData.currentAssetBundleGroup.isEnablePackSeparately && !asset.isEnableBuild
+                ? Color.gray
+                : Color.white;
             assetBundlesDataItemContent.Add(assetIcon);
             // 资源名称
-            AssetDataInfo(assetBundlesDataItemContent, asset.assetName, true);
+            AssetDataInfo(assetBundlesDataItemContent, asset.assetName, out Label assetName, true);
+            assetName.style.paddingLeft = 10;
             // 资源大小
             FileInfo fileInfo = new FileInfo(asset.assetPath);
-            AssetDataInfo(assetBundlesDataItemContent, FormatFileSize(fileInfo.Length), true);
+            AssetDataInfo(assetBundlesDataItemContent, FormatFileSize(fileInfo.Length), out Label _, true);
             // 资源路径
-            AssetDataInfo(assetBundlesDataItemContent, asset.assetPath);
+            AssetDataInfo(assetBundlesDataItemContent, asset.assetPath, out Label _);
             // 资源类型
-            AssetDataInfo(assetBundlesDataItemContent, GetActualAssetShowType(asset).ToString(), true);
+            AssetDataInfo(assetBundlesDataItemContent, GetActualAssetShowType(asset).ToString(), out Label _, true);
             // 资源控制器
-            AddAssetController(assetBundlesDataItemContent, asset);
+            AddAssetController(assetBundlesDataItemContent, mainABGroupItemArea, asset);
+            // 引用资源列表 
+            AddDependencyResourceList(mainABGroupItemArea);
             // 刷新一下计数
             UpdateItemQuantityStatistics();
-            visual.Add(assetBundlesDataItemContent);
         }
 
         //更新AB包数据项
@@ -1323,9 +1327,9 @@ namespace AssetBundleToolEditor
         }
 
         //资源数据信息
-        private void AssetDataInfo(VisualElement visual, string dataName, bool isCenter = false)
+        private void AssetDataInfo(VisualElement visual, string dataName, out Label dataInfo, bool isCenter = false)
         {
-            Label dataInfo = new Label();
+            dataInfo = new Label();
             dataInfo.text = dataName;
             dataInfo.AddToClassList("AssetBundlesDataItemInfo");
             dataInfo.style.unityTextAlign = isCenter ? TextAnchor.MiddleCenter : TextAnchor.MiddleLeft;
@@ -1333,10 +1337,12 @@ namespace AssetBundleToolEditor
         }
 
         //创建资源控制器
-        private void AddAssetController(VisualElement visual, AssetBundleAssetsData asset)
+        private void AddAssetController(VisualElement visual, VisualElement dependencyArea, AssetBundleAssetsData asset)
         {
-            Label dataInfo = new Label();
-            dataInfo.AddToClassList("AssetBundlesDataItemInfo");
+            Label assetControl = new Label();
+            assetControl.AddToClassList("AssetBundlesDataItemInfo");
+            assetControl.style.justifyContent = Justify.FlexEnd;
+
             //移除资源
             Button removeAsset = new Button();
             removeAsset.AddToClassList("ControlButton");
@@ -1350,7 +1356,8 @@ namespace AssetBundleToolEditor
                 UpdateItemQuantityStatistics();
                 UpdateAssetBundlesDataItem();
             };
-            dataInfo.Add(removeAsset);
+            assetControl.Add(removeAsset);
+
             // 是否参与构建AB包(只有启用拆分文件时才有效)
             if (AssetBundleEditorData.currentAssetBundleGroup.isEnablePackSeparately)
             {
@@ -1364,10 +1371,78 @@ namespace AssetBundleToolEditor
                     asset.isEnableBuild = evt.newValue;
                     UpdateAssetBundlesDataItem(); // 增加刷新
                 });
-                dataInfo.Add(isEnableBuildToggle);
+                assetControl.Add(isEnableBuildToggle);
             }
-            visual.Add(dataInfo);
+
+            if (AssetBundleEditorData.currentAssetBundleGroup.isEnableAddressable)
+            {
+                // 显示引用资源列表
+                AddShowDependencyResource(assetControl, dependencyArea, asset);
+            }
+
+            visual.Add(assetControl);
         }
+
+        // 显示引用资源列表
+        private void AddShowDependencyResource(VisualElement visual, VisualElement mainABGroupItemArea, AssetBundleAssetsData asset)
+        {
+            Button showDependencyResource = new Button();
+            showDependencyResource.AddToClassList("ControlButton");
+            showDependencyResource.AddToClassList("ShowDependencyResource");
+            showDependencyResource.tooltip = "显示引用资源";
+            showDependencyResource.clicked += () =>
+            {
+                var dependency = mainABGroupItemArea.Q<VisualElement>("DependencyResourceAreaList");
+                if (dependency != null)
+                {
+                    // 获取所有依赖项
+                    var deps = AssetDatabase.GetDependencies(asset.assetPath, true);
+                    // 过滤自身和无效项
+                    var validDeps = deps.Where(path =>
+                        path != asset.assetPath &&
+                        File.Exists(path) &&
+                        !string.IsNullOrEmpty(path) &&
+                        !UnsupportedExtensions.Contains(Path.GetExtension(path).ToLower())
+                    ).ToList();
+
+                    // 只清理 dependency 区域
+                    dependency.Clear();
+                    foreach (var dep in validDeps)
+                    {
+                        Button depButton = new Button();
+                        depButton.AddToClassList("DependencyListButton");
+                        depButton.text = dep;
+                        depButton.clicked += () =>
+                        {
+                            var depObj = AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(dep);
+                            if (depObj != null) EditorGUIUtility.PingObject(depObj);
+                        };
+
+                        // Icon
+                        Label icon = new Label();
+                        icon.AddToClassList("TipsIcon");
+                        icon.style.backgroundImage = new StyleBackground(Resources.Load<Texture2D>($"Icon/DefaultAssetIcon"));
+                        icon.style.position = Position.Absolute;
+                        icon.style.left = 2;
+                        depButton.Add(icon);
+
+                        // 只添加到 dependency 区域
+                        dependency.Add(depButton);
+                    }
+                }
+            };
+            visual.Add(showDependencyResource);
+        }
+
+        // 引用资源列表
+        private void AddDependencyResourceList(VisualElement visual)
+        {
+            VisualElement assetShowDependencyResourceArea = new VisualElement();
+            assetShowDependencyResourceArea.name = "DependencyResourceAreaList";
+            assetShowDependencyResourceArea.AddToClassList("AssetShowDependencyResourceArea");
+            visual.Add(assetShowDependencyResourceArea);
+        }
+
         #endregion
 
         #region 资源过滤

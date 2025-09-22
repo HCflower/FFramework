@@ -389,7 +389,7 @@ namespace AssetBundleToolEditor
                     Debug.Log($"<color=yellow>删除manifest文件: {Path.GetFileName(manifestFile)}</color>");
                 }
 
-                Debug.Log($"<color=green>清理完成：保留1个主manifest文件，删除了{deletedCount}个多余的manifest文件</color>");
+                Debug.Log($"<color=green>清理完成:保留1个主manifest文件,删除了{deletedCount}个多余的manifest文件</color>");
             }
             catch (System.Exception e)
             {
@@ -714,58 +714,6 @@ namespace AssetBundleToolEditor
         /// </summary>
         private static readonly Dictionary<string, List<AssetBundleBuild>> dependencyBuildsStorage = new Dictionary<string, List<AssetBundleBuild>>();
 
-
-        /// <summary>
-        /// 构建依赖项AB包到Dependencies文件夹（与AB_groupName同级）
-        /// </summary>
-        private void BuildDependenciesToSeparateFolder(string savePath, string groupName)
-        {
-            if (!dependencyBuildsStorage.ContainsKey(groupName))
-                return;
-
-            var dependencyBuilds = dependencyBuildsStorage[groupName];
-            if (dependencyBuilds.Count == 0)
-                return;
-
-            try
-            {
-                // 创建Dependencies文件夹（与AB_groupName同级）
-                string dependenciesPath = Path.Combine(savePath, "Dependencies");
-                Directory.CreateDirectory(dependenciesPath);
-
-                // 配置构建选项
-                var options = GetBuildOptions();
-
-                // 构建依赖项AB包到Dependencies文件夹
-                var manifest = BuildPipeline.BuildAssetBundles(
-                    dependenciesPath,
-                    dependencyBuilds.ToArray(),
-                    options,
-                    BuildTarget // 使用配置的BuildTarget
-                );
-
-                if (manifest != null)
-                {
-                    Debug.Log($"<color=green>成功构建 {dependencyBuilds.Count} 个依赖项AB包到Dependencies文件夹</color>");
-
-                    // 清理Dependencies文件夹中多余的manifest文件
-                    CleanupExtraManifestFiles(dependenciesPath);
-                }
-                else
-                {
-                    Debug.LogError($"构建依赖项AB包到Dependencies文件夹失败");
-                }
-            }
-            catch (System.Exception e)
-            {
-                Debug.LogError($"构建依赖项到Dependencies文件夹时出错: {e.Message}");
-            }
-            finally
-            {
-                // 清理存储的依赖项构建信息
-                dependencyBuildsStorage.Remove(groupName);
-            }
-        }
         /// <summary>
         /// 创建单个AssetBundle包
         /// </summary>

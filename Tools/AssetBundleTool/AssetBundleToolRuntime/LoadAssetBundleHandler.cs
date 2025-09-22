@@ -5,6 +5,7 @@ using System;
 
 namespace AssetBundleToolRuntime
 {
+
     /// <summary>
     /// AssetBundle加载处理器 
     /// (资源引用计数,同步/异步加载与卸载资源) 
@@ -62,7 +63,7 @@ namespace AssetBundleToolRuntime
         }
 
         // 加载依赖包（依赖包都在Dependencies文件夹下）
-        private BundleRuntimeInfo LoadDependencyBundle(string depBundleName)
+        private BundleRuntimeInfo LoadDependencyBundle(string depBundleName, string dependenciesPath = null)
         {
             if (bundleRuntimeInfoDict.TryGetValue(depBundleName, out var info))
             {
@@ -70,7 +71,9 @@ namespace AssetBundleToolRuntime
                 return info;
             }
 
-            string path = $"{assetPath}/{DependenciesPath}/{depBundleName}";
+            string depPath = string.IsNullOrEmpty(dependenciesPath) ? DependenciesPath : dependenciesPath;
+            string path = $"{assetPath}/{depPath}/{depBundleName}";
+
             AssetBundle bundle = AssetBundle.LoadFromFile(path);
             if (bundle == null)
             {
@@ -110,7 +113,7 @@ namespace AssetBundleToolRuntime
         /// <summary>
         /// 同步加载单个AB包（自动加载依赖）
         /// </summary>
-        public T LoadAsset<T>(string bundleName, string assetName) where T : UnityEngine.Object
+        public T LoadAsset<T>(string bundleName, string assetName, string dependenciesPath = null) where T : UnityEngine.Object
         {
             // 1. 加载依赖项
             if (manifest != null)
@@ -118,7 +121,7 @@ namespace AssetBundleToolRuntime
                 string[] dependencies = manifest.GetAllDependencies(bundleName);
                 foreach (var dep in dependencies)
                 {
-                    LoadDependencyBundle(dep);
+                    LoadDependencyBundle(dep, dependenciesPath);
                 }
             }
 
@@ -138,7 +141,7 @@ namespace AssetBundleToolRuntime
         }
 
         // 异步加载依赖包
-        private async UniTask<BundleRuntimeInfo> LoadDependencyBundleAsync(string depBundleName, Action<float> progress, Action<bool> isDone)
+        private async UniTask<BundleRuntimeInfo> LoadDependencyBundleAsync(string depBundleName, Action<float> progress, Action<bool> isDone, string dependenciesPath = null)
         {
             if (bundleRuntimeInfoDict.TryGetValue(depBundleName, out var info))
             {
@@ -146,7 +149,9 @@ namespace AssetBundleToolRuntime
                 isDone?.Invoke(true);
                 return info;
             }
-            string path = $"{assetPath}/{DependenciesPath}/{depBundleName}";
+
+            string depPath = string.IsNullOrEmpty(dependenciesPath) ? DependenciesPath : dependenciesPath;
+            string path = $"{assetPath}/{depPath}/{depBundleName}";
             var request = AssetBundle.LoadFromFileAsync(path);
             while (!request.isDone)
             {
@@ -202,7 +207,7 @@ namespace AssetBundleToolRuntime
         /// <summary>
         /// 异步加载资源（自动加载依赖）
         /// </summary>
-        public async UniTask<T> LoadAssetAsync<T>(string bundleName, string assetName, Action<float> progress = null, Action<bool> isDone = null) where T : UnityEngine.Object
+        public async UniTask<T> LoadAssetAsync<T>(string bundleName, string assetName, string dependenciesPath = null, Action<float> progress = null, Action<bool> isDone = null) where T : UnityEngine.Object
         {
             // 1. 异步加载依赖项
             if (manifest != null)
@@ -210,7 +215,7 @@ namespace AssetBundleToolRuntime
                 string[] dependencies = manifest.GetAllDependencies(bundleName);
                 foreach (var dep in dependencies)
                 {
-                    await LoadDependencyBundleAsync(dep, null, null);
+                    await LoadDependencyBundleAsync(dep, null, null, dependenciesPath);
                 }
             }
 

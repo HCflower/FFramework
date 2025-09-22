@@ -325,6 +325,13 @@
     -unity-font-style: bold;
 }
 
+/* AB包数据项主区域 */
+.MainABGroupItemArea{
+    width: 100%;
+    height: auto;
+    flex-direction: column;       
+}
+
 /* AB包数据项区域 */
 .AssetBundlesDataItemContent{
     width: auto;
@@ -357,22 +364,17 @@
 }
 
 .AssetBundlesDataItemInfo{
-    height:18px;
-    flex-grow: 1;               
-    flex-shrink: 1;             
-    flex-basis: 0%;             
-    padding-left:10px;
-    padding-right: 10px;
-    border-left-width: 2px;
-    background-color: rgba(125, 125, 125, 0.25);
+    height: 18px;
+    flex: 1 1 0%;
     border-right-width: 1px;
-    border-right-color:  rgba(131, 131, 131, 0.85);
-    justify-content: flex-end;
-    flex-direction: row;  
+    border-right-color: rgba(131, 131, 131, 0.85);
+    background-color: rgba(125, 125, 125, 0.25);
+    flex-direction: row;
+    justify-content: flex-start;
     font-size: 10px;
-    overflow: hidden;          /* 隐藏超出部分 */
-    white-space: nowrap;       /* 禁止文本换行 */
-    text-overflow: ellipsis;   /* 超出部分显示省略号 */
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
     -unity-text-align: middle-left;
     -unity-font-style: bold;
 }
@@ -385,7 +387,6 @@
     margin: 0px; 
     margin-left: 2px; 
     padding: 0px;
-    right: -8px;
     border-width: 0px;
     align-self:center;
     -unity-font-style: bold;
@@ -406,6 +407,36 @@
     height: 16px;
     border-width: 4px;
 }
+
+/* 显示引用资源 */
+.ShowDependencyResource{
+    background-size: 100% 100%;
+    background-image: resource("Icon/TextAssetIcon"); 
+}
+
+/* 显示引用资源区域 */
+.AssetShowDependencyResourceArea{
+    width:100%;
+    height: auto;
+    margin:0px;
+    padding:0px;
+    border-width:0px;
+}
+
+/* 引用项列表项 */
+.DependencyListButton{
+    width: 100%;
+    height: 18px;
+
+    margin:0px;
+    padding: 0px;
+    padding-left: 18px;
+    margin-left: 5px;
+    background-color:  rgba(65, 65, 65, 1);
+
+    font-size: 12px;
+    -unity-text-align: middle-left;
+}   
 
 /* 更改AB包组名称 */
 .ChangeABGroupName{

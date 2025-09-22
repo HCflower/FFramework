@@ -27,6 +27,7 @@
 - **引用计数**：自动管理资源包引用，安全卸载。
 - **类型安全**：泛型接口，类型检查更安全。
 - **灵活卸载与清理**：支持单资源、单包和全部资源的卸载与清理。
+- **进度与完成回调**：异步接口支持进度和完成回调。
 
 ---
 
@@ -39,24 +40,24 @@
 - `LoadAssetFromResAsync<T>(string resPath, bool isCache = true, CancellationToken cancellationToken = default)`
   - 异步加载资源，支持 async/await。
 - `UnloadAsset(string resPath)`
-  - 卸载指定资源。
+  - 卸载指定资源（并移除缓存）。
 - `ClearCache()`
   - 清理所有缓存资源。
 
 ### AssetBundle 加载（需配合 LoadAssetBundleHandler 使用）
 
-- `LoadAsset<T>(string bundleName, string assetName)`
-  - 同步加载 AssetBundle 资源，自动加载依赖。
-- `LoadAssetAsync<T>(string bundleName, string assetName, Action<bool> isSuccess = null, Action<float> progress = null)`
+- `LoadAsset<T>(string bundleName, string assetName, string dependenciesPath = null)`
+  - 同步加载 AssetBundle 资源，自动加载依赖，支持自定义依赖包路径。
+- `LoadAssetAsync<T>(string bundleName, string assetName, string dependenciesPath = null, Action<float> progress = null, Action<bool> isDone = null)`
   - 异步加载 AssetBundle 资源，自动加载依赖，支持进度与完成回调。
 - `UnloadBundle(string bundleName, bool unloadAllLoadedObjects = false)`
-  - 卸载指定资源包及其依赖。
+  - 卸载指定资源包及其依赖（引用计数为 0 时真正卸载）。
 - `UnloadBundleAsync(string bundleName, bool unloadAllLoadedObjects = false)`
   - 异步卸载指定资源包及其依赖。
 - `ClearAllBundles(bool unloadAllLoadedObjects = false)`
-  - 清理所有已加载的资源包。
-- `ClearAllBundlesAsync(bool unloadAllLoadedObjects = false)`
-  - 异步清理所有已加载的资源包。
+  - 清理所有已加载的资源包（包括依赖包）。
+- `ClearAllBundlesAsync(bool unloadAllLoadedObjects = false, Action<float> progress = null, Action<bool> isDone = null)`
+  - 异步清理所有已加载的资源包，支持进度与完成回调。
 
 ---
 
@@ -84,6 +85,13 @@ LoadAssetKit.LoadAssetFromRes<Sprite>("UI/Icons/player_icon", sprite => {
 var sprite = await LoadAssetKit.LoadAssetFromResAsync<Sprite>("UI/Icons/player_icon");
 ```
 
+**卸载与清理：**
+
+```csharp
+LoadAssetKit.UnloadAsset("UI/Icons/player_icon");
+LoadAssetKit.ClearCache();
+```
+
 ### AssetBundle 加载
 
 **初始化加载器：**
@@ -98,12 +106,32 @@ var handler = new LoadAssetBundleHandler(Application.streamingAssetsPath, "AB_Gr
 var prefab = handler.LoadAsset<GameObject>("uigameinfopanel", "UIGameInfoPanel");
 ```
 
-**异步加载资源：**
+**异步加载资源（带进度与完成回调）：**
 
 ```csharp
-var prefab = await handler.LoadAssetAsync<GameObject>("uigameinfopanel", "UIGameInfoPanel",
-    progress: p => Debug.Log("进度:" + p),
-    isDone: done=> Debug.Log("加载结果:" + done));
+var prefab = await handler.LoadAssetAsync<GameObject>(
+    "uigameinfopanel",
+    "UIGameInfoPanel",
+    null, // dependenciesPath，通常为 null
+    p => Debug.Log("进度:" + p),
+    done => Debug.Log("加载结果:" + done)
+);
+```
+
+**自定义依赖包路径加载：**
+
+```csharp
+var prefab = handler.LoadAsset<GameObject>("uigameinfopanel", "UIGameInfoPanel", "MyDependenciesFolder");
+```
+
+```csharp
+var prefab = await handler.LoadAssetAsync<GameObject>(
+    "uigameinfopanel",
+    "UIGameInfoPanel",
+    "MyDependenciesFolder",
+    p => Debug.Log("进度:" + p),
+    done => Debug.Log("加载结果:" + done)
+);
 ```
 
 **卸载资源包：**
@@ -113,13 +141,15 @@ handler.UnloadBundle("uigameinfopanel");
 await handler.UnloadBundleAsync("uigameinfopanel");
 ```
 
-**清理所有资源包：**
+**清理所有资源包（带进度与完成回调）：**
 
 ```csharp
 handler.ClearAllBundles();
-await handler.ClearAllBundlesAsync(false,
+await handler.ClearAllBundlesAsync(
+    false,
     progress: p => Debug.Log("进度:" + p),
-    isDone: done=> Debug.Log("卸载结果:" + done));
+    isDone: done => Debug.Log("卸载结果:" + done)
+);
 ```
 
 ---
