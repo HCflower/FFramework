@@ -136,11 +136,10 @@ namespace AssetBundleToolEditor
                         AssetBundleEditorData.currentABConfig.BuildTarget.ToString();
                     string resServerPath = resServer + "/" + mainFolderName + "/" + buildTarget;
 
-                    string ftpUser = AssetBundleEditorData.currentABConfig.ID;
+                    string ftpUser = AssetBundleEditorData.currentABConfig.Account;
                     string ftpPwd = AssetBundleEditorData.currentABConfig.Password;
-                    NetworkProtocolsType networkProtocolsType = AssetBundleEditorData
-                        .currentABConfig
-                        .NetworkProtocolsType;
+                    NetworkProtocolsType networkProtocolsType = AssetBundleEditorData.currentABConfig.NetworkProtocolsType;
+                    // 先服务器上创建BuildTarget文件夹
                     CreateAssetsBundlesHandles.UploadAllAssetBundlesFile(
                         assetspath,
                         resServerPath,

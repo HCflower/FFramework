@@ -864,7 +864,7 @@ namespace AssetBundleToolEditor
         // 添加操作选项
         private void AddOperationOptions(VisualElement visual, GenericMenu menu, AssetBundleGroup group)
         {
-            menu.AddItem(new GUIContent("更改当前轨道名称"), false, () =>
+            menu.AddItem(new GUIContent("更改当前AB包组的名称"), false, () =>
             {
                 TextField changeABGroupName = new TextField();
                 changeABGroupName.value = group.assetBundleName;

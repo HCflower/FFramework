@@ -24,6 +24,15 @@
    background-color:#383838;
  }
 
+ /* 版本号 */
+ .VersionNumber{
+   position:absolute;
+   right:2px;
+   bottom:2px;
+   font-size: 12px;
+   -unity-font-style: bold;
+ }
+
 /* 创建AssetBundle配置工具栏 */
  .CreateConfigureContent{
    width: 200px;

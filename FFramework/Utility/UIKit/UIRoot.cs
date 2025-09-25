@@ -20,8 +20,17 @@ namespace FFramework.Kit
         {
             this.name = "UIRoot";
             // 必要组件
-            if (!TryGetComponent<Canvas>(out _)) gameObject.AddComponent<Canvas>();
-            if (!TryGetComponent<CanvasScaler>(out _)) gameObject.AddComponent<CanvasScaler>();
+            if (!TryGetComponent<Canvas>(out _))
+            {
+                var canvas = gameObject.AddComponent<Canvas>();
+                canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            }
+            if (!TryGetComponent<CanvasScaler>(out _))
+            {
+                var scaler = gameObject.AddComponent<CanvasScaler>();
+                scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+                scaler.referenceResolution = new Vector2(1920, 1080); // 设置参考分辨率
+            }
             if (!TryGetComponent<GraphicRaycaster>(out _)) gameObject.AddComponent<GraphicRaycaster>();
 
             // 添加UI层

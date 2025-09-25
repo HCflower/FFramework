@@ -70,6 +70,7 @@ namespace AssetBundleToolEditor
                         AssetBundleEditorData.currentABConfig.ClearLocalAssetBundlesFolder();
                     //构建AssetBundles
                     AssetBundleEditorData.currentABConfig.CreateLocalAssetBundle();
+
                 },
                 "构建本地AssetBundles",
                 "Setting"
@@ -126,38 +127,27 @@ namespace AssetBundleToolEditor
 
             //构建远端AssetBundles
             CreateButton(
-                remoteSettingContent,
-                () =>
-                {
-                    if (AssetBundleEditorData.isClearFolderWhenBuild)
-                        AssetBundleEditorData.currentABConfig.ClearRemoteAssetBundlesFolder();
-                    //构建AssetBundles
-                    AssetBundleEditorData.currentABConfig.CreateRemoteAssetBundle();
-                },
-                "构建远端AssetBundles",
-                "Setting"
+            remoteSettingContent,
+            () =>
+            {
+                if (AssetBundleEditorData.isClearFolderWhenBuild)
+                    AssetBundleEditorData.currentABConfig.ClearRemoteAssetBundlesFolder();
+                //构建AssetBundles
+                AssetBundleEditorData.currentABConfig.CreateRemoteAssetBundle();
+            },
+            "构建远端AssetBundles",
+            "Setting"
             );
 
             //构建资源对比文件
             CreateButton(
-                remoteSettingContent,
-                () =>
-                {
-                    AssetBundleEditorData.currentABConfig.CreateRemoteAssetBundleInfoFile();
-                },
-                "创建远端资源对比文件",
-                "TextAssetIcon"
-            );
-
-            //构建依赖文件
-            CreateButton(
-                remoteSettingContent,
-                () =>
-                {
-                    Debug.Log("(资源可寻址加载)施工中~");
-                },
-                "创建依赖关系文件",
-                "TextAssetIcon"
+            remoteSettingContent,
+            () =>
+            {
+                AssetBundleEditorData.currentABConfig.CreateRemoteAssetBundleInfoFile();
+            },
+            "创建远端资源对比文件",
+            "TextAssetIcon"
             );
 
             visual.Add(remoteSettingContent);
@@ -258,10 +248,10 @@ namespace AssetBundleToolEditor
                 CreateTextField(
                     globalSettingContent,
                     "用户ID",
-                    AssetBundleEditorData.currentABConfig.ID,
+                    AssetBundleEditorData.currentABConfig.Account,
                     (newValue) =>
                     {
-                        AssetBundleEditorData.currentABConfig.ID = newValue;
+                        AssetBundleEditorData.currentABConfig.Account = newValue;
                     }
                 );
 
@@ -318,12 +308,16 @@ namespace AssetBundleToolEditor
                         AssetBundleEditorData.currentABConfig.BuildTarget.ToString();
 
                     string resServerPath = $"{resServer}/{mainFolderName}/{buildTarget}";
+                    string account = AssetBundleEditorData.currentABConfig.Account;
+                    string password = AssetBundleEditorData.currentABConfig.Password;
                     if (handler != null)
                     {
                         Debug.Log(
                             $"已存在AssetBundlesDownLoadHandler,位于 {handler.gameObject.name}"
                         );
                         handler.ResServerPath = resServerPath;
+                        handler.Account = account;
+                        handler.Password = password;
                         Debug.Log($"设置资源服务器路径: {resServerPath}");
                         Selection.activeObject = handler.gameObject;
                         return;
@@ -334,6 +328,8 @@ namespace AssetBundleToolEditor
                         managerObj.transform.SetParent(null);
                         handler = managerObj.AddComponent<AssetBundlesDownLoadHandler>();
                         handler.ResServerPath = resServerPath;
+                        handler.Account = account;
+                        handler.Password = password;
                         Debug.Log($"设置资源服务器路径: {resServerPath}");
                         Debug.Log("已创建资源下载管理器", managerObj);
                         Selection.activeObject = managerObj;

@@ -40,6 +40,11 @@ namespace AssetBundleToolEditor
             mainContent.RegisterCallback<MouseDownEvent>(OnMouseDown);
             CreateScrollView(mainContent);
             isOpencreateConfigure = false;
+            // 版本号
+            Label versionNumber = new Label("2.0.0");
+            versionNumber.AddToClassList("VersionNumber");
+            mainContent.Add(versionNumber);
+
             visual.Add(mainContent);
         }
 
@@ -132,19 +137,16 @@ namespace AssetBundleToolEditor
                     string fullPath = Path.Combine(savePath, configureName);
                     if (File.Exists(fullPath))
                     {
-                        Debug.LogError(
-                            $"<color=red>错误：路径 {fullPath} 已存在同名配置文件！</color>"
-                        );
+                        Debug.LogError($"<color=red>错误：路径 {fullPath} 已存在同名配置文件！</color>");
                         return;
                     }
-                    Debug.Log(
-                        $"AssetBundleConfigure已保存到<color=yellow>{savePath}路径下.</color>"
-                    );
+                    Debug.Log($"AssetBundleConfigure已保存到<color=yellow>{savePath}路径下.</color>");
                     isOpencreateConfigure = false;
                     CreateAssetsBundlesHandles.CreateConfigureData(savePath, configureName);
                     savePath = string.Empty;
                     createConfigureParent.Remove(createConfigure);
                     createConfigure = null;
+                    UpdateConfigureItemView();
                 }
                 else
                 {

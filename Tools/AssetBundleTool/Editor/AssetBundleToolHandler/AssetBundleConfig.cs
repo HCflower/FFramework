@@ -48,7 +48,7 @@ namespace AssetBundleToolEditor
         public string MainFolderName;
 
         [Tooltip("用户ID")]
-        public string ID;
+        public string Account;
 
         [Tooltip("用户密码")]
         public string Password;
@@ -128,8 +128,9 @@ namespace AssetBundleToolEditor
         [Button("构建本地AssetBundle")]
         public void CreateLocalAssetBundle()
         {
-            // 确保输出目录存在 - 应该是 Assets 内部的路径
-            string outputPath = Path.Combine(Application.dataPath, LocalSavePath);
+            string outputPath = ResolveOutputPath(LocalSavePath);
+            if (string.IsNullOrEmpty(outputPath)) return;
+
             if (!Directory.Exists(outputPath))
             {
                 Directory.CreateDirectory(outputPath);
@@ -141,14 +142,48 @@ namespace AssetBundleToolEditor
         [Button("构建远端AssetBundle")]
         public void CreateRemoteAssetBundle()
         {
-            // 确保输出目录存在
-            string outputPath = Path.Combine(Application.dataPath, RemoteSavePath);
+            string outputPath = ResolveOutputPath(RemoteSavePath);
+            if (string.IsNullOrEmpty(outputPath)) return;
+
             if (!Directory.Exists(outputPath))
             {
                 Directory.CreateDirectory(outputPath);
                 Debug.Log($"创建输出目录: {outputPath}");
             }
             CreateAssetBundleInternal(outputPath, BuildPathType.Remote);
+        }
+
+        // 统一解析（只允许在 Assets 目录内），配置里建议存相对路径：例如  Game/Res  或  StreamingAssets
+        private string ResolveOutputPath(string configuredPath)
+        {
+            if (string.IsNullOrEmpty(configuredPath))
+            {
+                Debug.LogError("保存路径为空");
+                return null;
+            }
+
+            string cleaned = configuredPath.Trim().Replace("\\", "/");
+
+            // 如果是绝对路径并且位于 Assets 下，则直接使用
+            if (Path.IsPathRooted(cleaned))
+            {
+                if (!cleaned.StartsWith(Application.dataPath, StringComparison.OrdinalIgnoreCase))
+                {
+                    Debug.LogError($"路径不在 Assets 目录内: {cleaned}");
+                    return null;
+                }
+                return cleaned;
+            }
+
+            // 去掉可能的前缀 "Assets/"
+            if (cleaned.StartsWith("Assets/", StringComparison.OrdinalIgnoreCase))
+            {
+                cleaned = cleaned.Substring("Assets/".Length);
+            }
+
+            // 最终组合
+            string finalPath = Path.Combine(Application.dataPath, cleaned);
+            return finalPath;
         }
 
         /// <summary>
@@ -177,7 +212,7 @@ namespace AssetBundleToolEditor
                 string[] allDeps = AssetDatabase.GetDependencies(asset.assetPath, true);
                 Debug.Log($"所有依赖项 ({allDeps.Length}): {string.Join(", ", allDeps)}");
 
-                // 获取直接依赖项
+                // 获取直接依赖项,
                 string[] directDeps = AssetDatabase.GetDependencies(asset.assetPath, false);
                 Debug.Log($"直接依赖项 ({directDeps.Length}): {string.Join(", ", directDeps)}");
 
@@ -231,11 +266,24 @@ namespace AssetBundleToolEditor
             }
         }
 
+        private string SanitizeFolderName(string name)
+        {
+            if (string.IsNullOrEmpty(name)) return "Unnamed";
+            // 将路径分隔符替换为下划线
+            var invalid = Path.GetInvalidFileNameChars();
+            var chars = name.Select(c =>
+            {
+                if (c == '/' || c == '\\') return '_';
+                if (invalid.Contains(c)) return '_';
+                return c;
+            }).ToArray();
+            return new string(chars);
+        }
+
         // 根据路径类型创建AssetBundle
         // 构建时，每个单独的AB包组单独创建一个文件夹，用于分离保存
         private void CreateAssetBundleInternal(string savePath, BuildPathType pathType)
         {
-            // 清理全局依赖项跟踪器
             globalDependencyTracker.Clear();
             if (string.IsNullOrEmpty(savePath))
             {
@@ -254,21 +302,17 @@ namespace AssetBundleToolEditor
 
             try
             {
-                // 确保主目录存在
                 Directory.CreateDirectory(savePath);
 
-                // 为每个组单独构建到其专属文件夹
                 foreach (var group in filteredGroups)
                 {
-                    // 为每个组创建单独的文件夹，添加前缀避免冲突
-                    string safeFolderName = $"AB_{group.assetBundleName}"; // 添加前缀避免与AB包名冲突
+                    // 清理组文件夹名，防止组名里含有 / 或 \
+                    string sanitizedGroupName = SanitizeFolderName(group.assetBundleName);
+                    string safeFolderName = $"AB_{sanitizedGroupName}";
                     string groupFolderPath = Path.Combine(savePath, safeFolderName);
                     Directory.CreateDirectory(groupFolderPath);
 
-                    // 配置构建选项
                     var options = GetBuildOptions();
-
-                    // 构建单个组的AssetBundleBuild列表
                     var builds = CreateAssetBundleBuildsForSingleGroup(group);
 
                     if (builds.Count == 0)
@@ -277,34 +321,30 @@ namespace AssetBundleToolEditor
                         continue;
                     }
 
-                    // 执行构建到组专属文件夹
                     var manifest = BuildPipeline.BuildAssetBundles(
                         groupFolderPath,
                         builds.ToArray(),
                         options,
-                        BuildTarget // 使用配置的BuildTarget而不是EditorUserBuildSettings.activeBuildTarget
+                        BuildTarget
                     );
 
-                    // 检查构建结果
                     if (manifest == null)
                     {
                         Debug.LogError($"构建AB包组 '{group.assetBundleName}' 失败");
                         continue;
                     }
 
-                    // 如果是可寻址分离模式，将依赖项AB包移动到Dependencies文件夹（与AB_GroupName同级）
                     if (group.isEnableAddressable && group.isEnablePackSeparately)
                     {
                         MoveDependenciesToSeparateFolder(savePath, group.assetBundleName, groupFolderPath);
                     }
 
-                    // 清理多余的manifest文件，只保留主manifest
                     CleanupExtraManifestFiles(groupFolderPath);
 
                     Debug.Log($"<color=green>成功构建AB包组 '{group.assetBundleName}' 的{manifest.GetAllAssetBundles().Length}个{pathType} AssetBundle</color>\n保存路径: {groupFolderPath}");
                 }
             }
-            catch (System.Exception e)
+            catch (Exception e)
             {
                 Debug.LogError($"构建AssetBundle出错: {e.Message}\n{e.StackTrace}");
             }
@@ -765,50 +805,172 @@ namespace AssetBundleToolEditor
         //构建本地资源对比文件
         public void CreateLocalAssetBundleInfoFile()
         {
-            //创建资源对比文件
-            CreateAssetBundleInfoFile(LocalSavePath);
+            CreateAssetBundleInfoFile(LocalSavePath, "AssetBundleCompareInfo.txt");
         }
 
         //构建远端资源对比文件
         public void CreateRemoteAssetBundleInfoFile()
         {
-            //创建资源对比文件
-            CreateAssetBundleInfoFile(RemoteSavePath);
+            CreateAssetBundleInfoFile(RemoteSavePath, "RemoteAssetBundleCompareInfo.txt");
         }
 
-        //AssetBundle构建完成后创建资源对比文件
-        public void CreateAssetBundleInfoFile(string path)
+        /// <summary>
+        /// 通用的AssetBundle对比文件创建方法
+        /// </summary>
+        /// <param name="path">路径</param>
+        /// <param name="fileName">生成的文件名</param>
+        /// <param name="isFolderMode">true=文件夹MD5模式，false=文件MD5模式</param>
+        private void CreateAssetBundleInfoFile(string path, string fileName)
         {
-            string Path = Application.dataPath + $"/{path}";
-            if (Directory.Exists(Path))
+            // 统一解析路径
+            string absPath = ResolveOutputPath(path);
+            if (string.IsNullOrEmpty(absPath))
             {
-                //获取文件夹信息
-                DirectoryInfo assetBundlesPath = Directory.CreateDirectory(Path);
-                //获取该文件夹下所有文件
-                FileInfo[] fileInfos = assetBundlesPath.GetFiles();
-                //存储AssetBundle信息
-                string assetBundleCompareInfo = "";
-                foreach (FileInfo info in fileInfos)
+                Debug.LogError($"解析路径失败: {path}");
+                return;
+            }
+
+            if (!Directory.Exists(absPath))
+            {
+                Debug.LogError($"路径不存在，无法生成对比文件: {absPath}");
+                return;
+            }
+
+            try
+            {
+                string compareInfo = "";
+                var dirs = Directory.GetDirectories(absPath, "*", SearchOption.TopDirectoryOnly);
+                if (dirs.Length == 0)
                 {
-                    //注意:AssetBundle没有后缀
-                    if (info.Extension == "")
+                    Debug.LogWarning($"路径下没有找到任何文件夹: {absPath}");
+                    compareInfo = "EMPTY";
+                }
+                else
+                {
+                    Array.Sort(dirs, StringComparer.OrdinalIgnoreCase);
+                    StringBuilder result = new StringBuilder();
+
+                    // 为每个文件夹计算MD5（同时会在文件夹内创建详细对比文件）
+                    foreach (var dir in dirs)
                     {
-                        assetBundleCompareInfo += info.Name + "/" + info.Length + "/" + CreateAssetsBundlesHandles.GetMD5(info.FullName);
-                        //添加分隔符
-                        assetBundleCompareInfo += "|";
+                        string folderName = Path.GetFileName(dir);
+                        string folderMd5 = ComputeDirectoryMD5(dir);
+                        result.Append($"{folderName}-{folderMd5}").Append("|");
+                    }
+
+                    // 去掉最后一个 '|'
+                    if (result.Length > 0) result.Length--;
+                    compareInfo = result.ToString();
+
+                    Debug.Log($"<color=green>所有文件夹的详细MD5码文件创建完成</color>");
+                }
+
+                // 创建总对比文件
+                string compareFile = Path.Combine(absPath, fileName);
+                File.WriteAllText(compareFile, compareInfo, Encoding.UTF8);
+
+                Debug.Log($"<color=green>AssetBundle对比文件创建成功: {compareFile.Replace("\\", "/")}</color>");
+                Debug.Log($"<color=cyan>内容: {compareInfo}</color>");
+
+                // 刷新Asset数据库
+                AssetDatabase.Refresh();
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"创建资源对比文件时出错: {ex.Message}\n{ex.StackTrace}");
+            }
+        }
+
+        /// <summary>
+        /// 计算单个目录的聚合MD5，并在该目录下创建详细的MD5资源对比文件
+        /// </summary>
+        private string ComputeDirectoryMD5(string directory)
+        {
+            try
+            {
+                var files = Directory.GetFiles(directory, "*", SearchOption.TopDirectoryOnly)
+                                     .Where(f => !f.EndsWith(".meta", StringComparison.OrdinalIgnoreCase) &&
+                                                !f.EndsWith(".manifest", StringComparison.OrdinalIgnoreCase) &&
+                                                !f.EndsWith(".txt", StringComparison.OrdinalIgnoreCase)) // 排除已有的对比文件
+                                     .OrderBy(f => f, StringComparer.OrdinalIgnoreCase)
+                                     .ToArray();
+
+                if (files.Length == 0) return "EMPTY";
+
+                StringBuilder concat = new StringBuilder();
+                StringBuilder folderDetailInfo = new StringBuilder(); // 用于存储文件夹内详细信息
+
+                foreach (var f in files)
+                {
+                    string fileName = Path.GetFileName(f);
+                    FileInfo fileInfo = new FileInfo(f);
+                    long fileSize = fileInfo.Length;
+
+                    // 获取文件的纯MD5码（不包含文件名和大小）
+                    string fileMd5 = GetFileMD5Only(f);
+
+                    // 用于计算文件夹聚合MD5的字符串
+                    concat.Append(fileName).Append(":").Append($"{fileName}-{fileSize}-{fileMd5}").Append("|");
+
+                    // 用于文件夹详细信息的字符串：AB包名-资源大小-MD5码
+                    folderDetailInfo.Append($"{fileName}-{fileSize}-{fileMd5}").Append("|");
+                }
+
+                if (concat.Length > 0) concat.Length--;
+                if (folderDetailInfo.Length > 0) folderDetailInfo.Length--;
+
+                // 在当前文件夹下创建详细的MD5资源对比文件
+                string folderName = Path.GetFileName(directory);
+                string folderDetailFile = Path.Combine(directory, $"{folderName}CompareInfo.txt");
+                File.WriteAllText(folderDetailFile, folderDetailInfo.ToString(), Encoding.UTF8);
+
+                string logPath = folderDetailFile.Replace("\\", "/");
+                Debug.Log($"<color=cyan>在文件夹内创建详细MD5资源对比文件: {logPath}</color>");
+                Debug.Log($"<color=yellow>文件夹 {folderName} 详细信息: {folderDetailInfo.ToString()}</color>");
+
+                // 对拼接字符串再做一次MD5，作为文件夹的聚合MD5
+                using (var md5Alg = System.Security.Cryptography.MD5.Create())
+                {
+                    byte[] bytes = Encoding.UTF8.GetBytes(concat.ToString());
+                    byte[] hash = md5Alg.ComputeHash(bytes);
+                    StringBuilder sb = new StringBuilder();
+                    for (int i = 0; i < hash.Length; i++)
+                        sb.Append(hash[i].ToString("X2"));
+                    return sb.ToString();
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"计算目录MD5失败: {directory} -> {ex.Message}");
+                return "ERROR";
+            }
+        }
+
+        /// <summary>
+        /// 只获取文件MD5码（不包含文件名和大小信息）
+        /// </summary>
+        private string GetFileMD5Only(string path)
+        {
+            try
+            {
+                using (FileStream file = new FileStream(path, FileMode.Open, FileAccess.Read))
+                {
+                    using (var md5 = System.Security.Cryptography.MD5.Create())
+                    {
+                        byte[] md5Info = md5.ComputeHash(file);
+                        StringBuilder stringBuilder = new StringBuilder();
+                        for (int i = 0; i < md5Info.Length; i++)
+                        {
+                            stringBuilder.Append(md5Info[i].ToString("X2"));
+                        }
+                        return stringBuilder.ToString();
                     }
                 }
-                //去除最后一个分隔符
-                assetBundleCompareInfo = assetBundleCompareInfo.Substring(
-                    0,
-                    assetBundleCompareInfo.Length - 1
-                );
-                File.WriteAllText(
-                    Path + "/AssetBundleCompareInfo.txt",
-                    assetBundleCompareInfo,
-                    Encoding.UTF8
-                );
-                Debug.Log($"AssetBundle对比文件创建成功:{Path + "/AssetBundleCompareInfo.txt"}");
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"计算文件MD5失败: {path} -> {ex.Message}");
+                return "ERROR";
             }
         }
 
