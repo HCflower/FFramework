@@ -131,10 +131,8 @@ namespace AssetBundleToolEditor
                     string assetspath = AssetBundleEditorData.currentABConfig.RemoteSavePath;
                     //资源地址
                     string resServer = AssetBundleEditorData.currentABConfig.ResServerPath;
-                    string mainFolderName = AssetBundleEditorData.currentABConfig.MainFolderName;
-                    string buildTarget =
-                        AssetBundleEditorData.currentABConfig.BuildTarget.ToString();
-                    string resServerPath = resServer + "/" + mainFolderName + "/" + buildTarget;
+                    string buildTarget = AssetBundleEditorData.currentABConfig.BuildTarget.ToString();
+                    string resServerPath = resServer + "/" + buildTarget;
 
                     string ftpUser = AssetBundleEditorData.currentABConfig.Account;
                     string ftpPwd = AssetBundleEditorData.currentABConfig.Password;

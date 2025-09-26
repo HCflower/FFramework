@@ -274,7 +274,7 @@
 
 /* ABGroup名称  */
 .AssetBundleItemTitle{
-    width: 80px;
+    width: 85px;
     height: 20px;
     font-size: 12px;
 
@@ -290,11 +290,10 @@
 
 /* 提示图标区域 */
 .TipsIconArea{
-    width: 60px;
+    width: auto;
     height: 100%;
     margin:0px;
     margin-left:1px;
-    margin-right:2px;
     padding: 0px;
     border-width: 0px;
 

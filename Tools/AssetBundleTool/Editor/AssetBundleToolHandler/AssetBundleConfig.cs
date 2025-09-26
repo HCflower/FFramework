@@ -44,9 +44,6 @@ namespace AssetBundleToolEditor
         [Tooltip("资源服务器地址")]
         public string ResServerPath = "127.0.0.1";
 
-        [Tooltip("主文件夹")]
-        public string MainFolderName;
-
         [Tooltip("用户ID")]
         public string Account;
 

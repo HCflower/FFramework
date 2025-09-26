@@ -176,14 +176,9 @@ namespace AssetBundleToolEditor
                 {
                     AssetBundleEditorData.currentABConfig.BuildTarget = (BuildTarget)newvalue;
                     // 根据平台自动更新远端保存路径
-                    AssetBundleEditorData.currentABConfig.RemoteSavePath =
-                        $"HotUpdateRes/{AssetBundleEditorData.currentABConfig.BuildTarget}";
-                    // 更新路径显示
                     if (assetBundlesSavePathField != null)
                     {
-                        assetBundlesSavePathField.text = AssetBundleEditorData
-                            .currentABConfig
-                            .RemoteSavePath;
+                        assetBundlesSavePathField.text = AssetBundleEditorData.currentABConfig.RemoteSavePath;
                     }
                 }
             );
@@ -195,8 +190,7 @@ namespace AssetBundleToolEditor
                 AssetBundleEditorData.currentABConfig.CompressionType,
                 (newvalue) =>
                 {
-                    AssetBundleEditorData.currentABConfig.CompressionType =
-                        (CompressionType)newvalue;
+                    AssetBundleEditorData.currentABConfig.CompressionType = (CompressionType)newvalue;
                 }
             );
 
@@ -226,6 +220,17 @@ namespace AssetBundleToolEditor
                 }
             );
 
+            //服务器地址
+            CreateTextField(
+                globalSettingContent,
+                "服务器地址",
+                AssetBundleEditorData.currentABConfig.ResServerPath,
+                (newValue) =>
+                {
+                    AssetBundleEditorData.currentABConfig.ResServerPath = newValue;
+                }
+            );
+
             //下载服务器选择
             CreateEnumField(
                 globalSettingContent,
@@ -239,10 +244,7 @@ namespace AssetBundleToolEditor
                 }
             );
 
-            if (
-                AssetBundleEditorData.currentABConfig.NetworkProtocolsType
-                == NetworkProtocolsType.FTP
-            )
+            if (AssetBundleEditorData.currentABConfig.NetworkProtocolsType == NetworkProtocolsType.FTP)
             {
                 //用户ID
                 CreateTextField(
@@ -267,28 +269,6 @@ namespace AssetBundleToolEditor
                 );
             }
 
-            //服务器地址
-            CreateTextField(
-                globalSettingContent,
-                "服务器地址",
-                AssetBundleEditorData.currentABConfig.ResServerPath,
-                (newValue) =>
-                {
-                    AssetBundleEditorData.currentABConfig.ResServerPath = newValue;
-                }
-            );
-
-            //主文件夹名称
-            CreateTextField(
-                globalSettingContent,
-                "主文件夹名称",
-                AssetBundleEditorData.currentABConfig.MainFolderName,
-                (newValue) =>
-                {
-                    AssetBundleEditorData.currentABConfig.MainFolderName = newValue;
-                }
-            );
-
             //添加资源下载管理器
             CreateButton(
                 globalSettingContent,
@@ -302,12 +282,10 @@ namespace AssetBundleToolEditor
                     string resServer = AssetBundleEditorData.currentABConfig.ResServerPath?.TrimEnd(
                         '/'
                     );
-                    string mainFolderName =
-                        AssetBundleEditorData.currentABConfig.MainFolderName?.TrimStart('/');
-                    string buildTarget =
-                        AssetBundleEditorData.currentABConfig.BuildTarget.ToString();
 
-                    string resServerPath = $"{resServer}/{mainFolderName}/{buildTarget}";
+                    string buildTarget = AssetBundleEditorData.currentABConfig.BuildTarget.ToString();
+
+                    string resServerPath = $"{resServer}/{buildTarget}";
                     string account = AssetBundleEditorData.currentABConfig.Account;
                     string password = AssetBundleEditorData.currentABConfig.Password;
                     if (handler != null)

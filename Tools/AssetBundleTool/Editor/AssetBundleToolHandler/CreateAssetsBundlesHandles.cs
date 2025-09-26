@@ -247,11 +247,12 @@ namespace AssetBundleToolEditor
             switch (networkProtocolsType)
             {
                 case NetworkProtocolsType.FTP:
-                    // 递归上传所有文件夹中的文件
-                    UploadDirectoryRecursively(path, path, resServerPath, ftpUser, ftpPwd);
-                    break;
-                case NetworkProtocolsType.HTTP:
-                    Debug.Log("<color=yellow>HTTP上传施工中~请使用FTP网络协议.</color>");
+                    // 确保服务器路径格式正确
+                    string ftpBase = resServerPath.StartsWith("ftp://") ? resServerPath : "ftp://" + resServerPath.TrimStart('/');
+
+                    // 直接递归上传所有文件夹中的文件，不预先创建平台文件夹
+                    // UploadDirectoryRecursively 会自动创建需要的目录结构
+                    UploadDirectoryRecursively(path, path, ftpBase, ftpUser, ftpPwd);
                     break;
             }
         }
