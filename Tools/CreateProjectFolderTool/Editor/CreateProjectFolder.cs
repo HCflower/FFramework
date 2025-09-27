@@ -34,10 +34,9 @@ namespace CreateProjectFolder
             CreateFolderByName("GameRes/Texture");
             CreateFolderByName("GameRes/Model");
             CreateFolderByName("GameRes/VFX");
+            CreateFolderByName("GameRes/Setting");
             //可热更新资源
-            CreateFolderByName("HotUpdate/AssetBundles");
-            //设置
-            CreateFolderByName("Settings");
+            CreateFolderByName("HotUpdate");
             //数据保存
             CreateFolderByName("StreamingAssets");
             //测试
