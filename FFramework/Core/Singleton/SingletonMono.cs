@@ -9,9 +9,10 @@ namespace FFramework
     {
         // 控制是否使用可以被销毁
         [SerializeField] protected bool IsDontDestroyOnLoad = true;
+        private static T mInstance;
         private static readonly object Lock = new object();
         private static bool isApplicationQuitting = false;
-        private static T mInstance;
+
         public static T Instance
         {
             get
@@ -22,24 +23,40 @@ namespace FFramework
                     return null;
                 }
 
-                lock (Lock)
+                // 双重检查锁定模式
+                if (mInstance == null)
                 {
-                    if (mInstance == null)
+                    lock (Lock)
                     {
-                        mInstance = FindObjectOfType<T>();
-
                         if (mInstance == null)
                         {
-                            GameObject singletonObject = new GameObject($"[Singleton] {typeof(T).Name}");
-                            mInstance = singletonObject.AddComponent<T>();
-                            Debug.Log($"[Singleton] An instance of {typeof(T)} was created.");
+                            // 确保在主线程中执行
+                            if (!UnityThread.IsMainThread())
+                            {
+                                Debug.LogError($"[Singleton] Cannot create instance of {typeof(T)} on non-main thread.");
+                                return null;
+                            }
+
+                            mInstance = FindObjectOfType<T>();
+
+                            if (mInstance == null)
+                            {
+                                GameObject singletonObject = new GameObject($"[Singleton] {typeof(T).Name}");
+                                mInstance = singletonObject.AddComponent<T>();
+                                Debug.Log($"[Singleton] An instance of {typeof(T)} was created.");
+                            }
                         }
                     }
-
-                    return mInstance;
                 }
+
+                return mInstance;
             }
         }
+
+        /// <summary>
+        /// 检查实例是否存在（不会创建新实例）
+        /// </summary>
+        public static bool HasInstance => mInstance != null;
 
         protected virtual void Awake()
         {
@@ -58,11 +75,39 @@ namespace FFramework
                 DontDestroyOnLoad(gameObject);
                 Debug.Log($"<color=yellow>[Singleton] Setting {typeof(T)} to DontDestroyOnLoad.</color>");
             }
+
+            OnSingletonAwake();
+        }
+
+        /// <summary>
+        /// 单例初始化时调用，子类可重写
+        /// </summary>
+        protected virtual void OnSingletonAwake() { }
+
+        protected virtual void OnDestroy()
+        {
+            if (mInstance == this)
+            {
+                mInstance = null;
+            }
         }
 
         protected virtual void OnApplicationQuit()
         {
             isApplicationQuitting = true;
+        }
+    }
+
+    /// <summary>
+    /// Unity主线程检查工具类
+    /// </summary>
+    public static class UnityThread
+    {
+        private static int mainThreadId = System.Threading.Thread.CurrentThread.ManagedThreadId;
+
+        public static bool IsMainThread()
+        {
+            return System.Threading.Thread.CurrentThread.ManagedThreadId == mainThreadId;
         }
     }
 }
