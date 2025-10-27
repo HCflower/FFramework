@@ -3,111 +3,54 @@ using UnityEngine;
 namespace FFramework
 {
     /// <summary>
-    /// 单例 MonoBehaviour 基类
+    /// 单例Mono类
     /// </summary>
+    /// <typeparam name="T">单例类型</typeparam>
     public abstract class SingletonMono<T> : MonoBehaviour where T : SingletonMono<T>
     {
-        // 控制是否使用可以被销毁
-        [SerializeField] protected bool IsDontDestroyOnLoad = true;
-        private static T mInstance;
-        private static readonly object Lock = new object();
-        private static bool isApplicationQuitting = false;
+        private static T instance;
 
         public static T Instance
         {
             get
             {
-                if (isApplicationQuitting)
+                if (instance == null)
                 {
-                    Debug.LogWarning($"[Singleton] Instance '{typeof(T)}' already destroyed on application quit. Returning null.");
-                    return null;
+                    // 自动创建实例
+                    GameObject go = new GameObject(typeof(T).Name);
+                    instance = go.AddComponent<T>();
+                    DontDestroyOnLoad(go);
                 }
-
-                // 双重检查锁定模式
-                if (mInstance == null)
-                {
-                    lock (Lock)
-                    {
-                        if (mInstance == null)
-                        {
-                            // 确保在主线程中执行
-                            if (!UnityThread.IsMainThread())
-                            {
-                                Debug.LogError($"[Singleton] Cannot create instance of {typeof(T)} on non-main thread.");
-                                return null;
-                            }
-
-                            mInstance = FindObjectOfType<T>();
-
-                            if (mInstance == null)
-                            {
-                                GameObject singletonObject = new GameObject($"[Singleton] {typeof(T).Name}");
-                                mInstance = singletonObject.AddComponent<T>();
-                                Debug.Log($"[Singleton] An instance of {typeof(T)} was created.");
-                            }
-                        }
-                    }
-                }
-
-                return mInstance;
+                return instance;
             }
         }
-
-        /// <summary>
-        /// 检查实例是否存在（不会创建新实例）
-        /// </summary>
-        public static bool HasInstance => mInstance != null;
 
         protected virtual void Awake()
         {
-            if (mInstance != null && mInstance != this)
+            if (instance == null)
             {
-                Debug.LogWarning($"[Singleton] Another instance of {typeof(T)} already exists! Destroying this duplicate.");
-                Destroy(gameObject);
-                return;
-            }
-
-            mInstance = this as T;
-
-            if (IsDontDestroyOnLoad)
-            {
-                transform.SetParent(null);
+                instance = this as T;
                 DontDestroyOnLoad(gameObject);
-                Debug.Log($"<color=yellow>[Singleton] Setting {typeof(T)} to DontDestroyOnLoad.</color>");
+                InitializeSingleton();
             }
-
-            OnSingletonAwake();
+            else if (instance != this)
+            {
+                Debug.LogWarning($"[Singleton] Multiple instances of {typeof(T)} found. Destroying duplicate.");
+                Destroy(gameObject);
+            }
         }
 
-        /// <summary>
-        /// 单例初始化时调用，子类可重写
-        /// </summary>
-        protected virtual void OnSingletonAwake() { }
+        protected virtual void InitializeSingleton()
+        {
+            // 可选的初始化逻辑
+        }
 
         protected virtual void OnDestroy()
         {
-            if (mInstance == this)
+            if (instance == this)
             {
-                mInstance = null;
+                instance = null;
             }
-        }
-
-        protected virtual void OnApplicationQuit()
-        {
-            isApplicationQuitting = true;
-        }
-    }
-
-    /// <summary>
-    /// Unity主线程检查工具类
-    /// </summary>
-    public static class UnityThread
-    {
-        private static int mainThreadId = System.Threading.Thread.CurrentThread.ManagedThreadId;
-
-        public static bool IsMainThread()
-        {
-            return System.Threading.Thread.CurrentThread.ManagedThreadId == mainThreadId;
         }
     }
 }

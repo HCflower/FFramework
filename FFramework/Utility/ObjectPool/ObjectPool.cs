@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace FFramework.Kit
+namespace FFramework
 {
     /// <summary>
     /// 对象池组件
@@ -40,7 +40,7 @@ namespace FFramework.Kit
             public GameObject GetObjectFromPool()
             {
                 // 清理无效对象
-                // 倒着遍历以避免索引问题
+                // 从后向前遍历以安全移除
                 for (int i = objectList.Count - 1; i >= 0; i--)
                 {
                     if (objectList[i] == null)
@@ -51,7 +51,7 @@ namespace FFramework.Kit
 
                 if (objectList.Count > 0)
                 {
-                    // 使用Last元素提高性能
+                    // 取出最后一个对象
                     GameObject obj = objectList[objectList.Count - 1];
                     objectList.RemoveAt(objectList.Count - 1);
                     return obj;
@@ -62,13 +62,13 @@ namespace FFramework.Kit
             // 将对象返回到池中
             public void ReturnObjectToPool(GameObject obj)
             {
-                if (obj == null || objectList.Contains(obj)) return; // 防止重复添加
+                // 避免重复添加
+                if (obj == null || objectList.Contains(obj)) return;
 
                 obj.SetActive(false);
                 obj.transform.SetParent(parent.transform);
                 obj.transform.localPosition = Vector3.zero;
                 obj.transform.localRotation = Quaternion.identity;
-                obj.transform.localScale = Vector3.one;
                 objectList.Add(obj);
             }
 
@@ -85,7 +85,6 @@ namespace FFramework.Kit
                     obj.transform.SetParent(parent.transform);
                     obj.transform.localPosition = Vector3.zero;
                     obj.transform.localRotation = Quaternion.identity;
-                    obj.transform.localScale = Vector3.one;
                     objectList.Add(obj);
                 }
             }
@@ -312,6 +311,7 @@ namespace FFramework.Kit
         /// </summary>
         private void SetupObjectFromPool(GameObject obj)
         {
+            // 只设置父级为null和激活状态，不重置位置信息
             obj.transform.SetParent(null);
             obj.SetActive(true);
 
@@ -328,7 +328,7 @@ namespace FFramework.Kit
             if (poolRoot == null)
             {
                 poolRoot = new GameObject("ObjectPoolRoot");
-                DontDestroyOnLoad(poolRoot);
+                // DontDestroyOnLoad(poolRoot);
             }
         }
 
