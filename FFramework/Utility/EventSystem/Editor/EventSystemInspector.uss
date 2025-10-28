@@ -1,0 +1,36 @@
+.Root{
+    padding: 2px;
+}
+
+/* 事件系统监视器标题 */
+.EventSystemInspectorTitle{
+    -unity-font-style: bold;
+    margin-bottom: 4px;
+    font-size: 16px;
+    align-self: center;
+}
+
+/* 搜索区域 */
+.SearchBar{
+    margin-bottom: 2px;
+    flex-direction: row;
+    justify-content: flex-start;
+}
+
+/* 搜索框文本输入区域 */
+.SearchBarTextField{
+    width: 100%; 
+    height: 20px;
+    padding:0px;
+    margin:0px;
+}
+
+.SearchBarIcon{
+    width: 20px;
+    height: 20px;
+    position: absolute;
+    padding:0px;
+    margin:0px;
+    -unity-font-style: bold;
+    -unity-text-align:middle-center;
+}
