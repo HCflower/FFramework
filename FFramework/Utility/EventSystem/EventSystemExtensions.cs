@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using System;
 
-namespace FFramework
+namespace FFramework.Utility
 {
     /// <summary>
     /// EventSystem 静态扩展 - 支持泛型事件的自动注销

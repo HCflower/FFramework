@@ -1,9 +1,10 @@
-using System;
+using UnityEngine.SceneManagement;
+using FFramework.Architecture;
 using System.Collections;
 using UnityEngine;
-using UnityEngine.SceneManagement;
+using System;
 
-namespace FFramework
+namespace FFramework.Utility
 {
     /// <summary>
     /// 场景加载管理器

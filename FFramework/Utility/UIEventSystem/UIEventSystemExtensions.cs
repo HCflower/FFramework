@@ -3,7 +3,7 @@ using UnityEngine.UI;
 using UnityEngine;
 using System;
 
-namespace FFramework.Kit
+namespace FFramework.Utility
 {
     /// <summary>
     /// UIEventSystemExtensions扩展方法，提供更便捷的事件绑定方式

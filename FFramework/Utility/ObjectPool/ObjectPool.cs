@@ -1,7 +1,8 @@
 using System.Collections.Generic;
+using FFramework.Architecture;
 using UnityEngine;
 
-namespace FFramework
+namespace FFramework.Utility
 {
     /// <summary>
     /// 对象池组件

@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace FFramework
+namespace FFramework.Utility
 {
     /// <summary>
     /// 状态

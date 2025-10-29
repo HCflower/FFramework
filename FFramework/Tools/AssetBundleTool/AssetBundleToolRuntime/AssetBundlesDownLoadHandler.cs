@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
+using FFramework.Architecture;
 using System.Linq;
 using UnityEngine;
 using System.Net;
@@ -47,7 +48,7 @@ namespace FFramework
             }
         }
 
-        private void Awake()
+        protected override void Awake()
         {
             CheckResUpdate((resUpdateSuccess) =>
             {

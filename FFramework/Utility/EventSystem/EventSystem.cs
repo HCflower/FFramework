@@ -1,9 +1,10 @@
 using System.Collections.Generic;
+using FFramework.Architecture;
 using System.Linq;
 using UnityEngine;
 using System;
 
-namespace FFramework
+namespace FFramework.Utility
 {
     /// <summary>
     /// 事件系统 - 支持任意类型参数的事件中心

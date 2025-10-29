@@ -2,7 +2,7 @@ using UnityEngine.EventSystems;
 using UnityEngine;
 using System;
 
-namespace FFramework.Kit
+namespace FFramework.Utility
 {
     /// <summary>
     /// UIEventSystem类，用于处理Unity UI事件相关的功能

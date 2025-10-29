@@ -3,7 +3,7 @@ using UnityEngine;
 using System.IO;
 using System;
 
-namespace FFramework
+namespace FFramework.Utility
 {
     /// <summary>
     /// 数据保存系统

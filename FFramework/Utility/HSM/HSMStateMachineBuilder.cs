@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.Reflection;
 
-namespace FFramework
+namespace FFramework.Utility
 {
     /// <summary>
     /// 状态机构建器

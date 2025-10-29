@@ -1,10 +1,11 @@
 using System.Collections.Generic;
+using FFramework.Architecture;
 using System.Collections;
 using UnityEngine;
 using System;
 using Object = UnityEngine.Object;
 
-namespace FFramework
+namespace FFramework.Utility
 {
     /// <summary>
     /// 资源加载管理器

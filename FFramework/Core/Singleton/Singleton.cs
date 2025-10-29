@@ -1,7 +1,7 @@
 using System.Reflection;
 using System;
 
-namespace FFramework
+namespace FFramework.Architecture
 {
     /// <summary>
     /// 普通类单例基类

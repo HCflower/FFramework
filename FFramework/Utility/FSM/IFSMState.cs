@@ -1,4 +1,4 @@
-namespace FFramework
+namespace FFramework.Utility
 {
     /// <summary>
     /// 状态接口 - 无泛型版本

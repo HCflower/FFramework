@@ -3,7 +3,7 @@ using System.Threading.Tasks;
 using System.Threading;
 using System;
 
-namespace FFramework
+namespace FFramework.Utility
 {
     /// <summary>
     /// 转换序列器

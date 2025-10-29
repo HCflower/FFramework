@@ -1,4 +1,4 @@
-namespace FFramework
+namespace FFramework.Utility
 {
     /// <summary>
     /// 状态基类 - 无泛型版本

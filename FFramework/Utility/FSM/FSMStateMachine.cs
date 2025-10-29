@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System;
 
-namespace FFramework
+namespace FFramework.Utility
 {
     /// <summary>
     /// 有限状态机 - 无泛型版本

@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using System;
 
-namespace FFramework
+namespace FFramework.Architecture
 {
     // 事件注销接口
     public interface IUnRegister

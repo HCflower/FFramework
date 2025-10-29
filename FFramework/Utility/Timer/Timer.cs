@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace FFramework
+namespace FFramework.Utility
 {
     /// <summary>
     /// 计时器基类

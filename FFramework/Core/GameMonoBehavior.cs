@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using System;
 
-namespace FFramework
+namespace FFramework.Architecture
 {
     /// <summary>
     /// 游戏公共MonoBehavior - 提供全局生命周期事件和自动注销功能

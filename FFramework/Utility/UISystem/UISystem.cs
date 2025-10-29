@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace FFramework
+namespace FFramework.Utility
 {
     /// <summary>
     /// UISystem工具类 - 提供UI面板管理、层级控制、组件查找等功能

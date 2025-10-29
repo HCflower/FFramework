@@ -2,7 +2,7 @@ using UnityEngine.EventSystems;
 using UnityEngine;
 using System;
 
-namespace FFramework
+namespace FFramework.Utility
 {
     /// <summary>
     /// 高级拖拽工具，提供各种拖拽功能的封装

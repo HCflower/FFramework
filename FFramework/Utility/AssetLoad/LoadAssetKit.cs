@@ -4,7 +4,7 @@ using System.Threading;
 using UnityEngine;
 using System;
 
-namespace FFramework
+namespace FFramework.Utility
 {
     /// <summary>
     /// 资源加载工具

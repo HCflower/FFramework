@@ -1,7 +1,8 @@
+using FFramework.Architecture;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace FFramework
+namespace FFramework.Utility
 {
     ///<summary>
     /// UI根节点

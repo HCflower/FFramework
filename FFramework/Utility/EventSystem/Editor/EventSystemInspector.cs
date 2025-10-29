@@ -1,10 +1,11 @@
-using System.Linq;
 using System.Collections.Generic;
+using UnityEngine.UIElements;
+using FFramework.Utility;
+using System.Linq;
 using UnityEditor;
 using UnityEngine;
-using UnityEngine.UIElements;
 
-namespace FFramework.Editor
+namespace SmallFramework.Editor
 {
     [CustomEditor(typeof(EventSystem))]
     public class EventSystemInspector : UnityEditor.Editor
@@ -29,8 +30,7 @@ namespace FFramework.Editor
             eventSystem = (EventSystem)target;
             root = new VisualElement();
             // 加载并应用 USS 样式
-            var styleSheet = AssetDatabase.LoadAssetAtPath<StyleSheet>(
-                "Assets/FFramework-main/FFramework/Utility/EventSystem/Editor/EventSystemInspector.uss");
+            var styleSheet = Resources.Load<StyleSheet>("EventSystemInspector");
             if (styleSheet != null)
             {
                 root.styleSheets.Add(styleSheet);
@@ -50,10 +50,11 @@ namespace FFramework.Editor
             searchField.AddToClassList("SearchBarTextField");
             searchField.RegisterValueChangedCallback(_ => RebuildEventList());
             var textInput = searchField.Q<TextElement>();
-            textInput.style.paddingLeft = 20; // 为图标腾出空间
+            textInput.style.paddingLeft = 18; // 为图标腾出空间
             searchBar.Add(searchField);
             // Icon
-            Label icon = new Label("S");
+            Label icon = new Label();
+            icon.style.backgroundImage = (StyleBackground)EditorGUIUtility.IconContent("Search Icon").image;
             icon.AddToClassList("SearchBarIcon");
             searchField.Add(icon);
 

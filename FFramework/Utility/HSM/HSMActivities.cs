@@ -2,7 +2,7 @@ using System.Threading.Tasks;
 using System.Threading;
 using System;
 
-namespace FFramework
+namespace FFramework.Utility
 {
     /// <summary>
     /// HSM状态机活动
