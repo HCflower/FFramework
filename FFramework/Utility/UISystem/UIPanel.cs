@@ -13,6 +13,9 @@ namespace FFramework.Utility
         // 事件追踪列表，用于自动注销
         private List<System.Action> eventCleanupActions = new List<System.Action>();
 
+        // 在 UIPanel 类中添加运行时事件统计
+        private Dictionary<string, int> runtimeEventCounts = new Dictionary<string, int>();
+
         protected virtual void OnEnable()
         {
             Init();
@@ -36,6 +39,25 @@ namespace FFramework.Utility
         }
 
         /// <summary>
+        /// 添加事件清理动作（带统计）
+        /// </summary>
+        /// <param name="cleanupAction">清理动作</param>
+        /// <param name="componentName">组件名称（可选，用于统计）</param>
+        public void AddEventCleanup(System.Action cleanupAction, string componentName = "Unknown")
+        {
+            if (cleanupAction != null)
+            {
+                eventCleanupActions.Add(cleanupAction);
+
+                // 统计运行时事件
+                if (runtimeEventCounts.ContainsKey(componentName))
+                    runtimeEventCounts[componentName]++;
+                else
+                    runtimeEventCounts[componentName] = 1;
+            }
+        }
+
+        /// <summary>
         /// 清理所有追踪的事件
         /// </summary>
         private void CleanupTrackedEvents()
@@ -52,6 +74,15 @@ namespace FFramework.Utility
                 }
             }
             eventCleanupActions.Clear();
+        }
+
+        /// <summary>
+        /// 获取运行时事件统计
+        /// </summary>
+        /// <returns>事件统计字典</returns>
+        public Dictionary<string, int> GetRuntimeEventCounts()
+        {
+            return new Dictionary<string, int>(runtimeEventCounts);
         }
 
         //显示UI

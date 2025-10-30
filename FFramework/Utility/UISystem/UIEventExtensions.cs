@@ -38,17 +38,17 @@ namespace FFramework.Utility
 
             button.onClick.AddListener(action);
 
-            // 自动追踪事件用于清理
+            // 自动追踪事件用于清理（带组件名统计）
             if (autoTrack)
             {
                 panel.AddEventCleanup(() =>
                 {
                     if (button != null)
                         button.onClick.RemoveListener(action);
-                });
+                }, $"Button.{buttonName}"); // 传入组件名用于统计
             }
 
-            Debug.Log($"绑定按钮事件: {buttonName}");
+            Debug.Log($"✅ 绑定按钮事件: {buttonName}");
             return button;
         }
 
