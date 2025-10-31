@@ -4,8 +4,8 @@ using System.Linq;
 using System.Reflection;
 using UnityEditor;
 using UnityEngine;
-using UnityEngine.Events;
 using UnityEngine.EventSystems;
+using UnityEngine.Events;
 using UnityEngine.UI;
 using FFramework.Utility;
 
@@ -17,18 +17,16 @@ namespace SmallFramework.Editor
     [CustomEditor(typeof(UIPanel), true)]
     public class UIPanelInspector : UnityEditor.Editor
     {
+        #region Private Fields
         private UIPanel panel;
         private bool showSummary = true;
-        private Vector2 scrollPos;
-        private GUIStyle headerStyle;
-        private GUIStyle badgeStyle;
-        private double lastScanTime;
-        private float autoRefreshInterval = 2f;
-        private bool autoRefresh;
-        private string searchFilter = "";
         private bool showCleanupActions;
-        private List<Action> trackedCleanupActions = new List<Action>(); // 通过反射获取
+        private Vector2 scrollPos;
+        private string searchFilter = "";
+        private List<Action> trackedCleanupActions = new List<Action>();
+        #endregion
 
+        #region Unity Methods
         public override void OnInspectorGUI()
         {
             panel = (UIPanel)target;
@@ -38,356 +36,397 @@ namespace SmallFramework.Editor
                 return;
             }
 
-            PrepareStyles();
-            DrawHeader();
-            DrawToolbar();
-            DrawSearchBar();
-
             scrollPos = EditorGUILayout.BeginScrollView(scrollPos);
 
-            // 只保留统一的统计概览，包含所有信息
+            DrawSerializedProperties();
+            EditorGUILayout.Space(5);
             DrawSummarySection();
 
             EditorGUILayout.EndScrollView();
-
-            DrawFooterOperations();
-
-            if (autoRefresh && EditorApplication.timeSinceStartup - lastScanTime > autoRefreshInterval)
-            {
-                Repaint();
-                lastScanTime = EditorApplication.timeSinceStartup;
-            }
         }
+        #endregion
 
-        private new void DrawHeader()
+        #region Main Drawing Methods
+        /// <summary>
+        /// 绘制序列化属性区域
+        /// </summary>
+        private void DrawSerializedProperties()
         {
-            EditorGUILayout.Space(4);
-            GUILayout.Label($"UI事件检查器 - {panel.name}", headerStyle);
-            EditorGUILayout.Space(2);
+            EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+
+            // 标题行
+            EditorGUILayout.BeginHorizontal();
+            EditorGUILayout.LabelField("序列化字段", EditorStyles.boldLabel);
+            GUILayout.FlexibleSpace();
+            if (GUILayout.Button("打开脚本", GUILayout.Width(80), GUILayout.Height(20)))
+            {
+                OpenScript();
+            }
+            EditorGUILayout.EndHorizontal();
+
+            EditorGUILayout.Space(3);
+
+            // 绘制属性
+            serializedObject.Update();
+            SerializedProperty prop = serializedObject.GetIterator();
+            bool enterChildren = true;
+
+            while (prop.NextVisible(enterChildren))
+            {
+                enterChildren = false;
+                if (prop.propertyPath == "m_Script") continue;
+                EditorGUILayout.PropertyField(prop, true);
+            }
+
+            serializedObject.ApplyModifiedProperties();
+            EditorGUILayout.EndVertical();
         }
 
-        private void DrawToolbar()
+        /// <summary>
+        /// 绘制UI事件检查器区域
+        /// </summary>
+        private void DrawSummarySection()
+        {
+            EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+
+            // 折叠标题按钮
+            DrawCollapsibleTitle();
+
+            if (!showSummary)
+            {
+                EditorGUILayout.EndVertical();
+                return;
+            }
+
+            EditorGUILayout.Space(5);
+
+            // 各个功能区域
+            DrawToolbarAndSearch();
+            EditorGUILayout.Space(5);
+            DrawStatistics();
+            EditorGUILayout.Space(5);
+            DrawComponentsList();
+            EditorGUILayout.Space(5);
+            DrawCleanupActionsSection();
+            EditorGUILayout.Space(5);
+            DrawQuickActions();
+
+            EditorGUILayout.EndVertical();
+        }
+
+        /// <summary>
+        /// 绘制折叠标题
+        /// </summary>
+        private void DrawCollapsibleTitle()
         {
             EditorGUILayout.BeginHorizontal();
-            if (GUILayout.Button("刷新", GUILayout.Height(22)))
+
+            GUIStyle transparentButtonStyle = new GUIStyle(GUI.skin.button)
+            {
+                normal = { background = null },
+                hover = { background = null },
+                active = { background = null },
+                focused = { background = null },
+                border = new RectOffset(0, 0, 0, 0),
+                margin = new RectOffset(0, 0, 0, 0),
+                padding = new RectOffset(0, 0, 0, 0),
+                alignment = TextAnchor.MiddleLeft,
+                fontStyle = FontStyle.Bold,
+                fontSize = 12
+            };
+
+            if (GUILayout.Button(" UI事件检查器 - 完整概览", transparentButtonStyle,
+                GUILayout.Height(24), GUILayout.ExpandWidth(true)))
+            {
+                showSummary = !showSummary;
+            }
+
+            EditorGUILayout.EndHorizontal();
+        }
+
+        /// <summary>
+        /// 绘制工具栏和搜索区域
+        /// </summary>
+        private void DrawToolbarAndSearch()
+        {
+            EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+            EditorGUILayout.BeginHorizontal();
+
+            // 操作按钮
+            if (GUILayout.Button("刷新", GUILayout.Height(20), GUILayout.Width(60)))
             {
                 Repaint();
             }
-            if (GUILayout.Button("重新初始化 Init()", GUILayout.Height(22)))
-            {
-                panel.Init();
-                EditorUtility.DisplayDialog("操作完成", "已调用 Init()", "确定");
-            }
-            if (GUILayout.Button("解绑全部事件", GUILayout.Height(22)))
-            {
-                panel.UnbindAllEvents();
-                EditorUtility.DisplayDialog("操作完成", "已解绑全部 UI 事件。", "确定");
-            }
-            if (GUILayout.Button("导出报告", GUILayout.Height(22)))
+            if (GUILayout.Button("导出报告", GUILayout.Height(20), GUILayout.Width(80)))
             {
                 ExportReportToConsole();
             }
-            autoRefresh = GUILayout.Toggle(autoRefresh, "自动刷新", GUILayout.Width(80));
-            autoRefreshInterval = EditorGUILayout.Slider(autoRefreshInterval, 0.5f, 5f);
-            EditorGUILayout.EndHorizontal();
-        }
 
-        private void DrawSearchBar()
-        {
-            EditorGUILayout.BeginHorizontal();
+            GUILayout.Space(10);
+
+            // 搜索区域
             GUILayout.Label("筛选:", GUILayout.Width(40));
-            searchFilter = EditorGUILayout.TextField(searchFilter);
-            if (GUILayout.Button("清除", GUILayout.Width(50)))
+            searchFilter = EditorGUILayout.TextField(searchFilter, GUILayout.Height(20), GUILayout.ExpandWidth(true));
+            if (GUILayout.Button("清除", GUILayout.Width(50), GUILayout.Height(20)))
                 searchFilter = "";
+
             EditorGUILayout.EndHorizontal();
+            EditorGUILayout.EndVertical();
         }
 
-        private void DrawSummarySection()
+        /// <summary>
+        /// 绘制统计信息
+        /// </summary>
+        private void DrawStatistics()
         {
-            showSummary = EditorGUILayout.Foldout(showSummary, "UI事件检查器 - 完整概览", true);
-            if (!showSummary) return;
-
-            var buttons = FetchComponents<Button>();
-            var toggles = FetchComponents<Toggle>();
-            var sliders = FetchComponents<Slider>();
-            var inputs = FetchComponents<InputField>();
-            var dropdowns = FetchComponents<Dropdown>();
-            var scrolls = FetchComponents<ScrollRect>();
-            var triggers = FetchComponents<EventTrigger>();
-
-            int activeBtns = buttons.Count(b => GetListenerCount_Button(b) > 0);
-            int activeToggles = toggles.Count(t => GetListenerCount_Toggle(t) > 0);
-            int activeSliders = sliders.Count(s => GetListenerCount_Slider(s) > 0);
-            int activeInputs = inputs.Count(i => GetListenerCount_InputField(i) > 0);
-            int activeDropdowns = dropdowns.Count(d => GetListenerCount_Dropdown(d) > 0);
-            int activeScrolls = scrolls.Count(sr => GetListenerCount_ScrollRect(sr) > 0);
-            int activeTriggers = triggers.Count(et => et.triggers != null && et.triggers.Count > 0);
+            var allUIComponents = GetAllUIComponentsWithEvents();
 
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+            EditorGUILayout.LabelField("UI组件统计", EditorStyles.boldLabel);
+            EditorGUILayout.Space(2);
 
-            // 组件统计和详细列表合并显示
-            EditorGUILayout.LabelField("📊 UI组件统计与详情", EditorStyles.boldLabel);
-
-            // Buttons
-            DrawComponentBadgeAndDetails("Buttons", buttons, activeBtns, Color.cyan, GetListenerCount_Button, DrawButtonDetail);
-
-            // Toggles  
-            DrawComponentBadgeAndDetails("Toggles", toggles, activeToggles, Color.green, GetListenerCount_Toggle, DrawToggleDetail);
-
-            // Sliders
-            DrawComponentBadgeAndDetails("Sliders", sliders, activeSliders, new Color(0.8f, 0.6f, 0.2f), GetListenerCount_Slider, DrawSliderDetail);
-
-            // InputFields
-            DrawComponentBadgeAndDetails("InputFields", inputs, activeInputs, Color.magenta, GetListenerCount_InputField, DrawInputFieldDetail);
-
-            // Dropdowns
-            DrawComponentBadgeAndDetails("Dropdowns", dropdowns, activeDropdowns, Color.yellow, GetListenerCount_Dropdown, DrawDropdownDetail);
-
-            // ScrollRects
-            DrawComponentBadgeAndDetails("ScrollRects", scrolls, activeScrolls, Color.gray, GetListenerCount_ScrollRect, DrawScrollRectDetail);
-
-            // EventTriggers
-            DrawEventTriggersDetails(triggers, activeTriggers);
-
-            EditorGUILayout.Space(8);
-
-            // 总计统计
-            int totalComponents = buttons.Count + toggles.Count + sliders.Count + inputs.Count + dropdowns.Count + scrolls.Count + triggers.Count;
-            int totalActive = activeBtns + activeToggles + activeSliders + activeInputs + activeDropdowns + activeScrolls + activeTriggers;
-
-            EditorGUILayout.BeginHorizontal(EditorStyles.helpBox);
-            EditorGUILayout.LabelField($"📈 总计: {totalComponents} 组件，{totalActive} 个已绑定事件", EditorStyles.boldLabel);
+            EditorGUILayout.BeginHorizontal();
+            EditorGUILayout.LabelField($"已绑定事件的UI组件:", GUILayout.Width(150));
+            EditorGUILayout.LabelField($"{allUIComponents.Count}", EditorStyles.boldLabel);
             EditorGUILayout.EndHorizontal();
+            EditorGUILayout.EndVertical();
+        }
 
-            EditorGUILayout.Space(8);
+        /// <summary>
+        /// 绘制组件列表
+        /// </summary>
+        private void DrawComponentsList()
+        {
+            var allUIComponents = GetAllUIComponentsWithEvents();
 
-            // 事件追踪统计部分
-            FetchCleanupActions();
-            EditorGUILayout.BeginHorizontal(EditorStyles.helpBox);
-            EditorGUILayout.LabelField("🧹 事件追踪统计", EditorStyles.boldLabel);
-            GUILayout.FlexibleSpace();
-            EditorGUILayout.LabelField($"追踪清理动作: {trackedCleanupActions.Count}", GUILayout.Width(120));
-            EditorGUILayout.EndHorizontal();
-
-            // 清理动作详情
-            if (trackedCleanupActions.Count > 0)
+            if (allUIComponents.Count > 0)
             {
                 EditorGUILayout.BeginVertical(EditorStyles.helpBox);
-                EditorGUILayout.LabelField($"📝 已追踪 {trackedCleanupActions.Count} 个事件清理动作，面板销毁时将自动清理", EditorStyles.miniLabel);
+                EditorGUILayout.LabelField("已绑定事件的UI组件列表", EditorStyles.boldLabel);
+                EditorGUILayout.Space(3);
 
-                EditorGUILayout.BeginHorizontal();
-                if (GUILayout.Button("🧹 手动执行所有清理", GUILayout.Height(20)))
+                foreach (var uiComponent in allUIComponents)
                 {
-                    int executeCount = 0;
-                    var actionsToExecute = new List<Action>(trackedCleanupActions); // 复制列表避免修改时的问题
+                    if (!IsMatchFilter(uiComponent.Component.gameObject.name))
+                        continue;
 
-                    foreach (var action in actionsToExecute)
-                    {
-                        try
-                        {
-                            action?.Invoke();
-                            executeCount++;
-                        }
-                        catch (Exception e)
-                        {
-                            Debug.LogError($"执行清理动作时出错: {e.Message}");
-                        }
-                    }
-
-                    // 清理执行后，重新获取清理动作列表（应该为空或减少）
-                    FetchCleanupActions();
-
-                    EditorUtility.DisplayDialog("清理完成",
-                        $"已执行 {executeCount} 个清理动作\n当前剩余追踪动作: {trackedCleanupActions.Count}",
-                        "确定");
-                    Repaint();
-                }
-
-                if (GUILayout.Button("📋 查看详情", GUILayout.Height(20)))
-                {
-                    showCleanupActions = !showCleanupActions;
-                }
-                EditorGUILayout.EndHorizontal();
-
-                // 简化的清理动作列表显示（只显示信息，不提供单个执行）
-                if (showCleanupActions)
-                {
-                    EditorGUILayout.Space(4);
-                    EditorGUILayout.LabelField("清理动作详情:", EditorStyles.miniLabel);
-                    for (int i = 0; i < Math.Min(trackedCleanupActions.Count, 10); i++) // 最多显示10个，避免界面过长
-                    {
-                        EditorGUILayout.BeginHorizontal();
-                        EditorGUILayout.LabelField($"  [{i}] Action", EditorStyles.miniLabel, GUILayout.Width(80));
-                        EditorGUILayout.LabelField($"{trackedCleanupActions[i]?.Method?.Name ?? "Unknown"}", EditorStyles.miniLabel);
-                        EditorGUILayout.EndHorizontal();
-                    }
-
-                    if (trackedCleanupActions.Count > 10)
-                    {
-                        EditorGUILayout.LabelField($"  ... 还有 {trackedCleanupActions.Count - 10} 个清理动作", EditorStyles.miniLabel);
-                    }
-
-                    EditorGUILayout.Space(4);
-                    EditorGUILayout.LabelField("💡 提示: 这些清理动作会在面板销毁时自动执行", EditorStyles.miniLabel);
+                    DrawUIComponentItem(uiComponent);
                 }
                 EditorGUILayout.EndVertical();
             }
             else
             {
                 EditorGUILayout.BeginVertical(EditorStyles.helpBox);
-                EditorGUILayout.LabelField("⚠️ 没有追踪的事件清理动作", EditorStyles.miniLabel);
-                EditorGUILayout.LabelField("建议使用带自动追踪的绑定方法，以避免内存泄漏", EditorStyles.miniLabel);
+                EditorGUILayout.LabelField("没有发现已绑定事件的UI组件", EditorStyles.centeredGreyMiniLabel);
                 EditorGUILayout.EndVertical();
+            }
+        }
+
+        /// <summary>
+        /// 绘制事件追踪统计区域
+        /// </summary>
+        private void DrawCleanupActionsSection()
+        {
+            FetchCleanupActions();
+
+            EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+
+            // 标题行
+            EditorGUILayout.BeginHorizontal();
+            EditorGUILayout.LabelField("事件追踪统计", EditorStyles.boldLabel);
+            GUILayout.FlexibleSpace();
+            EditorGUILayout.LabelField($"追踪清理动作: {trackedCleanupActions.Count}", GUILayout.Width(120));
+            EditorGUILayout.EndHorizontal();
+
+            EditorGUILayout.Space(3);
+
+            // 清理动作详情
+            if (trackedCleanupActions.Count > 0)
+            {
+                DrawCleanupActionsDetails();
+            }
+            else
+            {
+                DrawNoCleanupActionsMessage();
             }
 
             EditorGUILayout.EndVertical();
         }
 
-        // 新的合并方法：统计徽章 + 详细列表
-        private void DrawComponentBadgeAndDetails<T>(string title, List<T> components, int activeCount, Color color,
-            Func<T, int> listenerCounter, Action<T> detailDrawer) where T : Component
+        /// <summary>
+        /// 绘制快速操作区域
+        /// </summary>
+        private void DrawQuickActions()
         {
-            var prev = GUI.color;
-            GUI.color = color;
+            EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+            EditorGUILayout.LabelField("快速操作", EditorStyles.boldLabel);
+            EditorGUILayout.Space(3);
 
-            // 统计徽章行
-            EditorGUILayout.BeginHorizontal(EditorStyles.helpBox);
-            bool foldout = EditorGUILayout.Foldout(GetFoldoutState(title), $"{title}: {components.Count} ({activeCount} 活跃)", true);
-            SetFoldoutState(title, foldout);
+            EditorGUILayout.BeginHorizontal();
+            if (GUILayout.Button("重新扫描并刷新", GUILayout.Height(24)))
+            {
+                Repaint();
+            }
+
+            GUILayout.Space(5);
+
+            if (GUILayout.Button("仅打印当前面板事件概览到控制台", GUILayout.Height(24)))
+            {
+                ExportReportToConsole(false);
+            }
+            EditorGUILayout.EndHorizontal();
+            EditorGUILayout.EndVertical();
+        }
+        #endregion
+
+        #region Helper Drawing Methods
+        /// <summary>
+        /// 绘制清理动作详情
+        /// </summary>
+        private void DrawCleanupActionsDetails()
+        {
+            EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+            EditorGUILayout.LabelField($"已追踪 {trackedCleanupActions.Count} 个事件清理动作，面板销毁时将自动清理", EditorStyles.miniLabel);
+
+            EditorGUILayout.Space(3);
+            EditorGUILayout.BeginHorizontal();
+            if (GUILayout.Button("查看详情", GUILayout.Height(20), GUILayout.Width(80)))
+            {
+                showCleanupActions = !showCleanupActions;
+            }
             EditorGUILayout.EndHorizontal();
 
-            GUI.color = prev;
-
-            // 如果展开，显示详细列表
-            if (foldout && components.Count > 0)
+            if (showCleanupActions)
             {
-                EditorGUILayout.BeginVertical(EditorStyles.helpBox);
-                foreach (var comp in components)
-                {
-                    if (!IsMatchFilter(comp.gameObject.name))
-                        continue;
+                DrawCleanupActionsDetailsList();
+            }
+            EditorGUILayout.EndVertical();
+        }
 
-                    int listenerCount = listenerCounter(comp);
+        /// <summary>
+        /// 绘制清理动作详情列表
+        /// </summary>
+        private void DrawCleanupActionsDetailsList()
+        {
+            EditorGUILayout.Space(5);
+            EditorGUILayout.LabelField("清理动作详情:", EditorStyles.miniLabel);
 
-                    var prevBgColor = GUI.backgroundColor;
-                    GUI.backgroundColor = (listenerCount > 0 ? Color.green : Color.gray) * 0.3f + Color.white * 0.7f;
+            int displayCount = Math.Min(trackedCleanupActions.Count, 10);
+            for (int i = 0; i < displayCount; i++)
+            {
+                EditorGUILayout.BeginHorizontal();
+                EditorGUILayout.LabelField($"  [{i}]", EditorStyles.miniLabel, GUILayout.Width(40));
+                EditorGUILayout.LabelField($"{trackedCleanupActions[i]?.Method?.Name ?? "Unknown"}", EditorStyles.miniLabel);
+                EditorGUILayout.EndHorizontal();
+            }
 
-                    EditorGUILayout.BeginVertical(EditorStyles.helpBox);
-                    EditorGUILayout.BeginHorizontal();
+            if (trackedCleanupActions.Count > 10)
+            {
+                EditorGUILayout.LabelField($"  ... 还有 {trackedCleanupActions.Count - 10} 个清理动作", EditorStyles.miniLabel);
+            }
 
-                    string statusIcon = listenerCount > 0 ? "✅" : "⚪";
-                    EditorGUILayout.LabelField($"{statusIcon} {comp.gameObject.name}", EditorStyles.boldLabel);
-                    GUILayout.FlexibleSpace();
+            EditorGUILayout.Space(3);
+            EditorGUILayout.LabelField("提示: 这些清理动作会在面板销毁时自动执行", EditorStyles.miniLabel);
+        }
 
-                    if (listenerCount > 0)
-                    {
-                        EditorGUILayout.LabelField($"监听: {listenerCount}", GUILayout.Width(80));
-                    }
-                    else
-                    {
-                        EditorGUILayout.LabelField("未绑定", GUILayout.Width(80));
-                    }
+        /// <summary>
+        /// 绘制无清理动作消息
+        /// </summary>
+        private void DrawNoCleanupActionsMessage()
+        {
+            EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+            EditorGUILayout.LabelField("没有追踪的事件清理动作", EditorStyles.centeredGreyMiniLabel);
+            EditorGUILayout.LabelField("建议使用带自动追踪的绑定方法，以避免内存泄漏", EditorStyles.centeredGreyMiniLabel);
+            EditorGUILayout.EndVertical();
+        }
 
-                    if (GUILayout.Button("选中", GUILayout.Width(50)))
-                    {
-                        Selection.activeObject = comp.gameObject;
-                        EditorGUIUtility.PingObject(comp.gameObject);
-                    }
+        /// <summary>
+        /// 绘制单个UI组件项
+        /// </summary>
+        private void DrawUIComponentItem(UIComponentInfo uiComponent)
+        {
+            var prevBgColor = GUI.backgroundColor;
+            GUI.backgroundColor = uiComponent.TypeColor * 0.25f + Color.white * 0.75f;
 
-                    if (listenerCount > 0 && GUILayout.Button("详情", GUILayout.Width(50)))
-                    {
-                        detailDrawer?.Invoke(comp);
-                    }
+            EditorGUILayout.BeginVertical(EditorStyles.helpBox);
 
-                    EditorGUILayout.EndHorizontal();
+            // 主要信息行
+            EditorGUILayout.BeginHorizontal();
 
-                    if (listenerCount > 0)
-                    {
-                        EditorGUILayout.BeginHorizontal();
-                        EditorGUILayout.Space(20);
-                        EditorGUILayout.LabelField($"路径: {GetGameObjectPath(comp.gameObject)}", EditorStyles.miniLabel);
-                        EditorGUILayout.EndHorizontal();
-                    }
+            // 组件类型标签
+            var prevColor = GUI.color;
+            GUI.color = uiComponent.TypeColor;
+            EditorGUILayout.LabelField($"[{uiComponent.ComponentType}]", GUILayout.Width(85));
+            GUI.color = prevColor;
 
-                    EditorGUILayout.EndVertical();
-                    GUI.backgroundColor = prevBgColor;
-                }
-                EditorGUILayout.EndVertical();
+            // 组件名称
+            EditorGUILayout.LabelField($"{uiComponent.Component.gameObject.name}", EditorStyles.boldLabel);
+            GUILayout.FlexibleSpace();
+
+            // 监听器数量
+            EditorGUILayout.LabelField($"监听: {uiComponent.ListenerCount}", GUILayout.Width(80));
+
+            // 操作按钮
+            if (GUILayout.Button("选中", GUILayout.Width(50), GUILayout.Height(20)))
+            {
+                Selection.activeObject = uiComponent.Component.gameObject;
+                EditorGUIUtility.PingObject(uiComponent.Component.gameObject);
+            }
+
+            if (GUILayout.Button("详情", GUILayout.Width(50), GUILayout.Height(20)))
+            {
+                ShowComponentDetail(uiComponent);
+            }
+
+            EditorGUILayout.EndHorizontal();
+
+            // 路径信息行
+            EditorGUILayout.BeginHorizontal();
+            EditorGUILayout.Space(20);
+            EditorGUILayout.LabelField($"路径: {GetGameObjectPath(uiComponent.Component.gameObject)}", EditorStyles.miniLabel);
+            EditorGUILayout.EndHorizontal();
+
+            EditorGUILayout.EndVertical();
+            GUI.backgroundColor = prevBgColor;
+        }
+        #endregion
+
+        #region Component Detail Methods
+        /// <summary>
+        /// 显示组件详情
+        /// </summary>
+        private void ShowComponentDetail(UIComponentInfo uiComponent)
+        {
+            switch (uiComponent.ComponentType)
+            {
+                case "Button":
+                    DrawButtonDetail(uiComponent.Component as Button);
+                    break;
+                case "Toggle":
+                    DrawToggleDetail(uiComponent.Component as Toggle);
+                    break;
+                case "Slider":
+                    DrawSliderDetail(uiComponent.Component as Slider);
+                    break;
+                case "InputField":
+                    DrawInputFieldDetail(uiComponent.Component as InputField);
+                    break;
+                case "Dropdown":
+                    DrawDropdownDetail(uiComponent.Component as Dropdown);
+                    break;
+                case "ScrollRect":
+                    DrawScrollRectDetail(uiComponent.Component as ScrollRect);
+                    break;
+                case "EventTrigger":
+                    DrawEventTriggerDetail(uiComponent.Component as EventTrigger);
+                    break;
             }
         }
 
-        // EventTriggers 的特殊处理
-        private void DrawEventTriggersDetails(List<EventTrigger> triggers, int activeCount)
-        {
-            var prev = GUI.color;
-            GUI.color = Color.red;
-
-            EditorGUILayout.BeginHorizontal(EditorStyles.helpBox);
-            bool foldout = EditorGUILayout.Foldout(GetFoldoutState("EventTriggers"), $"EventTriggers: {triggers.Count} ({activeCount} 活跃)", true);
-            SetFoldoutState("EventTriggers", foldout);
-            EditorGUILayout.EndHorizontal();
-
-            GUI.color = prev;
-
-            if (foldout && triggers.Count > 0)
-            {
-                EditorGUILayout.BeginVertical(EditorStyles.helpBox);
-                foreach (var trigger in triggers)
-                {
-                    if (!IsMatchFilter(trigger.gameObject.name))
-                        continue;
-
-                    EditorGUILayout.BeginVertical(EditorStyles.helpBox);
-                    EditorGUILayout.BeginHorizontal();
-                    EditorGUILayout.LabelField(trigger.gameObject.name, EditorStyles.boldLabel);
-                    GUILayout.FlexibleSpace();
-                    if (GUILayout.Button("选中", GUILayout.Width(50)))
-                    {
-                        Selection.activeObject = trigger.gameObject;
-                        EditorGUIUtility.PingObject(trigger.gameObject);
-                    }
-                    EditorGUILayout.EndHorizontal();
-
-                    if (trigger.triggers == null || trigger.triggers.Count == 0)
-                    {
-                        EditorGUILayout.LabelField("无事件条目。");
-                    }
-                    else
-                    {
-                        foreach (var entry in trigger.triggers)
-                        {
-                            int count = entry.callback.GetPersistentEventCount();
-                            EditorGUILayout.LabelField($"- {entry.eventID} (监听数={count})");
-                            for (int i = 0; i < count; i++)
-                            {
-                                UnityEngine.Object targetObj = entry.callback.GetPersistentTarget(i);
-                                string method = entry.callback.GetPersistentMethodName(i);
-                                EditorGUILayout.BeginHorizontal();
-                                EditorGUILayout.LabelField($"    [{i}] {targetObj?.name}.{method}()", GUILayout.MinWidth(100));
-                                if (GUILayout.Button("Ping", GUILayout.Width(40)))
-                                {
-                                    if (targetObj != null)
-                                    {
-                                        Selection.activeObject = targetObj;
-                                        EditorGUIUtility.PingObject(targetObj);
-                                    }
-                                }
-                                EditorGUILayout.EndHorizontal();
-                            }
-                        }
-                    }
-                    EditorGUILayout.EndVertical();
-                }
-                EditorGUILayout.EndVertical();
-            }
-        }
-
-        // 修改详情绘制方法，使用弹窗显示
         private void DrawButtonDetail(Button btn)
         {
             string content = $"Button详细信息: {btn.name}\n\n";
 
-            // 获取持久化和运行时事件信息
             int persistentCount = btn.onClick.GetPersistentEventCount();
             int runtimeCount = GetRuntimeListenerCount(btn.onClick);
 
@@ -501,80 +540,154 @@ namespace SmallFramework.Editor
             EditorUtility.DisplayDialog("ScrollRect 详情", content, "确定");
         }
 
-        private void DrawFooterOperations()
+        private void DrawEventTriggerDetail(EventTrigger trigger)
         {
-            EditorGUILayout.Space(6);
-            EditorGUILayout.BeginVertical(EditorStyles.helpBox);
-            EditorGUILayout.LabelField("快速操作", EditorStyles.boldLabel);
-            if (GUILayout.Button("重新扫描并刷新"))
+            string content = $"EventTrigger详细信息: {trigger.name}\n\n";
+
+            if (trigger.triggers == null || trigger.triggers.Count == 0)
             {
-                Repaint();
+                content += "无事件条目。";
             }
-            if (GUILayout.Button("仅打印当前面板事件概览到控制台"))
+            else
             {
-                ExportReportToConsole(false);
+                content += $"事件条目数量: {trigger.triggers.Count}\n\n";
+
+                foreach (var entry in trigger.triggers)
+                {
+                    int count = entry.callback.GetPersistentEventCount();
+                    content += $"事件类型: {entry.eventID}\n";
+                    content += $"监听器数量: {count}\n";
+
+                    for (int i = 0; i < count; i++)
+                    {
+                        UnityEngine.Object targetObj = entry.callback.GetPersistentTarget(i);
+                        string method = entry.callback.GetPersistentMethodName(i);
+                        content += $"  [{i}] {targetObj?.name}.{method}()\n";
+                    }
+                    content += "\n";
+                }
             }
-            EditorGUILayout.EndVertical();
+
+            EditorUtility.DisplayDialog("EventTrigger 详情", content, "确定");
+        }
+        #endregion
+
+        #region Data Structures
+        /// <summary>
+        /// UI组件信息数据结构
+        /// </summary>
+        private class UIComponentInfo
+        {
+            public Component Component;
+            public string ComponentType;
+            public int ListenerCount;
+            public Color TypeColor;
+        }
+        #endregion
+
+        #region Data Collection Methods
+        /// <summary>
+        /// 获取所有有事件绑定的UI组件
+        /// </summary>
+        private List<UIComponentInfo> GetAllUIComponentsWithEvents()
+        {
+            var result = new List<UIComponentInfo>();
+
+            // Buttons
+            AddComponentsWithEvents<Button>(result, "Button", Color.cyan, GetListenerCount_Button);
+            // Toggles
+            AddComponentsWithEvents<Toggle>(result, "Toggle", Color.green, GetListenerCount_Toggle);
+            // Sliders
+            AddComponentsWithEvents<Slider>(result, "Slider", new Color(0.8f, 0.6f, 0.2f), GetListenerCount_Slider);
+            // InputFields
+            AddComponentsWithEvents<InputField>(result, "InputField", Color.magenta, GetListenerCount_InputField);
+            // Dropdowns
+            AddComponentsWithEvents<Dropdown>(result, "Dropdown", Color.yellow, GetListenerCount_Dropdown);
+            // ScrollRects
+            AddComponentsWithEvents<ScrollRect>(result, "ScrollRect", Color.gray, GetListenerCount_ScrollRect);
+            // EventTriggers
+            AddEventTriggersWithEvents(result);
+
+            return result;
         }
 
-        #region Helpers
+        /// <summary>
+        /// 添加有事件的组件到结果列表
+        /// </summary>
+        private void AddComponentsWithEvents<T>(List<UIComponentInfo> result, string typeName, Color typeColor,
+            Func<T, int> getListenerCount) where T : Component
+        {
+            var components = FetchComponents<T>();
+            foreach (var component in components)
+            {
+                int count = getListenerCount(component);
+                if (count > 0)
+                {
+                    result.Add(new UIComponentInfo
+                    {
+                        Component = component,
+                        ComponentType = typeName,
+                        ListenerCount = count,
+                        TypeColor = typeColor
+                    });
+                }
+            }
+        }
 
+        /// <summary>
+        /// 添加有事件的EventTrigger组件
+        /// </summary>
+        private void AddEventTriggersWithEvents(List<UIComponentInfo> result)
+        {
+            var eventTriggers = FetchComponents<EventTrigger>();
+            foreach (var trigger in eventTriggers)
+            {
+                int count = (trigger.triggers != null && trigger.triggers.Count > 0) ? trigger.triggers.Count : 0;
+                if (count > 0)
+                {
+                    result.Add(new UIComponentInfo
+                    {
+                        Component = trigger,
+                        ComponentType = "EventTrigger",
+                        ListenerCount = count,
+                        TypeColor = Color.red
+                    });
+                }
+            }
+        }
+
+        /// <summary>
+        /// 获取指定类型的组件列表
+        /// </summary>
         private List<T> FetchComponents<T>() where T : Component
         {
             if (panel == null) return new List<T>();
             return panel.GetComponentsInChildren<T>(true).ToList();
         }
 
-        private bool IsMatchFilter(string name)
+        /// <summary>
+        /// 获取清理动作列表
+        /// </summary>
+        private void FetchCleanupActions()
         {
-            if (string.IsNullOrEmpty(searchFilter)) return true;
-            return name.IndexOf(searchFilter, StringComparison.OrdinalIgnoreCase) >= 0;
+            trackedCleanupActions.Clear();
+            if (panel == null) return;
+
+            var field = typeof(UIPanel).GetField("eventCleanupActions", BindingFlags.Instance | BindingFlags.NonPublic);
+            if (field != null)
+            {
+                var listObj = field.GetValue(panel) as List<Action>;
+                if (listObj != null)
+                    trackedCleanupActions.AddRange(listObj);
+            }
         }
+        #endregion
 
-        // 检查组件是否被追踪（改进版本）
-        private bool IsComponentTracked(GameObject gameObject)
-        {
-            // 简化检查 - 如果有清理动作且当前游戏运行中，认为可能被追踪
-            return trackedCleanupActions.Count > 0 && Application.isPlaying;
-        }
-
-        // 更精确的组件追踪检查（可选）
-        private bool IsSpecificComponentTracked<T>(T component) where T : Component
-        {
-            if (component == null) return false;
-
-            // 检查运行时事件数量
-            int runtimeCount = 0;
-
-            if (component is Button btn)
-                runtimeCount = GetRuntimeListenerCount(btn.onClick);
-            else if (component is Toggle toggle)
-                runtimeCount = GetRuntimeListenerCount(toggle.onValueChanged);
-            else if (component is Slider slider)
-                runtimeCount = GetRuntimeListenerCount(slider.onValueChanged);
-            else if (component is InputField inputField)
-                runtimeCount = GetRuntimeListenerCount(inputField.onValueChanged) + GetRuntimeListenerCount(inputField.onEndEdit);
-            else if (component is Dropdown dropdown)
-                runtimeCount = GetRuntimeListenerCount(dropdown.onValueChanged);
-            else if (component is ScrollRect scrollRect)
-                runtimeCount = GetRuntimeListenerCount(scrollRect.onValueChanged);
-
-            // 如果有运行时监听器，说明被追踪了
-            return runtimeCount > 0;
-        }
-
-        // 修改监听器计数方法，加入运行时事件检测
+        #region Listener Count Methods
         private int GetListenerCount_Button(Button b)
         {
             if (b == null) return 0;
-
-            // 持久化事件数量
-            int persistentCount = b.onClick.GetPersistentEventCount();
-
-            // 运行时事件数量（通过反射获取）
-            int runtimeCount = GetRuntimeListenerCount(b.onClick);
-
-            return persistentCount + runtimeCount;
+            return b.onClick.GetPersistentEventCount() + GetRuntimeListenerCount(b.onClick);
         }
 
         private int GetListenerCount_Toggle(Toggle t)
@@ -608,21 +721,21 @@ namespace SmallFramework.Editor
             return sr.onValueChanged.GetPersistentEventCount() + GetRuntimeListenerCount(sr.onValueChanged);
         }
 
-        // 新增：通过反射获取运行时监听器数量
+        /// <summary>
+        /// 通过反射获取运行时监听器数量
+        /// </summary>
         private int GetRuntimeListenerCount(UnityEventBase unityEvent)
         {
             if (unityEvent == null) return 0;
 
             try
             {
-                // 通过反射访问 UnityEvent 的私有字段
                 var field = typeof(UnityEventBase).GetField("m_Calls", BindingFlags.Instance | BindingFlags.NonPublic);
                 if (field != null)
                 {
                     var callsObject = field.GetValue(unityEvent);
                     if (callsObject != null)
                     {
-                        // 获取运行时调用列表
                         var runtimeCallsField = callsObject.GetType().GetField("m_RuntimeCalls", BindingFlags.Instance | BindingFlags.NonPublic);
                         if (runtimeCallsField != null)
                         {
@@ -639,8 +752,39 @@ namespace SmallFramework.Editor
 
             return 0;
         }
+        #endregion
 
-        // 添加获取GameObject路径的辅助方法
+        #region Utility Methods
+        /// <summary>
+        /// 打开脚本文件
+        /// </summary>
+        private void OpenScript()
+        {
+            if (panel == null) return;
+
+            MonoScript script = MonoScript.FromMonoBehaviour(panel);
+            if (script != null)
+            {
+                AssetDatabase.OpenAsset(script);
+            }
+            else
+            {
+                Debug.LogWarning("无法找到脚本文件");
+            }
+        }
+
+        /// <summary>
+        /// 检查名称是否匹配搜索过滤器
+        /// </summary>
+        private bool IsMatchFilter(string name)
+        {
+            if (string.IsNullOrEmpty(searchFilter)) return true;
+            return name.IndexOf(searchFilter, StringComparison.OrdinalIgnoreCase) >= 0;
+        }
+
+        /// <summary>
+        /// 获取GameObject的层级路径
+        /// </summary>
         private string GetGameObjectPath(GameObject obj)
         {
             string path = obj.name;
@@ -653,35 +797,9 @@ namespace SmallFramework.Editor
             return path;
         }
 
-        // 折叠状态管理
-        private Dictionary<string, bool> foldoutStates = new Dictionary<string, bool>();
-
-        private bool GetFoldoutState(string key)
-        {
-            return foldoutStates.ContainsKey(key) ? foldoutStates[key] : false;
-        }
-
-        private void SetFoldoutState(string key, bool value)
-        {
-            foldoutStates[key] = value;
-        }
-
-        private void PrepareStyles()
-        {
-            if (headerStyle == null)
-            {
-                headerStyle = new GUIStyle(EditorStyles.boldLabel)
-                {
-                    fontSize = 14,
-                    alignment = TextAnchor.MiddleLeft
-                };
-            }
-            if (badgeStyle == null)
-            {
-                badgeStyle = new GUIStyle(EditorStyles.label);
-            }
-        }
-
+        /// <summary>
+        /// 导出报告到控制台
+        /// </summary>
         private void ExportReportToConsole(bool detailed = true)
         {
             var sb = new System.Text.StringBuilder();
@@ -693,40 +811,55 @@ namespace SmallFramework.Editor
             sb.AppendLine($"Dropdowns: {FetchComponents<Dropdown>().Count}");
             sb.AppendLine($"ScrollRects: {FetchComponents<ScrollRect>().Count}");
             sb.AppendLine($"EventTriggers: {FetchComponents<EventTrigger>().Count}");
+
             if (detailed)
             {
                 sb.AppendLine("--- 详细持久化监听 ---");
-                AppendDetail<Button>(sb, "Button", b => b.onClick);
-                AppendDetail<Toggle>(sb, "Toggle", t => t.onValueChanged);
-                AppendDetail<Slider>(sb, "Slider", s => s.onValueChanged);
-                AppendDetail<InputField>(sb, "InputField(onValueChanged)", i => i.onValueChanged);
-                AppendDetail<InputField>(sb, "InputField(onEndEdit)", i => i.onEndEdit);
-                AppendDetail<Dropdown>(sb, "Dropdown", d => d.onValueChanged);
-                AppendDetail<ScrollRect>(sb, "ScrollRect", sr => sr.onValueChanged);
-                var triggers = FetchComponents<EventTrigger>();
-                foreach (var tr in triggers)
+                AppendComponentDetails(sb);
+            }
+
+            Debug.Log(sb.ToString());
+        }
+
+        /// <summary>
+        /// 添加组件详细信息到报告
+        /// </summary>
+        private void AppendComponentDetails(System.Text.StringBuilder sb)
+        {
+            AppendDetail<Button>(sb, "Button", b => b.onClick);
+            AppendDetail<Toggle>(sb, "Toggle", t => t.onValueChanged);
+            AppendDetail<Slider>(sb, "Slider", s => s.onValueChanged);
+            AppendDetail<InputField>(sb, "InputField(onValueChanged)", i => i.onValueChanged);
+            AppendDetail<InputField>(sb, "InputField(onEndEdit)", i => i.onEndEdit);
+            AppendDetail<Dropdown>(sb, "Dropdown", d => d.onValueChanged);
+            AppendDetail<ScrollRect>(sb, "ScrollRect", sr => sr.onValueChanged);
+
+            var triggers = FetchComponents<EventTrigger>();
+            foreach (var tr in triggers)
+            {
+                sb.AppendLine($"EventTrigger: {tr.name} entries={(tr.triggers?.Count ?? 0)}");
+                if (tr.triggers != null)
                 {
-                    sb.AppendLine($"EventTrigger: {tr.name} entries={(tr.triggers?.Count ?? 0)}");
-                    if (tr.triggers != null)
+                    foreach (var entry in tr.triggers)
                     {
-                        foreach (var entry in tr.triggers)
+                        int c = entry.callback.GetPersistentEventCount();
+                        sb.AppendLine($"  - {entry.eventID} listeners={c}");
+                        for (int i = 0; i < c; i++)
                         {
-                            int c = entry.callback.GetPersistentEventCount();
-                            sb.AppendLine($"  - {entry.eventID} listeners={c}");
-                            for (int i = 0; i < c; i++)
-                            {
-                                var targetObj = entry.callback.GetPersistentTarget(i);
-                                var method = entry.callback.GetPersistentMethodName(i);
-                                sb.AppendLine($"      [{i}] {targetObj?.name}.{method}()");
-                            }
+                            var targetObj = entry.callback.GetPersistentTarget(i);
+                            var method = entry.callback.GetPersistentMethodName(i);
+                            sb.AppendLine($"      [{i}] {targetObj?.name}.{method}()");
                         }
                     }
                 }
             }
-            Debug.Log(sb.ToString());
         }
 
-        private void AppendDetail<T>(System.Text.StringBuilder sb, string label, Func<T, UnityEventBase> getter) where T : Component
+        /// <summary>
+        /// 添加组件详细信息
+        /// </summary>
+        private void AppendDetail<T>(System.Text.StringBuilder sb, string label, Func<T, UnityEventBase> getter)
+            where T : Component
         {
             var comps = FetchComponents<T>();
             foreach (var c in comps)
@@ -742,21 +875,6 @@ namespace SmallFramework.Editor
                 }
             }
         }
-
-        private void FetchCleanupActions()
-        {
-            trackedCleanupActions.Clear();
-            if (panel == null) return;
-            // 反射访问 private List<Action> eventCleanupActions
-            var field = typeof(UIPanel).GetField("eventCleanupActions", BindingFlags.Instance | BindingFlags.NonPublic);
-            if (field != null)
-            {
-                var listObj = field.GetValue(panel) as List<Action>;
-                if (listObj != null)
-                    trackedCleanupActions.AddRange(listObj);
-            }
-        }
-
         #endregion
     }
 }

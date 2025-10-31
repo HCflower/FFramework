@@ -3,6 +3,7 @@ using UnityEngine.EventSystems;
 using UnityEngine.Events;
 using UnityEngine.UI;
 using UnityEngine;
+using TMPro;
 
 namespace FFramework.Utility
 {
@@ -48,7 +49,7 @@ namespace FFramework.Utility
                 }, $"Button.{buttonName}"); // 传入组件名用于统计
             }
 
-            Debug.Log($"✅ 绑定按钮事件: {buttonName}");
+            Debug.Log($"绑定按钮事件: {buttonName}");
             return button;
         }
 
@@ -857,6 +858,43 @@ namespace FFramework.Utility
         }
 
         /// <summary>
+        /// 解绑指定TMP_InputField的所有事件
+        /// </summary>
+        /// <param name="panel">父面板</param>
+        /// <param name="inputFieldName">TMP_InputField名称</param>
+        public static void UnbindTMPInputField(this UIPanel panel, string inputFieldName)
+        {
+            GameObject inputObj = UISystem.FindChildGameObject(panel.gameObject, inputFieldName);
+            if (inputObj == null) return;
+
+            TMP_InputField inputField = inputObj.GetComponent<TMP_InputField>();
+            if (inputField != null)
+            {
+                inputField.onValueChanged.RemoveAllListeners();
+                inputField.onEndEdit.RemoveAllListeners();
+                Debug.Log($"解绑TMP_InputField事件: {inputFieldName}");
+            }
+        }
+
+        /// <summary>
+        /// 解绑指定TMP_Dropdown的所有事件
+        /// </summary>
+        /// <param name="panel">父面板</param>
+        /// <param name="dropdownName">TMP_Dropdown名称</param>
+        public static void UnbindTMPDropdown(this UIPanel panel, string dropdownName)
+        {
+            GameObject dropdownObj = UISystem.FindChildGameObject(panel.gameObject, dropdownName);
+            if (dropdownObj == null) return;
+
+            TMP_Dropdown dropdown = dropdownObj.GetComponent<TMP_Dropdown>();
+            if (dropdown != null)
+            {
+                dropdown.onValueChanged.RemoveAllListeners();
+                Debug.Log($"解绑TMP_Dropdown事件: {dropdownName}");
+            }
+        }
+
+        /// <summary>
         /// 解绑面板下所有UI组件的事件
         /// </summary>
         /// <param name="panel">面板</param>
@@ -915,6 +953,25 @@ namespace FFramework.Utility
                     scrollRect.onValueChanged.RemoveAllListeners();
             }
 
+            // 解绑所有TMP_InputField事件
+            TMP_InputField[] tmpInputFields = panel.GetComponentsInChildren<TMP_InputField>(true);
+            foreach (var inputField in tmpInputFields)
+            {
+                if (inputField != null)
+                {
+                    inputField.onValueChanged.RemoveAllListeners();
+                    inputField.onEndEdit.RemoveAllListeners();
+                }
+            }
+
+            // 解绑所有TMP_Dropdown事件
+            TMP_Dropdown[] tmpDropdowns = panel.GetComponentsInChildren<TMP_Dropdown>(true);
+            foreach (var dropdown in tmpDropdowns)
+            {
+                if (dropdown != null)
+                    dropdown.onValueChanged.RemoveAllListeners();
+            }
+
             // 清理所有EventTrigger事件
             EventTrigger[] eventTriggers = panel.GetComponentsInChildren<EventTrigger>(true);
             foreach (var trigger in eventTriggers)
@@ -929,7 +986,7 @@ namespace FFramework.Utility
                 }
             }
 
-            Debug.Log($"解绑面板 {panel.name} 的所有UI事件");
+            Debug.Log($"解绑面板 {panel.name} 的所有UI事件(包括TMP组件)");
         }
 
         #endregion
@@ -1055,6 +1112,42 @@ namespace FFramework.Utility
         {
             GameObject targetObj = UISystem.FindChildGameObject(panel.gameObject, objectName);
             return targetObj?.GetComponent<T>();
+        }
+
+        /// <summary>
+        /// 获取子物体的TextMeshProUGUI组件（支持链式调用）
+        /// </summary>
+        /// <param name="panel">父面板</param>
+        /// <param name="textName">Text名称</param>
+        /// <returns>TextMeshProUGUI组件</returns>
+        public static TextMeshProUGUI GetTMPText(this UIPanel panel, string textName)
+        {
+            GameObject textObj = UISystem.FindChildGameObject(panel.gameObject, textName);
+            return textObj?.GetComponent<TextMeshProUGUI>();
+        }
+
+        /// <summary>
+        /// 获取子物体的TMP_InputField组件（支持链式调用）
+        /// </summary>
+        /// <param name="panel">父面板</param>
+        /// <param name="inputFieldName">TMP_InputField名称</param>
+        /// <returns>TMP_InputField组件</returns>
+        public static TMP_InputField GetTMPInputField(this UIPanel panel, string inputFieldName)
+        {
+            GameObject inputObj = UISystem.FindChildGameObject(panel.gameObject, inputFieldName);
+            return inputObj?.GetComponent<TMP_InputField>();
+        }
+
+        /// <summary>
+        /// 获取子物体的TMP_Dropdown组件（支持链式调用）
+        /// </summary>
+        /// <param name="panel">父面板</param>
+        /// <param name="dropdownName">TMP_Dropdown名称</param>
+        /// <returns>TMP_Dropdown组件</returns>
+        public static TMP_Dropdown GetTMPDropdown(this UIPanel panel, string dropdownName)
+        {
+            GameObject dropdownObj = UISystem.FindChildGameObject(panel.gameObject, dropdownName);
+            return dropdownObj?.GetComponent<TMP_Dropdown>();
         }
 
         #endregion
@@ -1203,6 +1296,78 @@ namespace FFramework.Utility
                 image.color = color;
             }
             return image;
+        }
+
+        /// <summary>
+        /// 设置TextMeshProUGUI的文本
+        /// </summary>
+        /// <param name="panel">父面板</param>
+        /// <param name="textName">Text名称</param>
+        /// <param name="text">文本</param>
+        public static TextMeshProUGUI SetTMPText(this UIPanel panel, string textName, string text)
+        {
+            var textComponent = panel.GetTMPText(textName);
+            if (textComponent != null)
+            {
+                textComponent.text = text;
+            }
+            return textComponent;
+        }
+
+        /// <summary>
+        /// 设置TMP_InputField的文本
+        /// </summary>
+        /// <param name="panel">父面板</param>
+        /// <param name="inputFieldName">TMP_InputField名称</param>
+        /// <param name="text">文本</param>
+        /// <param name="sendCallback">是否发送回调</param>
+        public static TMP_InputField SetTMPInputFieldText(this UIPanel panel, string inputFieldName, string text, bool sendCallback = true)
+        {
+            var inputField = panel.GetTMPInputField(inputFieldName);
+            if (inputField != null)
+            {
+                if (sendCallback)
+                    inputField.text = text;
+                else
+                    inputField.SetTextWithoutNotify(text);
+            }
+            return inputField;
+        }
+
+        /// <summary>
+        /// 设置TMP_Dropdown的值
+        /// </summary>
+        /// <param name="panel">父面板</param>
+        /// <param name="dropdownName">TMP_Dropdown名称</param>
+        /// <param name="value">值</param>
+        /// <param name="sendCallback">是否发送回调</param>
+        public static TMP_Dropdown SetTMPDropdownValue(this UIPanel panel, string dropdownName, int value, bool sendCallback = true)
+        {
+            var dropdown = panel.GetTMPDropdown(dropdownName);
+            if (dropdown != null)
+            {
+                if (sendCallback)
+                    dropdown.value = value;
+                else
+                    dropdown.SetValueWithoutNotify(value);
+            }
+            return dropdown;
+        }
+
+        /// <summary>
+        /// 设置TextMeshProUGUI的颜色
+        /// </summary>
+        /// <param name="panel">父面板</param>
+        /// <param name="textName">Text名称</param>
+        /// <param name="color">颜色</param>
+        public static TextMeshProUGUI SetTMPTextColor(this UIPanel panel, string textName, Color color)
+        {
+            var textComponent = panel.GetTMPText(textName);
+            if (textComponent != null)
+            {
+                textComponent.color = color;
+            }
+            return textComponent;
         }
 
         #endregion

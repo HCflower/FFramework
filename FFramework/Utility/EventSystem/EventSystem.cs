@@ -3,6 +3,7 @@ using FFramework.Architecture;
 using System.Linq;
 using UnityEngine;
 using System;
+using System.Collections;
 
 namespace FFramework.Utility
 {
@@ -11,53 +12,234 @@ namespace FFramework.Utility
     /// </summary>
     public class EventSystem : SingletonMono<EventSystem>
     {
+        #region Inner Classes and Data Structures
+
         /// <summary>
-        /// 监听者信息
+        /// 触发位置信息（简化版，用于当前触发）
+        /// </summary>
+        public class CurrentTriggerInfo
+        {
+            public string MethodName { get; private set; }
+            public string ClassName { get; private set; }
+            public string AssemblyName { get; private set; }
+            public string TriggerTime { get; private set; }
+
+            public CurrentTriggerInfo()
+            {
+                TriggerTime = DateTime.Now.ToString("HH:mm:ss");
+                ExtractCallerInfo(2); // 跳过构造函数和RecordTriggerInfo
+            }
+
+            private void ExtractCallerInfo(int skipFrames)
+            {
+                var stackTrace = new System.Diagnostics.StackTrace(true);
+                var frames = stackTrace.GetFrames();
+
+                for (int i = skipFrames; i < frames.Length; i++)
+                {
+                    var method = frames[i].GetMethod();
+                    var declaringType = method.DeclaringType;
+
+                    if (declaringType != null && !IsEventSystemInternalCall(declaringType, method.Name))
+                    {
+                        MethodName = method.Name;
+                        // 使用FullName，保证不会为null
+                        ClassName = declaringType.FullName ?? declaringType.Name ?? "Unknown";
+                        AssemblyName = declaringType.Assembly.GetName().Name;
+
+                        // 美化显示：去掉编译器生成的显示类后缀
+                        if (ClassName.Contains("+<>c"))
+                        {
+                            // 取+前的部分作为外部类名
+                            ClassName = ClassName.Substring(0, ClassName.IndexOf("+<>c"));
+                        }
+                        return;
+                    }
+                }
+
+                // 未找到有效调用者
+                MethodName = ClassName = AssemblyName = "Unknown";
+            }
+
+            private bool IsEventSystemInternalCall(Type type, string methodName)
+            {
+                return type == typeof(EventSystem) ||
+                       type.Name.Contains("EventInfo") ||
+                       type.Name.Contains("EventSystem") ||
+                       methodName.Contains("TriggerEventInternal") ||
+                       methodName.Contains("RecordTriggerInfo") ||
+                       methodName == ".ctor";
+            }
+
+            private string FindParentMethodName(System.Diagnostics.StackFrame[] frames, int currentIndex, Type declaringType)
+            {
+                for (int j = currentIndex + 1; j < frames.Length; j++)
+                {
+                    var parentMethod = frames[j].GetMethod();
+                    if (parentMethod.DeclaringType == declaringType)
+                    {
+                        return $"{parentMethod.Name} (Lambda)";
+                    }
+                }
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// 事件触发位置信息（完整版，用于历史记录）
+        /// </summary>
+        public class TriggerInfo : CurrentTriggerInfo
+        {
+            public string FilePath { get; private set; }
+            public int LineNumber { get; private set; }
+
+            public TriggerInfo() : base()
+            {
+                ExtractFileInfo();
+            }
+
+            private void ExtractFileInfo()
+            {
+                var stackTrace = new System.Diagnostics.StackTrace(true);
+                var frames = stackTrace.GetFrames();
+
+                for (int i = 0; i < frames.Length; i++)
+                {
+                    var method = frames[i].GetMethod();
+                    var declaringType = method.DeclaringType;
+
+                    if (declaringType != null && !IsEventSystemInternalCall(declaringType, method.Name))
+                    {
+                        FilePath = frames[i].GetFileName() ?? "Unknown";
+                        LineNumber = frames[i].GetFileLineNumber();
+                        break;
+                    }
+                }
+            }
+
+            private bool IsEventSystemInternalCall(Type type, string methodName)
+            {
+                return type == typeof(EventSystem) ||
+                       type.Name.Contains("EventInfo") ||
+                       type.Name.Contains("EventSystem") ||
+                       methodName.Contains("TriggerEventInternal") ||
+                       methodName.Contains("RecordTriggerInfo") ||
+                       methodName == ".ctor";
+            }
+        }
+
+        /// <summary>
+        /// 监听者信息基类
         /// </summary>
         public class ListenerInfo
         {
-            public string MethodName;
-            public string ClassName;
-            public string AssemblyName;
-            public object Target;
-            public Type TargetType;
-            public Delegate Callback;
+            public string MethodName { get; protected set; }
+            public string ClassName { get; protected set; }
+            public string AssemblyName { get; protected set; }
+            public object Target { get; protected set; }
+            public Type TargetType { get; protected set; }
+            public Delegate Callback { get; protected set; }
 
             public ListenerInfo(Delegate callback)
             {
-                this.Callback = callback;
-                this.MethodName = callback.Method.Name;
-                this.TargetType = callback.Target?.GetType();
-                this.ClassName = TargetType?.Name ?? "静态方法";
-                this.AssemblyName = TargetType?.Assembly.GetName().Name ?? "Unknown";
-                this.Target = callback.Target;
+                Callback = callback ?? throw new ArgumentNullException(nameof(callback));
+                MethodName = callback.Method.Name;
+                TargetType = callback.Target?.GetType();
+                ClassName = TargetType?.Name ?? "静态方法";
+                AssemblyName = TargetType?.Assembly.GetName().Name ?? "Unknown";
+                Target = callback.Target;
             }
 
             public override string ToString()
             {
-                if (Target != null && Target is MonoBehaviour mono)
+                if (Target is MonoBehaviour mono && mono != null)
                 {
                     return $"{ClassName}.{MethodName} (GameObject: {mono.gameObject.name})";
                 }
                 return $"{ClassName}.{MethodName}";
             }
 
-            public string GetDetailedInfo()
+            public virtual string GetDetailedInfo()
             {
-                string targetInfo = "静态方法";
-                if (Target != null)
+                string targetInfo = Target switch
                 {
-                    if (Target is MonoBehaviour mono)
+                    null => "静态方法",
+                    MonoBehaviour mono => $"MonoBehaviour on GameObject '{mono.gameObject.name}'",
+                    _ => $"实例对象 ({ClassName})"
+                };
+
+                return $"类: {ClassName}, 方法: {MethodName}, 目标: {targetInfo}, 程序集: {AssemblyName}";
+            }
+        }
+
+        /// <summary>
+        /// 事件注册位置信息
+        /// </summary>
+        public class RegistrationInfo
+        {
+            public string MethodName { get; private set; }
+            public string ClassName { get; private set; }
+            public string AssemblyName { get; private set; }
+            public string RegistrationTime { get; private set; }
+
+            public RegistrationInfo()
+            {
+                RegistrationTime = DateTime.Now.ToString("HH:mm:ss");
+                ExtractRegistrationInfo();
+            }
+
+            private void ExtractRegistrationInfo()
+            {
+                var stackTrace = new System.Diagnostics.StackTrace(true);
+                var frames = stackTrace.GetFrames();
+
+                for (int i = 0; i < frames.Length; i++)
+                {
+                    var method = frames[i].GetMethod();
+                    var declaringType = method.DeclaringType;
+
+                    if (declaringType != null && !IsEventSystemInternalCall(declaringType))
                     {
-                        targetInfo = $"MonoBehaviour on GameObject '{mono.gameObject.name}'";
-                    }
-                    else
-                    {
-                        targetInfo = $"实例对象 ({ClassName})";
+                        MethodName = method.Name;
+                        ClassName = declaringType.Name;
+                        AssemblyName = declaringType.Assembly.GetName().Name;
+                        return;
                     }
                 }
 
-                return $"类: {ClassName}, 方法: {MethodName}, 目标: {targetInfo}, 程序集: {AssemblyName}";
+                MethodName = ClassName = AssemblyName = "Unknown";
+            }
+
+            private bool IsEventSystemInternalCall(Type declaringType)
+            {
+                return declaringType == typeof(EventSystem) ||
+                       declaringType.Name.Contains("EventSystemExtensions") ||
+                       declaringType.Name.Contains("EventInfo");
+            }
+
+            public string GetDetailedInfo()
+            {
+                return $"注册类: {ClassName}\n注册方法: {MethodName}\n注册时间: {RegistrationTime}\n程序集: {AssemblyName}";
+            }
+        }
+
+        /// <summary>
+        /// 增强的监听者信息，包含注册位置
+        /// </summary>
+        public class EnhancedListenerInfo : ListenerInfo
+        {
+            public RegistrationInfo RegistrationInfo { get; private set; }
+
+            public EnhancedListenerInfo(Delegate callback) : base(callback)
+            {
+                RegistrationInfo = new RegistrationInfo();
+            }
+
+            public override string GetDetailedInfo()
+            {
+                string baseInfo = base.GetDetailedInfo();
+                string registrationInfo = $"\n注册位置: {RegistrationInfo.ClassName}.{RegistrationInfo.MethodName} ({RegistrationInfo.RegistrationTime})";
+                return baseInfo + registrationInfo;
             }
         }
 
@@ -66,323 +248,272 @@ namespace FFramework.Utility
         /// </summary>
         private abstract class EventInfoBase
         {
-            public string eventName;
+            public string EventName { get; set; }
             public abstract void Invoke(object parameter);
             public abstract bool TryRemove(Delegate callback);
             public abstract int GetListenerCount();
             public abstract bool IsEmpty();
             public abstract void Clear();
-            public abstract List<ListenerInfo> GetListeners();
+            public abstract List<EnhancedListenerInfo> GetListeners();
         }
 
         /// <summary>
         /// 无参数事件信息
         /// </summary>
-        private class VoidEventInfo : EventInfoBase
+        private sealed class VoidEventInfo : EventInfoBase
         {
-            private event Action callback;
+            private readonly List<(Action callback, EnhancedListenerInfo info)> _callbacks = new();
 
             public void AddCallback(Action action)
             {
-                callback += action;
+                var info = new EnhancedListenerInfo(action);
+                _callbacks.Add((action, info));
             }
 
             public override void Invoke(object parameter)
             {
-                callback?.Invoke();
+                // 创建副本避免在遍历时修改
+                var callbacksCopy = _callbacks.ToArray();
+                foreach (var (callback, _) in callbacksCopy)
+                {
+                    try
+                    {
+                        callback?.Invoke();
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.LogError($"EventSystem: 执行回调 {callback?.Method.Name} 时发生异常: {ex.Message}");
+                    }
+                }
             }
 
             public override bool TryRemove(Delegate callbackToRemove)
             {
-                if (callbackToRemove is Action action)
+                if (callbackToRemove is not Action action) return false;
+
+                for (int i = _callbacks.Count - 1; i >= 0; i--)
                 {
-                    callback -= action;
-                    return true;
+                    if (_callbacks[i].callback.Equals(action))
+                    {
+                        _callbacks.RemoveAt(i);
+                        return true;
+                    }
                 }
                 return false;
             }
 
-            public override int GetListenerCount()
-            {
-                return callback?.GetInvocationList().Length ?? 0;
-            }
-
-            public override bool IsEmpty()
-            {
-                return callback == null;
-            }
-
-            public override void Clear()
-            {
-                callback = null;
-            }
-
-            public override List<ListenerInfo> GetListeners()
-            {
-                List<ListenerInfo> listeners = new List<ListenerInfo>();
-                if (callback != null)
-                {
-                    foreach (Delegate del in callback.GetInvocationList())
-                    {
-                        listeners.Add(new ListenerInfo(del));
-                    }
-                }
-                return listeners;
-            }
+            public override int GetListenerCount() => _callbacks.Count;
+            public override bool IsEmpty() => _callbacks.Count == 0;
+            public override void Clear() => _callbacks.Clear();
+            public override List<EnhancedListenerInfo> GetListeners() => _callbacks.Select(c => c.info).ToList();
         }
 
         /// <summary>
         /// 泛型事件信息
         /// </summary>
-        /// <typeparam name="T">参数类型</typeparam>
-        private class GenericEventInfo<T> : EventInfoBase
+        private sealed class GenericEventInfo<T> : EventInfoBase
         {
-            private event Action<T> callback;
+            private readonly List<(Action<T> callback, EnhancedListenerInfo info)> _callbacks = new();
 
             public void AddCallback(Action<T> action)
             {
-                callback += action;
+                var info = new EnhancedListenerInfo(action);
+                _callbacks.Add((action, info));
             }
 
             public override void Invoke(object parameter)
             {
+                var callbacksCopy = _callbacks.ToArray();
+                foreach (var (callback, _) in callbacksCopy)
+                {
+                    try
+                    {
+                        T typedParam = ConvertParameter(parameter);
+                        callback?.Invoke(typedParam);
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.LogError($"EventSystem: 执行回调 {callback?.Method.Name} 时发生异常: {ex.Message}");
+                    }
+                }
+            }
+
+            private T ConvertParameter(object parameter)
+            {
+                // 如果参数为null且T是值类型，返回默认值
+                if (parameter == null)
+                {
+                    if (typeof(T).IsValueType)
+                    {
+                        Debug.LogWarning($"EventSystem: 泛型事件期望参数类型 {typeof(T)}，但收到null，使用默认值 {default(T)}");
+                        return default(T);
+                    }
+                    return default(T);
+                }
+
+                // 如果参数类型完全匹配
                 if (parameter is T typedParam)
+                    return typedParam;
+
+                // 尝试类型转换
+                try
                 {
-                    callback?.Invoke(typedParam);
+                    if (typeof(T).IsPrimitive || typeof(T) == typeof(string) || typeof(T) == typeof(decimal))
+                    {
+                        var converted = Convert.ChangeType(parameter, typeof(T));
+                        return (T)converted;
+                    }
+
+                    throw new InvalidCastException($"无法转换类型 {parameter.GetType()} 到 {typeof(T)}");
                 }
-                else if (parameter == null && !typeof(T).IsValueType)
+                catch (Exception ex)
                 {
-                    callback?.Invoke(default(T));
-                }
-                else
-                {
-                    Debug.LogError($"EventSystem: 参数类型不匹配，期望 {typeof(T)}, 实际 {parameter?.GetType()}");
+                    Debug.LogError($"EventSystem: 参数类型转换失败 - 期望 {typeof(T)}, 实际 {parameter.GetType()}: {ex.Message}");
+                    return default(T);
                 }
             }
 
             public override bool TryRemove(Delegate callbackToRemove)
             {
-                if (callbackToRemove is Action<T> action)
+                if (callbackToRemove is not Action<T> action) return false;
+
+                for (int i = _callbacks.Count - 1; i >= 0; i--)
                 {
-                    callback -= action;
-                    return true;
+                    if (_callbacks[i].callback.Equals(action))
+                    {
+                        _callbacks.RemoveAt(i);
+                        return true;
+                    }
                 }
                 return false;
             }
 
-            public override int GetListenerCount()
-            {
-                return callback?.GetInvocationList().Length ?? 0;
-            }
-
-            public override bool IsEmpty()
-            {
-                return callback == null;
-            }
-
-            public override void Clear()
-            {
-                callback = null;
-            }
-
-            public override List<ListenerInfo> GetListeners()
-            {
-                List<ListenerInfo> listeners = new List<ListenerInfo>();
-                if (callback != null)
-                {
-                    foreach (Delegate del in callback.GetInvocationList())
-                    {
-                        listeners.Add(new ListenerInfo(del));
-                    }
-                }
-                return listeners;
-            }
+            public override int GetListenerCount() => _callbacks.Count;
+            public override bool IsEmpty() => _callbacks.Count == 0;
+            public override void Clear() => _callbacks.Clear();
+            public override List<EnhancedListenerInfo> GetListeners() => _callbacks.Select(c => c.info).ToList();
         }
 
-        // 存储事件的字典：事件名 -> 事件信息
-        private Dictionary<string, EventInfoBase> eventDict = new Dictionary<string, EventInfoBase>();
+        #endregion
 
-        // 缓存空事件列表，避免在遍历时修改字典
-        private List<string> emptyEvents = new List<string>();
+        #region Constants and Fields
 
-        #region 无参数事件
+        private const int MAX_TRIGGER_HISTORY = 10;
+
+        // 事件存储
+        private readonly Dictionary<string, EventInfoBase> _eventDict = new();
+
+        // 触发位置记录
+        private readonly Dictionary<string, CurrentTriggerInfo> _currentTriggers = new();
+        private readonly Dictionary<string, List<TriggerInfo>> _triggerHistory = new();
+
+        // 缓存列表，避免重复分配
+        private readonly List<string> _emptyEventNames = new();
+        private readonly List<EnhancedListenerInfo> _emptyListeners = new();
+        private readonly List<TriggerInfo> _emptyTriggers = new();
+
+        #endregion
+
+        #region Public API - Event Registration
 
         /// <summary>
         /// 注册无参数事件
         /// </summary>
-        /// <param name="eventName">事件名称</param>
-        /// <param name="callback">事件回调</param>
         public void RegisterEvent(string eventName, Action callback)
         {
             if (!ValidateEventRegistration(eventName, callback)) return;
 
-            if (!eventDict.TryGetValue(eventName, out EventInfoBase eventInfo))
-            {
-                eventInfo = new VoidEventInfo() { eventName = eventName };
-                eventDict[eventName] = eventInfo;
-            }
-
-            if (eventInfo is VoidEventInfo voidEventInfo)
-            {
-                voidEventInfo.AddCallback(callback);
-            }
-            else
-            {
-                Debug.LogError($"EventSystem: 事件 {eventName} 类型不匹配，已存在其他类型的事件");
-            }
+            var eventInfo = GetOrCreateEventInfo<VoidEventInfo>(eventName);
+            eventInfo?.AddCallback(callback);
         }
-
-        /// <summary>
-        /// 注销无参数事件
-        /// </summary>
-        /// <param name="eventName">事件名称</param>
-        /// <param name="callback">事件回调</param>
-        public void UnregisterEvent(string eventName, Action callback)
-        {
-            if (!ValidateEventUnregistration(eventName, callback)) return;
-
-            if (eventDict.TryGetValue(eventName, out EventInfoBase eventInfo))
-            {
-                if (eventInfo.TryRemove(callback))
-                {
-                    if (eventInfo.IsEmpty())
-                    {
-                        eventDict.Remove(eventName);
-                    }
-                }
-                else
-                {
-                    Debug.LogWarning($"EventSystem: 事件 {eventName} 类型不匹配或回调不存在");
-                }
-            }
-            else
-            {
-                Debug.LogWarning($"EventSystem: 尝试注销不存在的事件 {eventName}");
-            }
-        }
-
-        /// <summary>
-        /// 触发无参数事件
-        /// </summary>
-        /// <param name="eventName">事件名称</param>
-        public void TriggerEvent(string eventName)
-        {
-            TriggerEventInternal(eventName, null);
-        }
-
-        #endregion
-
-        #region 泛型事件
 
         /// <summary>
         /// 注册泛型事件
         /// </summary>
-        /// <typeparam name="T">参数类型</typeparam>
-        /// <param name="eventName">事件名称</param>
-        /// <param name="callback">事件回调</param>
         public void RegisterEvent<T>(string eventName, Action<T> callback)
         {
             if (!ValidateEventRegistration(eventName, callback)) return;
 
-            if (!eventDict.TryGetValue(eventName, out EventInfoBase eventInfo))
-            {
-                eventInfo = new GenericEventInfo<T>() { eventName = eventName };
-                eventDict[eventName] = eventInfo;
-            }
-
-            if (eventInfo is GenericEventInfo<T> genericEventInfo)
-            {
-                genericEventInfo.AddCallback(callback);
-            }
-            else
-            {
-                Debug.LogError($"EventSystem: 事件 {eventName} 类型不匹配，期望 {typeof(T)}, 实际 {eventInfo.GetType()}");
-            }
+            var eventInfo = GetOrCreateEventInfo<GenericEventInfo<T>>(eventName);
+            eventInfo?.AddCallback(callback);
         }
-
-        /// <summary>
-        /// 注销泛型事件
-        /// </summary>
-        /// <typeparam name="T">参数类型</typeparam>
-        /// <param name="eventName">事件名称</param>
-        /// <param name="callback">事件回调</param>
-        public void UnregisterEvent<T>(string eventName, Action<T> callback)
-        {
-            if (!ValidateEventUnregistration(eventName, callback)) return;
-
-            if (eventDict.TryGetValue(eventName, out EventInfoBase eventInfo))
-            {
-                if (eventInfo.TryRemove(callback))
-                {
-                    if (eventInfo.IsEmpty())
-                    {
-                        eventDict.Remove(eventName);
-                    }
-                }
-                else
-                {
-                    Debug.LogWarning($"EventSystem: 事件 {eventName} 类型不匹配或回调不存在");
-                }
-            }
-            else
-            {
-                Debug.LogWarning($"EventSystem: 尝试注销不存在的事件 {eventName}");
-            }
-        }
-
-        /// <summary>
-        /// 触发泛型事件
-        /// </summary>
-        /// <typeparam name="T">参数类型</typeparam>
-        /// <param name="eventName">事件名称</param>
-        /// <param name="parameter">事件参数</param>
-        public void TriggerEvent<T>(string eventName, T parameter)
-        {
-            TriggerEventInternal(eventName, parameter);
-        }
-
-        #endregion
-
-        #region object参数事件（向后兼容）
 
         /// <summary>
         /// 注册object参数事件（向后兼容）
         /// </summary>
-        /// <param name="eventName">事件名称</param>
-        /// <param name="callback">事件回调</param>
         public void RegisterEvent(string eventName, Action<object> callback)
         {
             RegisterEvent<object>(eventName, callback);
         }
 
+        #endregion
+
+        #region Public API - Event Unregistration
+
+        /// <summary>
+        /// 注销无参数事件
+        /// </summary>
+        public void UnregisterEvent(string eventName, Action callback)
+        {
+            if (!ValidateEventUnregistration(eventName, callback)) return;
+            TryRemoveCallback(eventName, callback);
+        }
+
+        /// <summary>
+        /// 注销泛型事件
+        /// </summary>
+        public void UnregisterEvent<T>(string eventName, Action<T> callback)
+        {
+            if (!ValidateEventUnregistration(eventName, callback)) return;
+            TryRemoveCallback(eventName, callback);
+        }
+
         /// <summary>
         /// 注销object参数事件（向后兼容）
         /// </summary>
-        /// <param name="eventName">事件名称</param>
-        /// <param name="callback">事件回调</param>
         public void UnregisterEvent(string eventName, Action<object> callback)
         {
             UnregisterEvent<object>(eventName, callback);
         }
 
+        #endregion
+
+        #region Public API - Event Triggering
+
+        /// <summary>
+        /// 触发无参数事件
+        /// </summary>
+        public void TriggerEvent(string eventName)
+        {
+            RecordTriggerInfo(eventName);
+            TriggerEventInternal(eventName, null);
+        }
+
+        /// <summary>
+        /// 触发泛型事件
+        /// </summary>
+        public void TriggerEvent<T>(string eventName, T parameter)
+        {
+            RecordTriggerInfo(eventName);
+            TriggerEventInternal(eventName, parameter);
+        }
+
         /// <summary>
         /// 触发object参数事件（向后兼容）
         /// </summary>
-        /// <param name="eventName">事件名称</param>
-        /// <param name="parameter">事件参数</param>
         public void TriggerEvent(string eventName, object parameter)
         {
+            RecordTriggerInfo(eventName);
             TriggerEventInternal(eventName, parameter);
         }
 
         #endregion
 
-        #region 高级功能
+        #region Public API - Advanced Features
 
         /// <summary>
-        /// 批量注册事件
+        /// 批量注册无参数事件
         /// </summary>
-        /// <param name="events">事件字典</param>
         public void RegisterEvents(Dictionary<string, Action> events)
         {
             foreach (var kvp in events)
@@ -394,8 +525,6 @@ namespace FFramework.Utility
         /// <summary>
         /// 批量注册泛型事件
         /// </summary>
-        /// <typeparam name="T">参数类型</typeparam>
-        /// <param name="events">事件字典</param>
         public void RegisterEvents<T>(Dictionary<string, Action<T>> events)
         {
             foreach (var kvp in events)
@@ -405,10 +534,8 @@ namespace FFramework.Utility
         }
 
         /// <summary>
-        /// 一次性事件（触发后自动注销）
+        /// 一次性无参数事件（触发后自动注销）
         /// </summary>
-        /// <param name="eventName">事件名称</param>
-        /// <param name="callback">事件回调</param>
         public void RegisterOnceEvent(string eventName, Action callback)
         {
             Action onceCallback = null;
@@ -423,9 +550,6 @@ namespace FFramework.Utility
         /// <summary>
         /// 一次性泛型事件（触发后自动注销）
         /// </summary>
-        /// <typeparam name="T">参数类型</typeparam>
-        /// <param name="eventName">事件名称</param>
-        /// <param name="callback">事件回调</param>
         public void RegisterOnceEvent<T>(string eventName, Action<T> callback)
         {
             Action<T> onceCallback = null;
@@ -438,45 +562,264 @@ namespace FFramework.Utility
         }
 
         /// <summary>
-        /// 延迟触发事件
+        /// 延迟触发无参数事件
         /// </summary>
-        /// <param name="eventName">事件名称</param>
-        /// <param name="delay">延迟时间（秒）</param>
         public void TriggerEventDelayed(string eventName, float delay)
         {
+            RecordTriggerInfo(eventName);
             StartCoroutine(TriggerEventDelayedCoroutine(eventName, null, delay));
         }
 
         /// <summary>
         /// 延迟触发泛型事件
         /// </summary>
-        /// <typeparam name="T">参数类型</typeparam>
-        /// <param name="eventName">事件名称</param>
-        /// <param name="parameter">事件参数</param>
-        /// <param name="delay">延迟时间（秒）</param>
         public void TriggerEventDelayed<T>(string eventName, T parameter, float delay)
         {
+            RecordTriggerInfo(eventName);
             StartCoroutine(TriggerEventDelayedCoroutine(eventName, parameter, delay));
-        }
-
-        /// <summary>
-        /// 延迟触发事件协程
-        /// </summary>
-        private System.Collections.IEnumerator TriggerEventDelayedCoroutine(string eventName, object parameter, float delay)
-        {
-            yield return new WaitForSeconds(delay);
-            TriggerEventInternal(eventName, parameter);
         }
 
         #endregion
 
-        #region 内部方法
+        #region Public API - Information and Debug
+
+        /// <summary>
+        /// 获取指定事件的监听者列表
+        /// </summary>
+        public List<EnhancedListenerInfo> GetEventListeners(string eventName)
+        {
+            if (string.IsNullOrEmpty(eventName) || !_eventDict.TryGetValue(eventName, out var eventInfo))
+            {
+                return _emptyListeners;
+            }
+            return eventInfo.GetListeners();
+        }
+
+        /// <summary>
+        /// 获取指定事件的当前触发位置
+        /// </summary>
+        public CurrentTriggerInfo GetCurrentTrigger(string eventName)
+        {
+            return !string.IsNullOrEmpty(eventName) && _currentTriggers.TryGetValue(eventName, out var trigger)
+                ? trigger : null;
+        }
+
+        /// <summary>
+        /// 获取指定事件的触发历史
+        /// </summary>
+        public List<TriggerInfo> GetEventTriggers(string eventName)
+        {
+            if (string.IsNullOrEmpty(eventName) || !_triggerHistory.TryGetValue(eventName, out var history))
+            {
+                return _emptyTriggers;
+            }
+            return new List<TriggerInfo>(history);
+        }
+
+        /// <summary>
+        /// 获取所有事件名称
+        /// </summary>
+        public string[] GetAllEventNames()
+        {
+            return _eventDict.Keys.Where(key => !_eventDict[key].IsEmpty()).ToArray();
+        }
+
+        /// <summary>
+        /// 检查事件是否存在且有监听者
+        /// </summary>
+        public bool HasEvent(string eventName)
+        {
+            return !string.IsNullOrEmpty(eventName) &&
+                   _eventDict.TryGetValue(eventName, out var eventInfo) &&
+                   !eventInfo.IsEmpty();
+        }
+
+        /// <summary>
+        /// 获取事件监听者数量
+        /// </summary>
+        public int GetListenerCount(string eventName)
+        {
+            return string.IsNullOrEmpty(eventName) || !_eventDict.TryGetValue(eventName, out var eventInfo)
+                ? 0 : eventInfo.GetListenerCount();
+        }
+
+        /// <summary>
+        /// 获取事件统计信息
+        /// </summary>
+        public EventStatistics GetEventStatistics()
+        {
+            var stats = new EventStatistics
+            {
+                TotalEvents = _eventDict.Count,
+                TotalListeners = _eventDict.Values.Sum(e => e.GetListenerCount())
+            };
+
+            foreach (var eventInfo in _eventDict.Values)
+            {
+                if (eventInfo is VoidEventInfo)
+                    stats.VoidEvents++;
+                else
+                    stats.GenericEvents++;
+            }
+
+            return stats;
+        }
+
+        #endregion
+
+        #region Public API - Cleanup
+
+        /// <summary>
+        /// 清理触发位置记录
+        /// </summary>
+        public void ClearTriggerInfo(string eventName = null)
+        {
+            if (string.IsNullOrEmpty(eventName))
+            {
+                _currentTriggers.Clear();
+            }
+            else
+            {
+                _currentTriggers.Remove(eventName);
+            }
+        }
+
+        /// <summary>
+        /// 清理触发历史
+        /// </summary>
+        public void ClearTriggerHistory(string eventName = null)
+        {
+            if (string.IsNullOrEmpty(eventName))
+            {
+                _triggerHistory.Clear();
+            }
+            else
+            {
+                _triggerHistory.Remove(eventName);
+            }
+        }
+
+        /// <summary>
+        /// 注销指定事件的所有监听者
+        /// </summary>
+        public void UnregisterAllEvent(string eventName)
+        {
+            if (string.IsNullOrEmpty(eventName)) return;
+
+            if (_eventDict.TryGetValue(eventName, out var eventInfo))
+            {
+                eventInfo.Clear();
+                _eventDict.Remove(eventName);
+            }
+        }
+
+        /// <summary>
+        /// 清理所有事件
+        /// </summary>
+        public void ClearAllEvents()
+        {
+            foreach (var eventInfo in _eventDict.Values)
+            {
+                eventInfo.Clear();
+            }
+            _eventDict.Clear();
+            _currentTriggers.Clear();
+            _triggerHistory.Clear();
+        }
+
+        /// <summary>
+        /// 定期清理空事件
+        /// </summary>
+        public void CleanupEmptyEvents()
+        {
+            _emptyEventNames.Clear();
+
+            foreach (var kvp in _eventDict)
+            {
+                if (kvp.Value.IsEmpty())
+                {
+                    _emptyEventNames.Add(kvp.Key);
+                }
+            }
+
+            foreach (string eventName in _emptyEventNames)
+            {
+                _eventDict.Remove(eventName);
+            }
+        }
+
+        #endregion
+
+        #region Public API - Debug Methods
+
+        /// <summary>
+        /// 打印指定事件的监听者信息
+        /// </summary>
+        public void DebugPrintEventListeners(string eventName)
+        {
+            var listeners = GetEventListeners(eventName);
+            if (listeners.Count == 0)
+            {
+                Debug.Log($"事件 '{eventName}' 没有监听者");
+                return;
+            }
+
+            Debug.Log($"<color=yellow>=== 事件 '{eventName}' 的监听者信息 ===</color>");
+            for (int i = 0; i < listeners.Count; i++)
+            {
+                Debug.Log($"ID:{i + 1}.{listeners[i].GetDetailedInfo()}");
+            }
+            Debug.Log("<color=yellow>=== 监听者信息结束 ===</color>");
+        }
+
+        /// <summary>
+        /// 打印所有事件信息
+        /// </summary>
+        public void DebugPrintAllEvents()
+        {
+            Debug.Log("<color=yellow>=== EventSystem 所有事件信息 ===</color>");
+            foreach (var kvp in _eventDict.Where(kvp => !kvp.Value.IsEmpty()))
+            {
+                string eventType = kvp.Value switch
+                {
+                    VoidEventInfo => "Void",
+                    _ => $"Generic<{kvp.Value.GetType().GetGenericArguments().FirstOrDefault()?.Name ?? "Unknown"}>"
+                };
+
+                var listeners = kvp.Value.GetListeners();
+                string listenerNames = string.Join(", ", listeners.Select(l => l.ToString()));
+
+                Debug.Log($"事件: {kvp.Key}, 类型: {eventType}, 监听者数量: {kvp.Value.GetListenerCount()}, 监听者: [{listenerNames}]");
+            }
+            Debug.Log("<color=yellow>=== EventSystem 事件信息结束 ===</color>");
+        }
+
+        /// <summary>
+        /// 查找指定GameObject上的所有事件监听
+        /// </summary>
+        public List<string> FindEventsListenedByGameObject(GameObject gameObject)
+        {
+            var listenedEvents = new List<string>();
+
+            foreach (var kvp in _eventDict)
+            {
+                var listeners = kvp.Value.GetListeners();
+                if (listeners.Any(listener => listener.Target is MonoBehaviour mono && mono.gameObject == gameObject))
+                {
+                    listenedEvents.Add(kvp.Key);
+                }
+            }
+
+            return listenedEvents;
+        }
+
+        #endregion
+
+        #region Internal Methods
 
         /// <summary>
         /// 内部触发事件方法
         /// </summary>
-        /// <param name="eventName">事件名称</param>
-        /// <param name="parameter">事件参数</param>
         private void TriggerEventInternal(string eventName, object parameter)
         {
             if (string.IsNullOrEmpty(eventName))
@@ -485,7 +828,7 @@ namespace FFramework.Utility
                 return;
             }
 
-            if (eventDict.TryGetValue(eventName, out EventInfoBase eventInfo) && !eventInfo.IsEmpty())
+            if (_eventDict.TryGetValue(eventName, out var eventInfo) && !eventInfo.IsEmpty())
             {
                 try
                 {
@@ -496,7 +839,79 @@ namespace FFramework.Utility
                     Debug.LogError($"EventSystem: 事件 {eventName} 执行时发生异常: {ex.Message}\n{ex.StackTrace}");
                 }
             }
-            // 移除了"尝试触发不存在或无监听者的事件"的警告，因为这在正常使用中很常见
+        }
+
+        /// <summary>
+        /// 记录触发信息
+        /// </summary>
+        private void RecordTriggerInfo(string eventName)
+        {
+            if (string.IsNullOrEmpty(eventName)) return;
+
+            // 记录当前触发位置
+            _currentTriggers[eventName] = new CurrentTriggerInfo();
+
+            // 记录触发历史
+            var triggerInfo = new TriggerInfo();
+
+            if (!_triggerHistory.TryGetValue(eventName, out var history))
+            {
+                history = new List<TriggerInfo>();
+                _triggerHistory[eventName] = history;
+            }
+
+            history.Add(triggerInfo);
+
+            // 保持历史记录数量限制
+            if (history.Count > MAX_TRIGGER_HISTORY)
+            {
+                history.RemoveAt(0);
+            }
+        }
+
+        /// <summary>
+        /// 获取或创建事件信息
+        /// </summary>
+        private T GetOrCreateEventInfo<T>(string eventName) where T : EventInfoBase, new()
+        {
+            if (!_eventDict.TryGetValue(eventName, out var eventInfo))
+            {
+                eventInfo = new T { EventName = eventName };
+                _eventDict[eventName] = eventInfo;
+            }
+
+            if (eventInfo is T typedEventInfo)
+            {
+                return typedEventInfo;
+            }
+
+            Debug.LogError($"EventSystem: 事件 {eventName} 类型不匹配，期望 {typeof(T).Name}, 实际 {eventInfo.GetType().Name}");
+            return null;
+        }
+
+        /// <summary>
+        /// 尝试移除回调
+        /// </summary>
+        private void TryRemoveCallback(string eventName, Delegate callback)
+        {
+            if (_eventDict.TryGetValue(eventName, out var eventInfo))
+            {
+                if (eventInfo.TryRemove(callback))
+                {
+                    if (eventInfo.IsEmpty())
+                    {
+                        _eventDict.Remove(eventName);
+                    }
+                }
+                else
+                {
+                    Debug.LogWarning($"EventSystem: 事件 {eventName} 类型不匹配或回调不存在");
+                }
+            }
+            else
+            {
+                Debug.LogWarning($"EventSystem: 尝试注销不存在的事件 {eventName}");
+            }
         }
 
         /// <summary>
@@ -524,231 +939,29 @@ namespace FFramework.Utility
         /// </summary>
         private bool ValidateEventUnregistration(string eventName, Delegate callback)
         {
-            if (string.IsNullOrEmpty(eventName))
-            {
-                Debug.LogError("EventSystem: 事件名称不能为空");
-                return false;
-            }
+            return ValidateEventRegistration(eventName, callback);
+        }
 
-            if (callback == null)
-            {
-                Debug.LogError("EventSystem: 回调函数不能为空");
-                return false;
-            }
-
-            return true;
+        /// <summary>
+        /// 延迟触发事件协程
+        /// </summary>
+        private IEnumerator TriggerEventDelayedCoroutine(string eventName, object parameter, float delay)
+        {
+            yield return new WaitForSeconds(delay);
+            TriggerEventInternal(eventName, parameter);
         }
 
         #endregion
 
-        #region 监听者追踪和调试方法
-
-        /// <summary>
-        /// 获取指定事件的所有监听者信息
-        /// </summary>
-        /// <param name="eventName">事件名称</param>
-        /// <returns>监听者信息列表</returns>
-        public List<ListenerInfo> GetEventListeners(string eventName)
-        {
-            if (string.IsNullOrEmpty(eventName) || !eventDict.TryGetValue(eventName, out EventInfoBase eventInfo))
-            {
-                return new List<ListenerInfo>();
-            }
-
-            return eventInfo.GetListeners();
-        }
-
-        /// <summary>
-        /// 打印指定事件的监听者信息（调试用）
-        /// </summary>
-        /// <param name="eventName">事件名称</param>
-        public void DebugPrintEventListeners(string eventName)
-        {
-            var listeners = GetEventListeners(eventName);
-            if (listeners.Count == 0)
-            {
-                Debug.Log($"事件 '{eventName}' 没有监听者");
-                return;
-            }
-
-            Debug.Log($"<color=yellow>=== 事件 '{eventName}' 的监听者信息 ===</color>");
-            for (int i = 0; i < listeners.Count; i++)
-            {
-                Debug.Log($"ID:{i + 1}.{listeners[i].GetDetailedInfo()}");
-            }
-            Debug.Log("<color=yellow>=== 监听者信息结束 ===</color>");
-        }
-
-        /// <summary>
-        /// 注销指定事件的所有监听者
-        /// </summary>
-        /// <param name="eventName">事件名称</param>
-        public void UnregisterAllEvent(string eventName)
-        {
-            if (string.IsNullOrEmpty(eventName))
-            {
-                Debug.LogError("EventSystem: 事件名称不能为空");
-                return;
-            }
-
-            if (eventDict.ContainsKey(eventName))
-            {
-                eventDict[eventName].Clear();
-                eventDict.Remove(eventName);
-            }
-        }
-
-        /// <summary>
-        /// 清理所有事件
-        /// </summary>
-        public void ClearAllEvents()
-        {
-            foreach (var eventInfo in eventDict.Values)
-            {
-                eventInfo.Clear();
-            }
-            eventDict.Clear();
-        }
-
-        /// <summary>
-        /// 检查事件是否存在
-        /// </summary>
-        /// <param name="eventName">事件名称</param>
-        /// <returns>是否存在</returns>
-        public bool HasEvent(string eventName)
-        {
-            return !string.IsNullOrEmpty(eventName) &&
-                   eventDict.TryGetValue(eventName, out EventInfoBase eventInfo) &&
-                   !eventInfo.IsEmpty();
-        }
-
-        /// <summary>
-        /// 获取事件监听者数量
-        /// </summary>
-        /// <param name="eventName">事件名称</param>
-        /// <returns>监听者数量</returns>
-        public int GetListenerCount(string eventName)
-        {
-            if (string.IsNullOrEmpty(eventName) || !eventDict.TryGetValue(eventName, out EventInfoBase eventInfo))
-            {
-                return 0;
-            }
-
-            return eventInfo.GetListenerCount();
-        }
-
-        /// <summary>
-        /// 定期清理空事件
-        /// </summary>
-        public void CleanupEmptyEvents()
-        {
-            emptyEvents.Clear();
-
-            foreach (var kvp in eventDict.ToArray())
-            {
-                if (kvp.Value.IsEmpty())
-                {
-                    emptyEvents.Add(kvp.Key);
-                }
-            }
-
-            foreach (string eventName in emptyEvents)
-            {
-                eventDict.Remove(eventName);
-            }
-        }
-
-        /// <summary>
-        /// 获取所有事件名称（调试用）
-        /// </summary>
-        /// <returns>事件名称数组</returns>
-        public string[] GetAllEventNames()
-        {
-            return eventDict.Keys.Where(key => !eventDict[key].IsEmpty()).ToArray();
-        }
-
-        /// <summary>
-        /// 打印所有事件信息（调试用）
-        /// </summary>
-        public void DebugPrintAllEvents()
-        {
-            Debug.Log("<color=yellow>=== EventSystem 所有事件信息 ===</color>");
-            foreach (var kvp in eventDict)
-            {
-                if (!kvp.Value.IsEmpty())
-                {
-                    string eventType = kvp.Value.GetType().Name;
-                    if (eventType.Contains("GenericEventInfo"))
-                    {
-                        var genericType = kvp.Value.GetType().GetGenericArguments().FirstOrDefault();
-                        eventType = $"Generic<{genericType?.Name ?? "Unknown"}>";
-                    }
-
-                    var listeners = kvp.Value.GetListeners();
-                    string listenerNames = string.Join(", ", listeners.Select(l => l.ToString()));
-
-                    Debug.Log($"事件: {kvp.Key}, 类型: {eventType}, 监听者数量: {kvp.Value.GetListenerCount()}, 监听者: [{listenerNames}]");
-                }
-            }
-            Debug.Log("<color=yellow>=== EventSystem 事件信息结束 ===</color>");
-        }
-
-        /// <summary>
-        /// 查找指定GameObject上的所有事件监听
-        /// </summary>
-        /// <param name="gameObject">目标GameObject</param>
-        /// <returns>监听的事件列表</returns>
-        public List<string> FindEventsListenedByGameObject(GameObject gameObject)
-        {
-            List<string> listenedEvents = new List<string>();
-
-            foreach (var kvp in eventDict)
-            {
-                var listeners = kvp.Value.GetListeners();
-                foreach (var listener in listeners)
-                {
-                    if (listener.Target is MonoBehaviour mono && mono.gameObject == gameObject)
-                    {
-                        listenedEvents.Add(kvp.Key);
-                        break;
-                    }
-                }
-            }
-
-            return listenedEvents;
-        }
-
-        /// <summary>
-        /// 获取事件统计信息
-        /// </summary>
-        /// <returns>事件统计信息</returns>
-        public EventStatistics GetEventStatistics()
-        {
-            var stats = new EventStatistics();
-            stats.TotalEvents = eventDict.Count;
-            stats.TotalListeners = eventDict.Values.Sum(e => e.GetListenerCount());
-
-            foreach (var kvp in eventDict)
-            {
-                if (kvp.Value is VoidEventInfo)
-                {
-                    stats.VoidEvents++;
-                }
-                else
-                {
-                    stats.GenericEvents++;
-                }
-            }
-
-            return stats;
-        }
-
-        #endregion
+        #region Unity Lifecycle
 
         protected override void OnDestroy()
         {
             ClearAllEvents();
+            base.OnDestroy();
         }
+
+        #endregion
     }
 
     /// <summary>
