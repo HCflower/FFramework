@@ -106,7 +106,7 @@ namespace FFramework.Utility
             };
 
             // 注册一次性事件
-            eventSystem.RegisterOnceEvent(eventName, onceCallback);
+            eventSystem.RegisterEvent(eventName, onceCallback);
 
             // 添加到自动注销组件（防止GameObject提前销毁）
             autoUnregister.AddEventInfo(eventSystem, eventName, onceCallback);
@@ -139,7 +139,7 @@ namespace FFramework.Utility
             };
 
             // 注册一次性事件
-            eventSystem.RegisterOnceEvent<T>(eventName, onceCallback);
+            eventSystem.RegisterEvent<T>(eventName, onceCallback);
 
             // 添加到自动注销组件（防止GameObject提前销毁）
             autoUnregister.AddEventInfo<T>(eventSystem, eventName, onceCallback);
@@ -227,7 +227,7 @@ namespace FFramework.Utility
 
             public override void Unregister()
             {
-                if (eventSystem != null)
+                if (eventSystem != null && callback != null)
                 {
                     eventSystem.UnregisterEvent(eventName, callback);
                 }
@@ -237,6 +237,7 @@ namespace FFramework.Utility
             {
                 return eventSystem == system &&
                        eventName == name &&
+                       this.callback != null &&
                        this.callback.Equals(callback);
             }
 
@@ -262,7 +263,7 @@ namespace FFramework.Utility
 
             public override void Unregister()
             {
-                if (eventSystem != null)
+                if (eventSystem != null && callback != null)
                 {
                     eventSystem.UnregisterEvent(eventName, callback);
                 }
@@ -272,6 +273,7 @@ namespace FFramework.Utility
             {
                 return eventSystem == system &&
                        eventName == name &&
+                       this.callback != null &&
                        this.callback.Equals(callback);
             }
 
@@ -297,7 +299,7 @@ namespace FFramework.Utility
 
             public override void Unregister()
             {
-                if (eventSystem != null)
+                if (eventSystem != null && callback != null)
                 {
                     eventSystem.UnregisterEvent<T>(eventName, callback);
                 }
@@ -307,6 +309,7 @@ namespace FFramework.Utility
             {
                 return eventSystem == system &&
                        eventName == name &&
+                       this.callback != null &&
                        this.callback.Equals(callback);
             }
 
@@ -426,12 +429,12 @@ namespace FFramework.Utility
         /// </summary>
         public void UnregisterAllEvents()
         {
+            int count = eventInfos.Count;
             foreach (var info in eventInfos)
             {
                 try
                 {
                     info.Unregister();
-                    Debug.Log($"AutoEventUnregister: 已手动注销事件 {info.eventName} ({info.GetCallbackTypeName()})");
                 }
                 catch (Exception ex)
                 {
@@ -439,6 +442,11 @@ namespace FFramework.Utility
                 }
             }
             eventInfos.Clear();
+
+            if (count > 0)
+            {
+                Debug.Log($"AutoEventUnregister: 已注销 {count} 个事件");
+            }
         }
 
         /// <summary>
@@ -556,8 +564,11 @@ namespace FFramework.Utility
 
         private void OnDestroy()
         {
-            Debug.Log($"<color=yellow>AutoEventUnregister: GameObject {gameObject.name} 销毁,自动注销 {eventInfos.Count} 个事件</color>");
-            UnregisterAllEvents();
+            if (eventInfos.Count > 0)
+            {
+                Debug.Log($"<color=yellow>AutoEventUnregister: GameObject {gameObject.name} 销毁,自动注销 {eventInfos.Count} 个事件</color>");
+                UnregisterAllEvents();
+            }
         }
     }
 

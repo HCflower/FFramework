@@ -1,7 +1,7 @@
 using UnityEditor;
 using UnityEngine;
 
-namespace CreateProjectFolder
+namespace FFramework.Tools
 {
     /// <summary>
     /// 创建项目文件夹
@@ -9,32 +9,25 @@ namespace CreateProjectFolder
     /// </summary>
     public class CreateProjectFolder : EditorWindow
     {
-        [MenuItem("FFramework/📁CreateGemeFolder #A", priority = 2)]
+        [MenuItem("FFramework/Tools/一键创建工程目录", priority = 2)]
         public static void DoCreateProjectFolder()
         {
             //代码
-            CreateFolderByName("Scripts/Command");
             CreateFolderByName("Scripts/ViewController");
             CreateFolderByName("Scripts/ViewController/UI");
             CreateFolderByName("Scripts/Model");
-            CreateFolderByName("Scripts/System");
-            CreateFolderByName("Scripts/Command");
             CreateFolderByName("Scripts/Utility");
             //游戏资源
             CreateFolderByName("GameRes/Resources");
             CreateFolderByName("GameRes/Resources/UI");
-            CreateFolderByName("GameRes/Resources/Audio");
-            CreateFolderByName("GameRes/Prefab");
             CreateFolderByName("GameRes/Image");
             CreateFolderByName("GameRes/Animation");
-            CreateFolderByName("GameRes/Scenes");
             CreateFolderByName("GameRes/Shader");
             CreateFolderByName("GameRes/Font");
             CreateFolderByName("GameRes/Material");
             CreateFolderByName("GameRes/Texture");
             CreateFolderByName("GameRes/Model");
             CreateFolderByName("GameRes/VFX");
-            CreateFolderByName("GameRes/Setting");
             //可热更新资源
             CreateFolderByName("HotUpdate");
             //数据保存

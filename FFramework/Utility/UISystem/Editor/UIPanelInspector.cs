@@ -153,21 +153,21 @@ namespace SmallFramework.Editor
             EditorGUILayout.BeginHorizontal();
 
             // 操作按钮
-            if (GUILayout.Button("刷新", GUILayout.Height(20), GUILayout.Width(60)))
+            if (GUILayout.Button("刷新", GUILayout.Height(18), GUILayout.Width(50)))
             {
                 Repaint();
             }
-            if (GUILayout.Button("导出报告", GUILayout.Height(20), GUILayout.Width(80)))
+            if (GUILayout.Button("导出", GUILayout.Height(18), GUILayout.Width(50)))
             {
                 ExportReportToConsole();
             }
 
-            GUILayout.Space(10);
+            GUILayout.Space(5);
 
             // 搜索区域
-            GUILayout.Label("筛选:", GUILayout.Width(40));
-            searchFilter = EditorGUILayout.TextField(searchFilter, GUILayout.Height(20), GUILayout.ExpandWidth(true));
-            if (GUILayout.Button("清除", GUILayout.Width(50), GUILayout.Height(20)))
+            GUILayout.Label("筛选:", GUILayout.Width(30));
+            searchFilter = EditorGUILayout.TextField(searchFilter, GUILayout.Height(18));
+            if (GUILayout.Button("X", GUILayout.Width(20), GUILayout.Height(18)))
                 searchFilter = "";
 
             EditorGUILayout.EndHorizontal();
@@ -182,18 +182,16 @@ namespace SmallFramework.Editor
             var allUIComponents = GetAllUIComponentsWithEvents();
 
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
-            EditorGUILayout.LabelField("UI组件统计", EditorStyles.boldLabel);
-            EditorGUILayout.Space(2);
-
             EditorGUILayout.BeginHorizontal();
-            EditorGUILayout.LabelField($"已绑定事件的UI组件:", GUILayout.Width(150));
-            EditorGUILayout.LabelField($"{allUIComponents.Count}", EditorStyles.boldLabel);
+            EditorGUILayout.LabelField("UI事件组件:", EditorStyles.boldLabel, GUILayout.Width(90));
+            EditorGUILayout.LabelField($"{allUIComponents.Count}", EditorStyles.boldLabel, GUILayout.Width(30));
+            GUILayout.FlexibleSpace();
             EditorGUILayout.EndHorizontal();
             EditorGUILayout.EndVertical();
         }
 
         /// <summary>
-        /// 绘制组件列表
+        /// 绘制组件列表 - 优化布局
         /// </summary>
         private void DrawComponentsList()
         {
@@ -202,22 +200,22 @@ namespace SmallFramework.Editor
             if (allUIComponents.Count > 0)
             {
                 EditorGUILayout.BeginVertical(EditorStyles.helpBox);
-                EditorGUILayout.LabelField("已绑定事件的UI组件列表", EditorStyles.boldLabel);
-                EditorGUILayout.Space(3);
+                EditorGUILayout.LabelField("已绑定事件的UI组件", EditorStyles.boldLabel);
+                EditorGUILayout.Space(2);
 
                 foreach (var uiComponent in allUIComponents)
                 {
                     if (!IsMatchFilter(uiComponent.Component.gameObject.name))
                         continue;
 
-                    DrawUIComponentItem(uiComponent);
+                    DrawUIComponentItemCompact(uiComponent);
                 }
                 EditorGUILayout.EndVertical();
             }
             else
             {
                 EditorGUILayout.BeginVertical(EditorStyles.helpBox);
-                EditorGUILayout.LabelField("没有发现已绑定事件的UI组件", EditorStyles.centeredGreyMiniLabel);
+                EditorGUILayout.LabelField("无已绑定事件的UI组件", EditorStyles.centeredGreyMiniLabel);
                 EditorGUILayout.EndVertical();
             }
         }
@@ -233,12 +231,12 @@ namespace SmallFramework.Editor
 
             // 标题行
             EditorGUILayout.BeginHorizontal();
-            EditorGUILayout.LabelField("事件追踪统计", EditorStyles.boldLabel);
+            EditorGUILayout.LabelField("事件追踪", EditorStyles.boldLabel, GUILayout.Width(60));
+            EditorGUILayout.LabelField($"追踪: {trackedCleanupActions.Count}", GUILayout.Width(60));
             GUILayout.FlexibleSpace();
-            EditorGUILayout.LabelField($"追踪清理动作: {trackedCleanupActions.Count}", GUILayout.Width(120));
             EditorGUILayout.EndHorizontal();
 
-            EditorGUILayout.Space(3);
+            EditorGUILayout.Space(2);
 
             // 清理动作详情
             if (trackedCleanupActions.Count > 0)
@@ -260,17 +258,17 @@ namespace SmallFramework.Editor
         {
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
             EditorGUILayout.LabelField("快速操作", EditorStyles.boldLabel);
-            EditorGUILayout.Space(3);
+            EditorGUILayout.Space(2);
 
             EditorGUILayout.BeginHorizontal();
-            if (GUILayout.Button("重新扫描并刷新", GUILayout.Height(24)))
+            if (GUILayout.Button("重新扫描", GUILayout.Height(20)))
             {
                 Repaint();
             }
 
             GUILayout.Space(5);
 
-            if (GUILayout.Button("仅打印当前面板事件概览到控制台", GUILayout.Height(24)))
+            if (GUILayout.Button("打印概览", GUILayout.Height(20)))
             {
                 ExportReportToConsole(false);
             }
@@ -279,18 +277,123 @@ namespace SmallFramework.Editor
         }
         #endregion
 
-        #region Helper Drawing Methods
+        #region Helper Drawing Methods - 优化版本
+
+        /// <summary>
+        /// 绘制紧凑的UI组件项 - 主要优化方法
+        /// </summary>
+        private void DrawUIComponentItemCompact(UIComponentInfo uiComponent)
+        {
+            var prevBgColor = GUI.backgroundColor;
+            GUI.backgroundColor = uiComponent.TypeColor * 0.15f + Color.white * 0.85f;
+
+            EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+
+            // 主要信息行 - 紧凑布局
+            EditorGUILayout.BeginHorizontal();
+
+            // 组件类型标签 - 缩短
+            var prevColor = GUI.color;
+            GUI.color = uiComponent.TypeColor;
+            string shortType = GetShortTypeName(uiComponent.ComponentType);
+            EditorGUILayout.LabelField($"[{shortType}]", GUILayout.Width(50));
+            GUI.color = prevColor;
+
+            // 组件名称 - 限制长度
+            string displayName = uiComponent.Component.gameObject.name;
+            if (displayName.Length > 20)
+                displayName = displayName.Substring(0, 17) + "...";
+
+            EditorGUILayout.LabelField(displayName, EditorStyles.boldLabel, GUILayout.Width(140));
+
+            // 监听器数量
+            EditorGUILayout.LabelField($"事件:{uiComponent.ListenerCount}", GUILayout.Width(50));
+
+            GUILayout.FlexibleSpace();
+
+            // 操作按钮 - 小尺寸
+            if (GUILayout.Button("选中", GUILayout.Width(35), GUILayout.Height(16)))
+            {
+                Selection.activeObject = uiComponent.Component.gameObject;
+                EditorGUIUtility.PingObject(uiComponent.Component.gameObject);
+            }
+
+            if (GUILayout.Button("详情", GUILayout.Width(35), GUILayout.Height(16)))
+            {
+                ShowComponentDetail(uiComponent);
+            }
+
+            EditorGUILayout.EndHorizontal();
+
+            // 简化的路径信息 - 只在需要时显示
+            if (ShouldShowPath(uiComponent.Component.gameObject))
+            {
+                EditorGUILayout.BeginHorizontal();
+                EditorGUILayout.Space(10);
+                string shortPath = GetShortPath(uiComponent.Component.gameObject);
+                EditorGUILayout.LabelField($"路径: {shortPath}", EditorStyles.miniLabel);
+                EditorGUILayout.EndHorizontal();
+            }
+
+            EditorGUILayout.EndVertical();
+            GUI.backgroundColor = prevBgColor;
+        }
+
+        /// <summary>
+        /// 获取简短的组件类型名
+        /// </summary>
+        private string GetShortTypeName(string typeName)
+        {
+            switch (typeName)
+            {
+                case "Button": return "Button";
+                case "Toggle": return "Toggle";
+                case "Slider": return "Slider";
+                case "InputField": return "InputField";
+                case "Dropdown": return "Dropdown";
+                case "ScrollRect": return "ScrollRect";
+                case "EventTrigger": return "EventTrigger";
+                default: return typeName.Length > 6 ? typeName.Substring(0, 6) : typeName;
+            }
+        }
+
+        /// <summary>
+        /// 判断是否需要显示路径
+        /// </summary>
+        private bool ShouldShowPath(GameObject obj)
+        {
+            // 只有当对象不是直接子对象时才显示路径
+            return obj.transform.parent != panel.transform;
+        }
+
+        /// <summary>
+        /// 获取简短的路径
+        /// </summary>
+        private string GetShortPath(GameObject obj)
+        {
+            string fullPath = GetGameObjectPath(obj);
+
+            // 如果路径太长，只显示最后两级
+            string[] pathParts = fullPath.Split('/');
+            if (pathParts.Length > 2)
+            {
+                return ".../" + pathParts[pathParts.Length - 2] + "/" + pathParts[pathParts.Length - 1];
+            }
+
+            return fullPath;
+        }
+
         /// <summary>
         /// 绘制清理动作详情
         /// </summary>
         private void DrawCleanupActionsDetails()
         {
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
-            EditorGUILayout.LabelField($"已追踪 {trackedCleanupActions.Count} 个事件清理动作，面板销毁时将自动清理", EditorStyles.miniLabel);
+            EditorGUILayout.LabelField($"已追踪 {trackedCleanupActions.Count} 个清理动作", EditorStyles.miniLabel);
 
-            EditorGUILayout.Space(3);
+            EditorGUILayout.Space(2);
             EditorGUILayout.BeginHorizontal();
-            if (GUILayout.Button("查看详情", GUILayout.Height(20), GUILayout.Width(80)))
+            if (GUILayout.Button("查看详情", GUILayout.Height(18), GUILayout.Width(70)))
             {
                 showCleanupActions = !showCleanupActions;
             }
@@ -308,24 +411,27 @@ namespace SmallFramework.Editor
         /// </summary>
         private void DrawCleanupActionsDetailsList()
         {
-            EditorGUILayout.Space(5);
+            EditorGUILayout.Space(3);
             EditorGUILayout.LabelField("清理动作详情:", EditorStyles.miniLabel);
 
-            int displayCount = Math.Min(trackedCleanupActions.Count, 10);
+            int displayCount = Math.Min(trackedCleanupActions.Count, 8);
             for (int i = 0; i < displayCount; i++)
             {
                 EditorGUILayout.BeginHorizontal();
-                EditorGUILayout.LabelField($"  [{i}]", EditorStyles.miniLabel, GUILayout.Width(40));
-                EditorGUILayout.LabelField($"{trackedCleanupActions[i]?.Method?.Name ?? "Unknown"}", EditorStyles.miniLabel);
+                EditorGUILayout.LabelField($"  [{i}]", EditorStyles.miniLabel, GUILayout.Width(30));
+                string methodName = trackedCleanupActions[i]?.Method?.Name ?? "Unknown";
+                if (methodName.Length > 25)
+                    methodName = methodName.Substring(0, 22) + "...";
+                EditorGUILayout.LabelField(methodName, EditorStyles.miniLabel);
                 EditorGUILayout.EndHorizontal();
             }
 
-            if (trackedCleanupActions.Count > 10)
+            if (trackedCleanupActions.Count > 8)
             {
-                EditorGUILayout.LabelField($"  ... 还有 {trackedCleanupActions.Count - 10} 个清理动作", EditorStyles.miniLabel);
+                EditorGUILayout.LabelField($"  ... 还有 {trackedCleanupActions.Count - 8} 个", EditorStyles.miniLabel);
             }
 
-            EditorGUILayout.Space(3);
+            EditorGUILayout.Space(2);
             EditorGUILayout.LabelField("提示: 这些清理动作会在面板销毁时自动执行", EditorStyles.miniLabel);
         }
 
@@ -336,60 +442,12 @@ namespace SmallFramework.Editor
         {
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
             EditorGUILayout.LabelField("没有追踪的事件清理动作", EditorStyles.centeredGreyMiniLabel);
-            EditorGUILayout.LabelField("建议使用带自动追踪的绑定方法，以避免内存泄漏", EditorStyles.centeredGreyMiniLabel);
+            EditorGUILayout.LabelField("建议使用带自动追踪的绑定方法", EditorStyles.centeredGreyMiniLabel);
             EditorGUILayout.EndVertical();
-        }
-
-        /// <summary>
-        /// 绘制单个UI组件项
-        /// </summary>
-        private void DrawUIComponentItem(UIComponentInfo uiComponent)
-        {
-            var prevBgColor = GUI.backgroundColor;
-            GUI.backgroundColor = uiComponent.TypeColor * 0.25f + Color.white * 0.75f;
-
-            EditorGUILayout.BeginVertical(EditorStyles.helpBox);
-
-            // 主要信息行
-            EditorGUILayout.BeginHorizontal();
-
-            // 组件类型标签
-            var prevColor = GUI.color;
-            GUI.color = uiComponent.TypeColor;
-            EditorGUILayout.LabelField($"[{uiComponent.ComponentType}]", GUILayout.Width(85));
-            GUI.color = prevColor;
-
-            // 组件名称
-            EditorGUILayout.LabelField($"{uiComponent.Component.gameObject.name}", EditorStyles.boldLabel);
-            GUILayout.FlexibleSpace();
-
-            // 监听器数量
-            EditorGUILayout.LabelField($"监听: {uiComponent.ListenerCount}", GUILayout.Width(80));
-
-            // 操作按钮
-            if (GUILayout.Button("选中", GUILayout.Width(50), GUILayout.Height(20)))
-            {
-                Selection.activeObject = uiComponent.Component.gameObject;
-                EditorGUIUtility.PingObject(uiComponent.Component.gameObject);
-            }
-
-            if (GUILayout.Button("详情", GUILayout.Width(50), GUILayout.Height(20)))
-            {
-                ShowComponentDetail(uiComponent);
-            }
-
-            EditorGUILayout.EndHorizontal();
-
-            // 路径信息行
-            EditorGUILayout.BeginHorizontal();
-            EditorGUILayout.Space(20);
-            EditorGUILayout.LabelField($"路径: {GetGameObjectPath(uiComponent.Component.gameObject)}", EditorStyles.miniLabel);
-            EditorGUILayout.EndHorizontal();
-
-            EditorGUILayout.EndVertical();
-            GUI.backgroundColor = prevBgColor;
         }
         #endregion
+
+        // ...existing code... (保持其他所有方法不变)
 
         #region Component Detail Methods
         /// <summary>

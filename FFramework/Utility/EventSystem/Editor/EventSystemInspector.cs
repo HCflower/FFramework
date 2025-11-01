@@ -5,7 +5,7 @@ using UnityEditor;
 using UnityEngine;
 using System;
 
-namespace SmallFramework.Editor
+namespace FFramework.Editor
 {
     [CustomEditor(typeof(EventSystem))]
     public class EventSystemInspector : UnityEditor.Editor
@@ -21,21 +21,21 @@ namespace SmallFramework.Editor
         // 保存折叠状态
         private Dictionary<string, bool> foldoutStates = new Dictionary<string, bool>();
 
-        // 缓存的事件数据 - 优化为只在结构变化时重建
-        private Dictionary<string, List<EventListenerInfo>> eventListeners = new Dictionary<string, List<EventListenerInfo>>();
-        private Dictionary<string, List<TriggerDisplayInfo>> cachedTriggers = new Dictionary<string, List<TriggerDisplayInfo>>();
+        // 缓存的事件数据
+        private Dictionary<string, List<EnhancedListenerInfo>> eventListeners = new Dictionary<string, List<EnhancedListenerInfo>>();
+        private Dictionary<string, List<EnhancedTriggerInfo>> eventTriggers = new Dictionary<string, List<EnhancedTriggerInfo>>();
         private int totalListeners = 0;
         private string lastUpdateTime = "";
 
-        // 数据版本控制，避免不必要的UI重建
+        // 数据版本控制
         private int lastEventStructureHash = 0;
         #endregion
 
         #region Data Structures
         /// <summary>
-        /// 事件监听器信息
+        /// 增强的监听器信息
         /// </summary>
-        private class EventListenerInfo
+        private class EnhancedListenerInfo
         {
             public string EventName;
             public object Target;
@@ -44,6 +44,25 @@ namespace SmallFramework.Editor
             public string AssemblyName;
             public Delegate Callback;
 
+            public EnhancedListenerInfo(EventSystem.ListenerInfo listenerInfo, string eventName)
+            {
+                EventName = eventName;
+                Target = listenerInfo.Target;
+                Callback = listenerInfo.Callback;
+
+                if (listenerInfo.Callback != null)
+                {
+                    var method = listenerInfo.Callback.Method;
+                    MethodName = method.Name;
+                    ClassName = method.DeclaringType?.Name ?? "Unknown";
+                    AssemblyName = method.DeclaringType?.Assembly?.GetName()?.Name ?? "Unknown";
+                }
+                else
+                {
+                    MethodName = ClassName = AssemblyName = "Unknown";
+                }
+            }
+
             public string GetDetailedInfo()
             {
                 return $"事件: {EventName}\n类: {ClassName}\n方法: {MethodName}\n程序集: {AssemblyName}";
@@ -51,33 +70,69 @@ namespace SmallFramework.Editor
         }
 
         /// <summary>
-        /// 触发位置显示信息 - 用于缓存和优化显示
+        /// 增强的触发器信息
         /// </summary>
-        private class TriggerDisplayInfo
+        private class EnhancedTriggerInfo
         {
             public string EventName;
-            public string ClassName;
-            public string MethodName;
-            public string TriggerTime;
-            public string LocationKey;
+            public string CallerClass;
+            public string CallerMethod;
+            public DateTime TriggerTime;
+            public object TriggerContext;
+            public int TriggerCount;
 
-            public TriggerDisplayInfo(EventSystem.TriggerInfo triggerInfo, string eventName)
+            public EnhancedTriggerInfo(EventSystem.TriggerInfo triggerInfo, string eventName)
             {
                 EventName = eventName;
-                ClassName = triggerInfo.ClassName;
-                MethodName = triggerInfo.MethodName;
+                CallerClass = triggerInfo.CallerClass ?? "Unknown";
+                CallerMethod = triggerInfo.CallerMethod ?? "Unknown";
                 TriggerTime = triggerInfo.TriggerTime;
-                LocationKey = $"{ClassName}.{MethodName}";
+                TriggerContext = triggerInfo.TriggerContext;
+                TriggerCount = 1;
             }
 
-            public void UpdateTime(string newTime)
+            public void UpdateTriggerTime(DateTime newTime)
             {
                 TriggerTime = newTime;
+                TriggerCount++;
+            }
+
+            public string GetLocationKey()
+            {
+                return $"{CallerClass ?? "Unknown"}.{CallerMethod ?? "Unknown"}";
             }
 
             public string GetDetailedInfo()
             {
-                return $"触发类: {ClassName}\n触发方法: {MethodName}\n触发时间: {TriggerTime}";
+                var contextInfo = GetContextDescription(TriggerContext);
+
+                return $"事件: {EventName}\n" +
+                       $"类: {CallerClass}\n" +
+                       $"方法: {CallerMethod}\n" +
+                       $"触发次数: {TriggerCount}\n" +
+                       $"最后触发: {TriggerTime:HH:mm:ss.fff}\n" +
+                       $"上下文: {contextInfo}";
+            }
+
+            private string GetContextDescription(object context)
+            {
+                if (context == null) return "无";
+
+                return context switch
+                {
+                    MonoBehaviour mono when mono != null =>
+                        $"{mono.gameObject.name} ({mono.GetType().Name})",
+                    MonoBehaviour =>
+                        "MonoBehaviour (已销毁)",
+                    GameObject go when go != null =>
+                        $"{go.name} (GameObject)",
+                    GameObject =>
+                        "GameObject (已销毁)",
+                    string str =>
+                        $"\"{str}\"",
+                    _ =>
+                        $"{context.GetType().Name} 实例"
+                };
             }
         }
         #endregion
@@ -174,6 +229,12 @@ namespace SmallFramework.Editor
                 SetAllFoldouts(false);
             }
 
+            if (GUILayout.Button("清理无效", GUILayout.Height(18), GUILayout.Width(80)))
+            {
+                eventSystem.CleanupInvalidListeners();
+                RefreshEventData(forceRefresh: true);
+            }
+
             // 自动刷新开关
             bool newAutoRefresh = EditorGUILayout.ToggleLeft("自动刷新(1s)", autoRefresh, GUILayout.Width(120));
             if (newAutoRefresh != autoRefresh)
@@ -181,12 +242,8 @@ namespace SmallFramework.Editor
                 autoRefresh = newAutoRefresh;
                 if (autoRefresh)
                 {
-                    // 延迟到下一帧刷新，避免布局错乱
-                    EditorApplication.delayCall += () =>
-                    {
-                        nextRefreshTime = EditorApplication.timeSinceStartup + refreshInterval;
-                        RefreshEventData();
-                    };
+                    nextRefreshTime = EditorApplication.timeSinceStartup + refreshInterval;
+                    RefreshEventData();
                 }
             }
 
@@ -202,11 +259,10 @@ namespace SmallFramework.Editor
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
             EditorGUILayout.LabelField("汇总信息", EditorStyles.boldLabel);
 
-            // 使用紧凑的网格布局，每个信息占用固定宽度
             EditorGUILayout.BeginHorizontal();
             EditorGUILayout.LabelField($"事件数: {eventListeners.Count}", GUILayout.Width(80));
             EditorGUILayout.LabelField($"监听者: {totalListeners}", GUILayout.Width(80));
-            EditorGUILayout.LabelField($"更新: {lastUpdateTime}", GUILayout.Width(100));
+            EditorGUILayout.LabelField($"更新: {lastUpdateTime}", GUILayout.Width(120));
             EditorGUILayout.EndHorizontal();
 
             EditorGUILayout.EndVertical();
@@ -218,7 +274,6 @@ namespace SmallFramework.Editor
         private void DrawEventList()
         {
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
-            EditorGUILayout.Space(1);
             EditorGUILayout.LabelField("事件列表", EditorStyles.boldLabel);
 
             if (eventListeners.Count == 0)
@@ -227,15 +282,8 @@ namespace SmallFramework.Editor
                 EditorGUILayout.EndVertical();
                 return;
             }
-            EditorGUILayout.Space(1);
 
-            // 计算内容高度进行自适应
-            float totalContentHeight = CalculateEventListHeight();
-            float maxHeight = Mathf.Min(totalContentHeight, 500f); // 最大高度限制为500px，避免过高
-
-            // 内部滚动视图，高度自适应但有最大限制
-            Vector2 innerScrollPos = EditorGUILayout.BeginScrollView(Vector2.zero,
-                totalContentHeight > 500f ? GUILayout.Height(maxHeight) : GUILayout.ExpandHeight(false));
+            EditorGUILayout.Space(2);
 
             foreach (var kvp in eventListeners.OrderBy(x => x.Key))
             {
@@ -245,54 +293,13 @@ namespace SmallFramework.Editor
                 DrawEventGroup(kvp.Key, kvp.Value);
             }
 
-            EditorGUILayout.EndScrollView();
             EditorGUILayout.EndVertical();
-        }
-
-        /// <summary>
-        /// 计算事件列表内容的总高度
-        /// </summary>
-        private float CalculateEventListHeight()
-        {
-            float totalHeight = 0f;
-
-            foreach (var kvp in eventListeners.OrderBy(x => x.Key))
-            {
-                if (kvp.Value == null || kvp.Value.Count == 0)
-                    continue;
-
-                // 事件组标题高度
-                totalHeight += 20f; // Foldout 标题高度
-
-                // 如果展开，计算监听器项高度
-                bool isExpanded = foldoutStates.ContainsKey(kvp.Key) ? foldoutStates[kvp.Key] : false;
-                if (isExpanded)
-                {
-                    totalHeight += 4f; // 间距
-                    totalHeight += kvp.Value.Count * 24f; // 每个监听器项高度(20px + 4px间距)
-
-                    // 添加触发位置区域高度
-                    if (cachedTriggers.ContainsKey(kvp.Key))
-                    {
-                        var triggers = cachedTriggers[kvp.Key];
-                        totalHeight += 40f; // 标题区域
-                        totalHeight += Math.Min(triggers.Count, 5) * 20f; // 最多显示5条记录
-                    }
-                }
-
-                totalHeight += 4f; // 事件组间距
-            }
-
-            // 添加一些额外的边距
-            totalHeight += 10f;
-
-            return totalHeight;
         }
 
         /// <summary>
         /// 绘制单个事件组
         /// </summary>
-        private void DrawEventGroup(string eventName, List<EventListenerInfo> listeners)
+        private void DrawEventGroup(string eventName, List<EnhancedListenerInfo> listeners)
         {
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
 
@@ -303,7 +310,6 @@ namespace SmallFramework.Editor
             EditorGUILayout.BeginHorizontal();
             string buttonText = $"{(isExpanded ? "▼" : "▶")} {eventName} (监听:{listeners.Count})";
 
-            // 自定义左对齐按钮样式
             GUIStyle leftButtonStyle = new GUIStyle(EditorStyles.miniButton);
             leftButtonStyle.alignment = TextAnchor.MiddleLeft;
             leftButtonStyle.padding = new RectOffset(8, 4, 0, 0);
@@ -312,6 +318,7 @@ namespace SmallFramework.Editor
             {
                 foldoutStates[eventName] = !isExpanded;
             }
+
             EditorGUILayout.EndHorizontal();
 
             // 如果展开，显示监听器和触发位置
@@ -319,13 +326,13 @@ namespace SmallFramework.Editor
             {
                 EditorGUILayout.Space(2);
 
-                // 监听者区域 - 橙黄色背景
+                // 监听者区域
                 DrawListenersSection(listeners);
 
                 EditorGUILayout.Space(3);
 
-                // 触发位置区域 - 天青色背景
-                DrawTriggersSection(eventName);
+                // 触发信息区域
+                DrawTriggerSection(eventName);
             }
 
             EditorGUILayout.EndVertical();
@@ -335,18 +342,18 @@ namespace SmallFramework.Editor
         /// <summary>
         /// 绘制监听者区域
         /// </summary>
-        private void DrawListenersSection(List<EventListenerInfo> listeners)
+        private void DrawListenersSection(List<EnhancedListenerInfo> listeners)
         {
-            // 橙黄色背景
+            // 天青色背景
             var originalColor = GUI.backgroundColor;
-            GUI.backgroundColor = new Color(1f, 0.8f, 0.2f, 0.3f); // 橙黄色，半透明
+            GUI.backgroundColor = new Color(0.2f, 0.8f, 1f, 0.3f);
 
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
             GUI.backgroundColor = originalColor;
 
             // 标题
             GUIStyle titleStyle = new GUIStyle(EditorStyles.boldLabel);
-            titleStyle.normal.textColor = new Color(0.8f, 0.5f, 0f); // 深橙色
+            titleStyle.normal.textColor = new Color(0f, 0.5f, 0.8f);
             EditorGUILayout.LabelField($"监听者 ({listeners.Count})", titleStyle);
 
             // 监听者列表
@@ -373,7 +380,6 @@ namespace SmallFramework.Editor
                     EditorUtility.DisplayDialog("监听者详情", info.GetDetailedInfo(), "确定");
                 }
 
-                // 间隔2个单位
                 GUILayout.Space(2);
 
                 // 定位按钮
@@ -393,82 +399,87 @@ namespace SmallFramework.Editor
         }
 
         /// <summary>
-        /// 绘制触发位置区域 - 优化版本，减少UI重建
+        /// 绘制触发信息区域
         /// </summary>
-        private void DrawTriggersSection(string eventName)
+        private void DrawTriggerSection(string eventName)
         {
-            // 天青色背景
+            // 橙黄色背景
             var originalColor = GUI.backgroundColor;
-            GUI.backgroundColor = new Color(0.2f, 0.8f, 1f, 0.3f); // 天青色，半透明
+            GUI.backgroundColor = new Color(1f, 0.8f, 0.2f, 0.3f);
 
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
             GUI.backgroundColor = originalColor;
 
             // 标题行
-            EditorGUILayout.BeginHorizontal();
-
             GUIStyle titleStyle = new GUIStyle(EditorStyles.boldLabel);
-            titleStyle.normal.textColor = new Color(0f, 0.5f, 0.8f); // 深天青色
+            titleStyle.normal.textColor = new Color(0.8f, 0.5f, 0f);
 
-            // 使用缓存的触发数据
-            var cachedTriggerList = cachedTriggers.ContainsKey(eventName) ? cachedTriggers[eventName] : new List<TriggerDisplayInfo>();
-            EditorGUILayout.LabelField($"触发位置 ({cachedTriggerList.Count})", titleStyle);
+            EditorGUILayout.LabelField("触发位置信息", titleStyle);
 
-            // 清理按钮
-            if (cachedTriggerList.Count > 0)
+            // 触发信息内容
+            if (eventTriggers.ContainsKey(eventName) && eventTriggers[eventName] != null && eventTriggers[eventName].Count > 0)
             {
-                if (GUILayout.Button("清理", EditorStyles.miniButton, GUILayout.Width(40), GUILayout.Height(16)))
-                {
-                    eventSystem.ClearTriggerHistory(eventName);
-                    cachedTriggers[eventName] = new List<TriggerDisplayInfo>();
-                }
-            }
+                var triggers = eventTriggers[eventName].OrderByDescending(t => t.TriggerTime).ToList();
 
-            EditorGUILayout.EndHorizontal();
-
-            // 触发位置列表
-            if (cachedTriggerList.Count == 0)
-            {
-                EditorGUILayout.LabelField("暂无触发记录", EditorStyles.centeredGreyMiniLabel);
-            }
-            else
-            {
-                // 显示最近的5条记录，按时间倒序
-                var recentTriggers = cachedTriggerList.TakeLast(5).Reverse().ToList();
-
-                foreach (var trigger in recentTriggers)
+                foreach (var triggerInfo in triggers)
                 {
                     EditorGUILayout.BeginHorizontal();
 
                     // 触发位置信息按钮
-                    string shortClassName = GetShortClassName(trigger.ClassName);
-                    string displayText = $"{shortClassName}.{TruncateString(trigger.MethodName, 12)}() [{trigger.TriggerTime}]";
+                    string shortClassName = GetShortClassName(triggerInfo.CallerClass);
+                    string displayText = $"{shortClassName}.{TruncateString(triggerInfo.CallerMethod, 10)}()";
+                    string timeText = triggerInfo.TriggerTime.ToString("HH:mm:ss.fff");
+                    string countText = triggerInfo.TriggerCount > 1 ? $"×{triggerInfo.TriggerCount}" : "";
 
-                    if (GUILayout.Button(displayText, EditorStyles.miniButton, GUILayout.ExpandWidth(true), GUILayout.Height(18)))
+                    // 添加上下文信息到显示文本
+                    string contextPart = GetContextDisplayText(triggerInfo.TriggerContext);
+                    string fullText = $"{displayText} {contextPart} [{timeText}] {countText}";
+
+                    // 设置按钮颜色（最新的触发显示为更亮的颜色）
+                    var btnColor = GUI.backgroundColor;
+                    if (triggerInfo == triggers.First())
                     {
-                        EditorUtility.DisplayDialog("触发位置详情", trigger.GetDetailedInfo(), "确定");
+                        GUI.backgroundColor = new Color(1f, 0.8f, 0.2f, 0.3f); // 最新触发为橙色
                     }
 
-                    // 间隔2个单位
-                    GUILayout.Space(2);
-
-                    // 定位按钮
-                    if (GUILayout.Button("定位", EditorStyles.miniButtonRight, GUILayout.Width(40), GUILayout.Height(18)))
+                    if (GUILayout.Button(fullText, EditorStyles.miniButton, GUILayout.ExpandWidth(true), GUILayout.Height(18)))
                     {
-                        // TODO:
+                        EditorUtility.DisplayDialog("触发信息详情", triggerInfo.GetDetailedInfo(), "确定");
                     }
+
+                    GUI.backgroundColor = btnColor;
+
+                    // 不再显示定位按钮
 
                     EditorGUILayout.EndHorizontal();
-                }
 
-                // 如果有更多记录，显示提示
-                if (cachedTriggerList.Count > 5)
-                {
-                    EditorGUILayout.LabelField($"... 还有 {cachedTriggerList.Count - 5} 条历史记录", EditorStyles.centeredGreyMiniLabel);
+                    EditorGUILayout.Space(1);
                 }
+            }
+            else
+            {
+                EditorGUILayout.LabelField("暂无触发记录", EditorStyles.centeredGreyMiniLabel);
             }
 
             EditorGUILayout.EndVertical();
+        }
+
+        /// <summary>
+        /// 获取上下文的显示文本（简短版本）
+        /// </summary>
+        private string GetContextDisplayText(object context)
+        {
+            if (context == null) return "";
+
+            return context switch
+            {
+                MonoBehaviour mono when mono != null => $"[{TruncateString(mono.gameObject.name, 8)}]",
+                MonoBehaviour => "[已销毁]",
+                GameObject go when go != null => $"[{TruncateString(go.name, 8)}]",
+                GameObject => "[已销毁]",
+                string str when !string.IsNullOrEmpty(str) => $"[{TruncateString(str, 8)}]",
+                _ => $"[{context.GetType().Name}]"
+            };
         }
 
         #endregion
@@ -491,7 +502,6 @@ namespace SmallFramework.Editor
             string[] parts = fullClassName.Split('.');
             string shortName = parts[parts.Length - 1];
 
-            // 限制长度到更小
             return TruncateString(shortName, 12);
         }
 
@@ -512,7 +522,7 @@ namespace SmallFramework.Editor
 
         #region Data Management
         /// <summary>
-        /// 刷新事件数据 - 优化版本，减少不必要的重建
+        /// 刷新事件数据
         /// </summary>
         private void RefreshEventData(bool forceRefresh = false)
         {
@@ -529,12 +539,11 @@ namespace SmallFramework.Editor
 
                 if (structureChanged)
                 {
-                    // 事件结构发生变化，需要重新构建监听者数据
                     RefreshListenerData(eventNames);
                     lastEventStructureHash = currentEventStructureHash;
                 }
 
-                // 更新触发位置数据（这个相对频繁，但我们优化了处理方式）
+                // 更新触发信息
                 RefreshTriggerData(eventNames);
 
                 lastUpdateTime = System.DateTime.Now.ToString("HH:mm:ss");
@@ -543,7 +552,7 @@ namespace SmallFramework.Editor
             {
                 Debug.LogError($"刷新事件数据失败: {ex.Message}");
                 eventListeners.Clear();
-                cachedTriggers.Clear();
+                eventTriggers.Clear();
                 totalListeners = 0;
                 lastUpdateTime = "获取失败";
             }
@@ -563,48 +572,32 @@ namespace SmallFramework.Editor
             {
                 foreach (string eventName in eventNames)
                 {
-                    var enhancedListeners = eventSystem.GetEventListeners(eventName);
-                    if (enhancedListeners != null && enhancedListeners.Count > 0)
+                    var listeners = eventSystem.GetEventListeners(eventName);
+                    if (listeners != null && listeners.Count > 0)
                     {
-                        var eventInfoList = new List<EventListenerInfo>();
-
-                        foreach (var listener in enhancedListeners)
-                        {
-                            var info = new EventListenerInfo
-                            {
-                                EventName = eventName,
-                                Target = listener.Target,
-                                ClassName = listener.ClassName,
-                                MethodName = listener.MethodName,
-                                AssemblyName = listener.AssemblyName,
-                                Callback = listener.Callback
-                            };
-                            eventInfoList.Add(info);
-                        }
+                        var enhancedListeners = listeners.Select(l => new EnhancedListenerInfo(l, eventName)).ToList();
 
                         // 应用搜索过滤器
                         if (!string.IsNullOrEmpty(searchFilter))
                         {
                             bool matchesFilter = eventName.ToLower().Contains(searchFilter.ToLower()) ||
-                                               eventInfoList.Any(l =>
+                                               enhancedListeners.Any(l =>
                                                    (l.ClassName?.ToLower().Contains(searchFilter.ToLower()) ?? false) ||
-                                                   (l.MethodName?.ToLower().Contains(searchFilter.ToLower()) ?? false) ||
-                                                   (l.AssemblyName?.ToLower().Contains(searchFilter.ToLower()) ?? false));
+                                                   (l.MethodName?.ToLower().Contains(searchFilter.ToLower()) ?? false));
 
                             if (!matchesFilter)
                                 continue;
                         }
 
-                        // 添加到最终列表
-                        eventListeners[eventName] = eventInfoList;
-                        totalListeners += eventInfoList.Count;
+                        eventListeners[eventName] = enhancedListeners;
+                        totalListeners += enhancedListeners.Count;
                     }
                 }
             }
         }
 
         /// <summary>
-        /// 刷新触发位置数据 - 优化版本，同一位置只更新时间
+        /// 刷新触发信息数据
         /// </summary>
         private void RefreshTriggerData(string[] eventNames)
         {
@@ -612,82 +605,67 @@ namespace SmallFramework.Editor
 
             foreach (string eventName in eventNames)
             {
-                var newTriggers = eventSystem.GetEventTriggers(eventName);
-                if (newTriggers == null || newTriggers.Count == 0)
+                var triggerInfo = eventSystem.GetLastTrigger(eventName);
+                if (triggerInfo != null)
                 {
-                    // 如果没有触发记录，确保缓存中也为空
-                    if (!cachedTriggers.ContainsKey(eventName))
+                    // 如果事件触发列表不存在，创建新的
+                    if (!eventTriggers.ContainsKey(eventName))
                     {
-                        cachedTriggers[eventName] = new List<TriggerDisplayInfo>();
+                        eventTriggers[eventName] = new List<EnhancedTriggerInfo>();
                     }
-                    continue;
-                }
 
-                // 获取或创建缓存列表
-                if (!cachedTriggers.ContainsKey(eventName))
-                {
-                    cachedTriggers[eventName] = new List<TriggerDisplayInfo>();
-                }
+                    var enhancedTrigger = new EnhancedTriggerInfo(triggerInfo, eventName);
+                    string locationKey = enhancedTrigger.GetLocationKey();
 
-                var cachedList = cachedTriggers[eventName];
+                    // 查找是否已有相同位置的触发信息
+                    var existingTrigger = eventTriggers[eventName].FirstOrDefault(t => t.GetLocationKey() == locationKey);
 
-                // 处理新的触发记录
-                foreach (var trigger in newTriggers)
-                {
-                    var newDisplayInfo = new TriggerDisplayInfo(trigger, eventName);
-
-                    // 查找是否存在相同位置的记录
-                    var existingInfo = cachedList.FirstOrDefault(cached =>
-                        cached.LocationKey == newDisplayInfo.LocationKey);
-
-                    if (existingInfo != null)
+                    if (existingTrigger != null)
                     {
-                        // 同一位置，只更新时间
-                        existingInfo.UpdateTime(newDisplayInfo.TriggerTime);
+                        // 如果是同一位置，只更新时间和计数
+                        if (existingTrigger.TriggerTime < triggerInfo.TriggerTime)
+                        {
+                            existingTrigger.UpdateTriggerTime(triggerInfo.TriggerTime);
+                            // 同时更新上下文信息
+                            existingTrigger.TriggerContext = triggerInfo.TriggerContext;
+                        }
                     }
                     else
                     {
-                        // 新位置，添加到列表
-                        cachedList.Add(newDisplayInfo);
+                        // 新的触发位置，添加到列表
+                        eventTriggers[eventName].Add(enhancedTrigger);
                     }
-                }
 
-                // 保持缓存大小限制
-                if (cachedList.Count > 20) // 保留更多历史记录用于去重
-                {
-                    // 移除最旧的记录，但保留最近的不同位置
-                    var groupedByLocation = cachedList.GroupBy(t => t.LocationKey)
-                                                     .Select(g => g.OrderByDescending(t => t.TriggerTime).First())
-                                                     .OrderByDescending(t => t.TriggerTime)
-                                                     .Take(15)
-                                                     .ToList();
-
-                    cachedTriggers[eventName] = groupedByLocation;
+                    // 限制每个事件最多显示10个不同的触发位置
+                    if (eventTriggers[eventName].Count > 10)
+                    {
+                        var oldest = eventTriggers[eventName].OrderBy(t => t.TriggerTime).First();
+                        eventTriggers[eventName].Remove(oldest);
+                    }
                 }
             }
 
             // 清理不再存在的事件的缓存
             var currentEventNames = new HashSet<string>(eventNames);
-            var cachedEventNames = cachedTriggers.Keys.ToList();
+            var cachedEventNames = eventTriggers.Keys.ToList();
 
             foreach (string cachedEventName in cachedEventNames)
             {
                 if (!currentEventNames.Contains(cachedEventName))
                 {
-                    cachedTriggers.Remove(cachedEventName);
+                    eventTriggers.Remove(cachedEventName);
                 }
             }
         }
 
         /// <summary>
-        /// 计算事件结构哈希值，用于检测结构变化
+        /// 计算事件结构哈希值
         /// </summary>
         private int GetEventStructureHash(string[] eventNames)
         {
             if (eventNames == null || eventNames.Length == 0)
                 return 0;
 
-            // 使用事件名称和监听者数量计算哈希
             int hash = 17;
             foreach (string eventName in eventNames)
             {
@@ -717,7 +695,6 @@ namespace SmallFramework.Editor
         {
             if (autoRefresh && EditorApplication.timeSinceStartup >= nextRefreshTime)
             {
-                // 避免在Layout事件中刷新，防止GUI错误
                 if (Event.current == null || Event.current.type != EventType.Layout)
                 {
                     RefreshEventData();
@@ -725,10 +702,9 @@ namespace SmallFramework.Editor
                 }
                 else
                 {
-                    // 延迟到下一帧
                     EditorApplication.delayCall += () =>
                     {
-                        if (autoRefresh) // 再次检查，因为可能在延迟期间被关闭
+                        if (autoRefresh)
                         {
                             RefreshEventData();
                             nextRefreshTime = EditorApplication.timeSinceStartup + refreshInterval;
@@ -737,39 +713,12 @@ namespace SmallFramework.Editor
                 }
             }
 
-            // 确保在自动刷新模式下持续重绘
             if (autoRefresh)
             {
                 Repaint();
             }
         }
 
-        #endregion
-
-        #region Unity Events
-        /// <summary>
-        /// 启用时初始化
-        /// </summary>
-        private void OnEnable()
-        {
-            // 初始化数据
-            RefreshEventData(forceRefresh: true);
-
-            // 如果开启了自动刷新，设置下次刷新时间
-            if (autoRefresh)
-            {
-                nextRefreshTime = EditorApplication.timeSinceStartup + refreshInterval;
-            }
-        }
-
-        /// <summary>
-        /// 禁用时清理
-        /// </summary>
-        private void OnDisable()
-        {
-            // 可以在这里做一些清理工作
-            autoRefresh = false;
-        }
         #endregion
     }
 }
