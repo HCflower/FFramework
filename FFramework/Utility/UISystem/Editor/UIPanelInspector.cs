@@ -1,15 +1,15 @@
-using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
-using UnityEditor;
-using UnityEngine;
 using UnityEngine.EventSystems;
-using UnityEngine.Events;
-using UnityEngine.UI;
 using FFramework.Utility;
+using UnityEngine.Events;
+using System.Reflection;
+using UnityEngine.UI;
+using UnityEditor;
+using System.Linq;
+using UnityEngine;
+using System;
 
-namespace SmallFramework.Editor
+namespace FFramework.Editor
 {
     /// <summary>
     /// UIPanel 检视器 - UI事件检查器
@@ -167,7 +167,7 @@ namespace SmallFramework.Editor
             // 搜索区域
             GUILayout.Label("筛选:", GUILayout.Width(30));
             searchFilter = EditorGUILayout.TextField(searchFilter, GUILayout.Height(18));
-            if (GUILayout.Button("X", GUILayout.Width(20), GUILayout.Height(18)))
+            if (GUILayout.Button("清除", GUILayout.Width(36), GUILayout.Height(18)))
                 searchFilter = "";
 
             EditorGUILayout.EndHorizontal();
