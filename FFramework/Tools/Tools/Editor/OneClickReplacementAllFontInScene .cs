@@ -20,13 +20,64 @@ namespace FFramework.Tools
         // 滚动视图位置
         private Vector2 scrollPosition;
 
+        // GUI样式
+        private GUIStyle headerStyle;
+        private GUIStyle sectionStyle;
+        private GUIStyle buttonStyle;
+        private GUIStyle boxStyle;
+
         /// <summary>
         /// 打开工具窗口菜单
         /// </summary>
         [MenuItem("FFramework/Tools/一键替换场景中的字体资产")]
         public static void ShowWindow()
         {
-            GetWindow<OneClickReplacementAllFontInScene>("一键字体替换工具");
+            var window = GetWindow<OneClickReplacementAllFontInScene>("一键字体替换工具");
+            window.minSize = new Vector2(400, 410);
+        }
+
+        /// <summary>
+        /// 初始化样式
+        /// </summary>
+        private void InitializeStyles()
+        {
+            if (headerStyle == null)
+            {
+                headerStyle = new GUIStyle(EditorStyles.largeLabel)
+                {
+                    fontSize = 16,
+                    fontStyle = FontStyle.Bold,
+                    alignment = TextAnchor.MiddleCenter,
+                    normal = { textColor = EditorGUIUtility.isProSkin ? Color.white : Color.black }
+                };
+            }
+
+            if (sectionStyle == null)
+            {
+                sectionStyle = new GUIStyle(EditorStyles.boldLabel)
+                {
+                    fontSize = 12,
+                    normal = { textColor = EditorGUIUtility.isProSkin ? new Color(0.8f, 0.8f, 0.8f) : new Color(0.3f, 0.3f, 0.3f) }
+                };
+            }
+
+            if (buttonStyle == null)
+            {
+                buttonStyle = new GUIStyle(GUI.skin.button)
+                {
+                    fontSize = 12,
+                    fontStyle = FontStyle.Bold,
+                    fixedHeight = 28
+                };
+            }
+
+            if (boxStyle == null)
+            {
+                boxStyle = new GUIStyle(EditorStyles.helpBox)
+                {
+                    padding = new RectOffset(15, 15, 10, 10)
+                };
+            }
         }
 
         /// <summary>
@@ -34,59 +85,149 @@ namespace FFramework.Tools
         /// </summary>
         private void OnGUI()
         {
-            GUILayout.Space(10);
+            InitializeStyles();
 
-            EditorGUILayout.LabelField("场景字体一键替换工具", EditorStyles.boldLabel);
+            // 背景色
+            EditorGUI.DrawRect(new Rect(0, 0, position.width, position.height),
+                EditorGUIUtility.isProSkin ? new Color(0.22f, 0.22f, 0.22f) : new Color(0.76f, 0.76f, 0.76f));
 
-            GUILayout.Space(10);
+            GUILayout.Space(5);
+
+            // 主标题
+            EditorGUILayout.LabelField("场景字体一键替换工具", headerStyle);
+
+            // 分割线
+            DrawSeparator();
 
             scrollPosition = EditorGUILayout.BeginScrollView(scrollPosition);
 
-            // 设置目标字体
-            EditorGUILayout.LabelField("Text组件字体设置", EditorStyles.boldLabel);
-            targetFont = (Font)EditorGUILayout.ObjectField("目标字体", targetFont, typeof(Font), false);
+            // 字体设置区域
+            DrawFontSettingsSection();
 
             GUILayout.Space(5);
 
-            // 设置目标TMP字体
-            EditorGUILayout.LabelField("TextMeshPro组件字体设置", EditorStyles.boldLabel);
-            targetTMPFont = (TMP_FontAsset)EditorGUILayout.ObjectField("目标TMP字体", targetTMPFont, typeof(TMP_FontAsset), false);
-
-            GUILayout.Space(10);
-
-            // 是否包含未激活对象
-            includeInactiveObjects = EditorGUILayout.Toggle("包含未激活对象", includeInactiveObjects);
+            // 选项设置区域
+            DrawOptionsSection();
 
             GUILayout.Space(5);
+
+            // 操作按钮区域
+            DrawActionButtonsSection();
+
+            GUILayout.Space(5);
+
+            // 工具区域
+            DrawToolsSection();
+
+            EditorGUILayout.EndScrollView();
+        }
+
+        /// <summary>
+        /// 绘制分割线
+        /// </summary>
+        private void DrawSeparator()
+        {
+            GUILayout.Space(5);
+            Rect rect = EditorGUILayout.GetControlRect(false, 1);
+            EditorGUI.DrawRect(rect, EditorGUIUtility.isProSkin ? new Color(0.5f, 0.5f, 0.5f) : new Color(0.6f, 0.6f, 0.6f));
+            GUILayout.Space(5);
+        }
+
+        /// <summary>
+        /// 绘制字体设置区域
+        /// </summary>
+        private void DrawFontSettingsSection()
+        {
+            EditorGUILayout.BeginVertical(boxStyle);
+
+            EditorGUILayout.LabelField("字体资产设置", sectionStyle);
+            GUILayout.Space(2);
+
+            // Text组件字体设置
+            EditorGUILayout.BeginHorizontal();
+            EditorGUILayout.LabelField("Unity Text 字体:", GUILayout.Width(120));
+            targetFont = (Font)EditorGUILayout.ObjectField(targetFont, typeof(Font), false);
+            EditorGUILayout.EndHorizontal();
+
+            GUILayout.Space(2);
+
+            // TextMeshPro组件字体设置
+            EditorGUILayout.BeginHorizontal();
+            EditorGUILayout.LabelField("TextMeshPro 字体:", GUILayout.Width(120));
+            targetTMPFont = (TMP_FontAsset)EditorGUILayout.ObjectField(targetTMPFont, typeof(TMP_FontAsset), false);
+            EditorGUILayout.EndHorizontal();
+
+            EditorGUILayout.EndVertical();
+        }
+
+        /// <summary>
+        /// 绘制选项设置区域
+        /// </summary>
+        private void DrawOptionsSection()
+        {
+            EditorGUILayout.BeginVertical(boxStyle);
+
+            EditorGUILayout.LabelField("选项设置", sectionStyle);
+            GUILayout.Space(8);
+
+            includeInactiveObjects = EditorGUILayout.ToggleLeft("包含未激活的对象", includeInactiveObjects);
+
+            EditorGUILayout.EndVertical();
+        }
+
+        /// <summary>
+        /// 绘制操作按钮区域
+        /// </summary>
+        private void DrawActionButtonsSection()
+        {
+            EditorGUILayout.BeginVertical(boxStyle);
+
+            EditorGUILayout.LabelField("执行操作", sectionStyle);
+            GUILayout.Space(8);
 
             // 提示信息
-            EditorGUILayout.HelpBox("注意：本工具会替换场景中所有Text和TextMeshPro组件的字体。请确保已保存场景。", MessageType.Info);
-
-            GUILayout.Space(10);
-
-            // 替换按钮
-            EditorGUI.BeginDisabledGroup(targetFont == null && targetTMPFont == null);
-            if (GUILayout.Button("一键替换字体", GUILayout.Height(30)))
-            {
-                ReplaceAllFontsInScene();
-            }
-            EditorGUI.EndDisabledGroup();
-
-            // 状态提示
             if (targetFont == null && targetTMPFont == null)
             {
                 EditorGUILayout.HelpBox("请至少选择一个目标字体", MessageType.Warning);
             }
+            else
+            {
+                EditorGUILayout.HelpBox("本工具会替换场景中所有匹配组件的字体，请确保已保存场景。", MessageType.Info);
+            }
 
-            GUILayout.Space(10);
+            GUILayout.Space(5);
 
-            // 字体使用统计
-            if (GUILayout.Button("统计场景字体使用情况"))
+            // 替换按钮
+            GUI.backgroundColor = (targetFont != null || targetTMPFont != null) ? new Color(1f, 0.8f, 0.2f, 0.3f) : Color.gray;
+            EditorGUI.BeginDisabledGroup(targetFont == null && targetTMPFont == null);
+            if (GUILayout.Button("一键替换字体", buttonStyle))
+            {
+                ReplaceAllFontsInScene();
+            }
+            EditorGUI.EndDisabledGroup();
+            GUI.backgroundColor = Color.white;
+
+            EditorGUILayout.EndVertical();
+        }
+
+        /// <summary>
+        /// 绘制工具区域
+        /// </summary>
+        private void DrawToolsSection()
+        {
+            EditorGUILayout.BeginVertical(boxStyle);
+
+            EditorGUILayout.LabelField("分析工具", sectionStyle);
+            GUILayout.Space(5);
+
+            GUI.backgroundColor = Color.white;
+            if (GUILayout.Button("统计场景字体使用情况", buttonStyle))
             {
                 ShowFontUsageStatistics();
             }
+            GUI.backgroundColor = Color.white;
 
-            EditorGUILayout.EndScrollView();
+            EditorGUILayout.EndVertical();
         }
 
         /// <summary>
@@ -128,7 +269,7 @@ namespace FFramework.Tools
             }
 
             // 显示结果
-            string resultMessage = $"字体替换完成：\n";
+            string resultMessage = $"字体替换完成！\n\n";
             if (targetFont != null)
                 resultMessage += $"Text组件替换: {textReplaceCount} 个\n";
             if (targetTMPFont != null)
@@ -175,30 +316,30 @@ namespace FFramework.Tools
 
             // 显示统计结果
             string statsMessage = "场景字体使用统计:\n\n";
-            statsMessage += "Text字体:\n";
+            statsMessage += "Unity Text 字体:\n";
             if (fontUsage.Count > 0)
             {
                 foreach (var pair in fontUsage)
                 {
-                    statsMessage += $"- {pair.Key.name}: {pair.Value} 个\n";
+                    statsMessage += $"  • {pair.Key.name}: {pair.Value} 个\n";
                 }
             }
             else
             {
-                statsMessage += "- 无Text字体\n";
+                statsMessage += "  • 无Text字体\n";
             }
 
-            statsMessage += "\nTextMeshPro字体:\n";
+            statsMessage += "\nTextMeshPro 字体:\n";
             if (tmpFontUsage.Count > 0)
             {
                 foreach (var pair in tmpFontUsage)
                 {
-                    statsMessage += $"- {pair.Key.name}: {pair.Value} 个\n";
+                    statsMessage += $"  • {pair.Key.name}: {pair.Value} 个\n";
                 }
             }
             else
             {
-                statsMessage += "- 无TextMeshPro字体\n";
+                statsMessage += "  • 无TextMeshPro字体\n";
             }
 
             EditorUtility.DisplayDialog("字体使用统计", statsMessage, "确定");
