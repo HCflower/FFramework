@@ -25,7 +25,7 @@ public class ButtonDrawer : Editor
                     : attr.ButtonName;
 
                 var originalColor = GUI.color;
-                GUI.color = attr.ButtonColor;
+                GUI.color = attr.GetUnityColor();
                 if (GUILayout.Button(buttonName))
                 {
                     method.Invoke(script, null);
@@ -56,7 +56,7 @@ public class InspectorButtonSOEditor : Editor
                     : attr.ButtonName;
 
                 var originalColor = GUI.color;
-                GUI.color = attr.ButtonColor;
+                GUI.color = attr.GetUnityColor();
                 if (GUILayout.Button(buttonName))
                 {
                     method.Invoke(script, null);
