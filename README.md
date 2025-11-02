@@ -4,6 +4,12 @@
 
 ---
 
+# FFramework Unity 游戏开发框架
+
+轻量、模块化、可扩展的 Unity 游戏开发基础框架
+
+---
+
 ## 简介
 
 FFramework 是一个基于 MVC 架构的 Unity 游戏开发框架，专注于清晰结构、快速迭代和易维护。框架内置数据绑定、生命周期调度、事件系统、单例、UI、状态机、对象池、计时器、资源加载等常用模块，助力高效开发。
@@ -19,10 +25,13 @@ FFramework 是一个基于 MVC 架构的 Unity 游戏开发框架，专注于清
 
 ## 快速开始
 
-1. **导入框架**
+1. **导入框架**：将 `FFramework-main/FFramework` 拖入项目 `Assets` 目录。
+2. **创建 Model/ViewController/启动架构**：参考下方“示例：玩家系统”完整代码。
+3. **数据驱动 UI**：通过修改 Model 的数据，自动驱动 UI 响应。
 
    - 将 `FFramework-main/FFramework` 拖入项目 `Assets` 目录。
-2. **创建 Model**
+
+4. **创建 Model**
 
    ```csharp
    using FFramework.Architecture;
@@ -40,7 +49,8 @@ FFramework 是一个基于 MVC 架构的 Unity 游戏开发框架，专注于清
        }
    }
    ```
-3. **创建 ViewController**
+
+5. **创建 ViewController**
 
    ```csharp
    using FFramework.Architecture;
@@ -56,7 +66,8 @@ FFramework 是一个基于 MVC 架构的 Unity 游戏开发框架，专注于清
        }
    }
    ```
-4. **启动架构**
+
+6. **启动架构**
 
    ```csharp
    using FFramework.Architecture;
@@ -69,53 +80,13 @@ FFramework 是一个基于 MVC 架构的 Unity 游戏开发框架，专注于清
        }
    }
    ```
-5. **数据驱动 UI**
+
+7. **数据驱动 UI**
 
    ```csharp
    var model = ArchitectureManager.Instance.GetModel<PlayerModel>();
    model.Health.Value = 80; // 控制台输出：HP => 80
    ```
-
-## 核心概念
-
-| 名称                | 作用             | 典型调用                 | 备注               |
-| ------------------- | ---------------- | ------------------------ | ------------------ |
-| BaseModel           | 业务与数据封装   | 继承并重写 OnInitialize  | 可通过 SendEvent   |
-| BaseViewController  | 视图/交互控制    | GetModel / RegisterEvent | 持有 GameObject    |
-| ArchitectureManager | 管理 Model/View  | Register/Get             | 单例 Mono          |
-| BindableProperty    | 数据绑定响应     | Value 赋值触发回调       | 支持自动注销       |
-| GameMonoBehavior    | 全局 Update 分发 | RegisterUpdate 等        | 自动/手动注销      |
-| EventSystem         | 全局事件通信     | Trigger/Register         | 解耦模块           |
-| Singleton/Mono      | 单例基类         | Instance                 | 普通/MonoBehaviour |
-
-## 常用 API 速查
-
-| 类别                | 方法                                | 说明                       |
-| ------------------- | ----------------------------------- | -------------------------- |
-| ArchitectureManager | RegisterModel`<T>`()              | 注册并初始化 Model         |
-|                     | GetModel`<T>`()                   | 获取已注册 Model           |
-|                     | RegisterViewController`<T>`(go)   | 绑定 GameObject 初始化视图 |
-|                     | UnRegisterModel`<T>`()            | 注销 Model                 |
-| BindableProperty    | Register(callback, invokeNow=true)  | 监听值变化                 |
-|                     | Value                               | 赋值触发通知               |
-|                     | UnRegisterWhenGameObjectDestroy(go) | 随 GameObject 销毁注销     |
-| GameMonoBehavior    | RegisterUpdate/Fixed/Late           | 自动注销（传入 Component） |
-|                     | UnRegisterUpdate/Fixed/Late         | 手动注销                   |
-| EventSystem         | TriggerEvent(name, obj?)            | 触发事件                   |
-|                     | RegisterEvent(name, cb)             | 注册无参事件               |
-|                     | RegisterEvent`<T>`(name, cb)      | 注册有参事件               |
-
-## 典型模块速览
-
-| 模块        | 作用                | 入口类（示例）                  | 备注           |
-| ----------- | ------------------- | ------------------------------- | -------------- |
-| EventSystem | 全局事件发布/订阅   | EventSystem                     | 支持泛型参数   |
-| UI System   | 面板管理/根节点     | UISystem/UIRoot/UIPanel         | Inspector 支持 |
-| FSM/HSM     | 状态机/分层状态机   | FSMStateMachine/HSMStateMachine | 行为驱动逻辑   |
-| ObjectPool  | 复用对象减少 GC     | ObjectPool                      | 支持预热       |
-| Timer       | 延时/循环操作       | Timer                           | 支持取消/回调  |
-| AssetLoad   | 资源加载（AB/直读） | LoadAssetKit/ResLoad            | 可扩展策略     |
-| Shake       | 摄像机抖动          | SmoothShake                     | 预设支持       |
 
 ## 最佳实践
 
@@ -275,7 +246,11 @@ public class GameManager : MonoBehaviour {
         playerModel.GainExperience(150);
     }
 }
+
+// PlayerModel、PlayerViewController、GameManager 示例请参考框架源码或上方“快速开始”部分。
 ```
+
+````
 
 ## 核心概念概览
 
@@ -324,7 +299,7 @@ public class GameStartup : MonoBehaviour
         ArchitectureManager.Instance.GetModel<InventoryModel>().AddCoin(10);
     }
 }
-```
+````
 
 ---
 
@@ -332,10 +307,10 @@ public class GameStartup : MonoBehaviour
 
 | 分类                | 方法                                | 说明                               |
 | ------------------- | ----------------------------------- | ---------------------------------- |
-| ArchitectureManager | RegisterModel `<T>`()             | 注册并初始化一个 Model             |
-|                     | GetModel `<T>`()                  | 获取已注册 Model                   |
-|                     | RegisterViewController `<T>`(go)  | 绑定 GameObject 并初始化视图控制器 |
-|                     | UnRegisterModel `<T>`()           | 注销 Model（释放资源）             |
+| ArchitectureManager | RegisterModel `<T>`()               | 注册并初始化一个 Model             |
+|                     | GetModel `<T>`()                    | 获取已注册 Model                   |
+|                     | RegisterViewController `<T>`(go)    | 绑定 GameObject 并初始化视图控制器 |
+|                     | UnRegisterModel `<T>`()             | 注销 Model（释放资源）             |
 | BindableProperty    | Register(callback, invokeNow=true)  | 监听值变化                         |
 |                     | Value                               | 赋值触发通知                       |
 |                     | UnRegisterWhenGameObjectDestroy(go) | 自动随 GameObject 销毁注销         |
@@ -343,7 +318,7 @@ public class GameStartup : MonoBehaviour
 |                     | UnRegisterUpdate/Fixed/Late         | 手动注销                           |
 | EventSystem         | TriggerEvent(name, obj?)            | 触发事件                           |
 |                     | RegisterEvent(name, cb)             | 注册无参事件                       |
-|                     | RegisterEvent `<T>`(name, cb)     | 注册有参事件                       |
+|                     | RegisterEvent `<T>`(name, cb)       | 注册有参事件                       |
 
 ---
 
