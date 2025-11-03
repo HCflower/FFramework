@@ -295,8 +295,8 @@ namespace FFramework.Editor
             // 组件类型标签 - 缩短
             var prevColor = GUI.color;
             GUI.color = uiComponent.TypeColor;
-            string shortType = GetShortTypeName(uiComponent.ComponentType);
-            EditorGUILayout.LabelField($"[{shortType}]", GUILayout.Width(50));
+            string shortType = uiComponent.ComponentType;
+            EditorGUILayout.LabelField($"[{shortType}]", GUILayout.Width(90));
             GUI.color = prevColor;
 
             // 组件名称 - 限制长度
@@ -337,24 +337,6 @@ namespace FFramework.Editor
 
             EditorGUILayout.EndVertical();
             GUI.backgroundColor = prevBgColor;
-        }
-
-        /// <summary>
-        /// 获取简短的组件类型名
-        /// </summary>
-        private string GetShortTypeName(string typeName)
-        {
-            switch (typeName)
-            {
-                case "Button": return "Button";
-                case "Toggle": return "Toggle";
-                case "Slider": return "Slider";
-                case "InputField": return "InputField";
-                case "Dropdown": return "Dropdown";
-                case "ScrollRect": return "ScrollRect";
-                case "EventTrigger": return "EventTrigger";
-                default: return typeName.Length > 6 ? typeName.Substring(0, 6) : typeName;
-            }
         }
 
         /// <summary>

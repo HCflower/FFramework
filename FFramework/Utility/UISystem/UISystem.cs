@@ -33,18 +33,25 @@ namespace FFramework.Utility
         /// <summary>是否有打开的面板</summary>
         public bool HasOpenPanels => activeStack.Count > 0;
 
+        /// <summary>获取当前栈顶面板</summary>
+        public UIPanel CurrentPanel => activeStack.Count > 0 ? activeStack.Peek() : null;
+
+        /// <summary>获取当前面板名称</summary>
+        public string CurrentPanelName => CurrentPanel?.name ?? "无";
+
+        /// <summary>获取当前面板类型名</summary>
+        public string CurrentPanelTypeName => CurrentPanel?.GetType().Name ?? "无";
+
         #endregion
 
-        #region 静态属性（兼容性）
+        #region 静态访问（兼容性）
 
-        /// <summary>当前打开的UI面板数量（静态访问）</summary>
         public static int S_OpenPanelCount => Instance.OpenPanelCount;
-
-        /// <summary>缓存的UI面板数量（静态访问）</summary>
         public static int S_CachedPanelCount => Instance.CachedPanelCount;
-
-        /// <summary>是否有打开的面板（静态访问）</summary>
         public static bool S_HasOpenPanels => Instance.HasOpenPanels;
+        public static UIPanel S_CurrentPanel => Instance.CurrentPanel;
+        public static string S_CurrentPanelName => Instance.CurrentPanelName;
+        public static string S_CurrentPanelTypeName => Instance.CurrentPanelTypeName;
 
         #endregion
 
@@ -63,14 +70,13 @@ namespace FFramework.Utility
 
         protected override void OnDestroy()
         {
-            // 清理所有面板
             ClearAllPanels(false);
             base.OnDestroy();
         }
 
         #endregion
 
-        #region 私有方法
+        #region 内部方法
 
         private UIRoot GetUIRoot()
         {
@@ -98,78 +104,23 @@ namespace FFramework.Utility
             }
         }
 
-        /// <summary>
-        /// 判断层级是否需要锁定下层面板
-        /// </summary>
         private bool ShouldLockPreviousPanel(UILayer layer)
         {
-            // 弹窗层和后期处理层不锁定下层面板
             return layer != UILayer.PopupLayer && layer != UILayer.PostProcessingLayer;
         }
 
-        /// <summary>
-        /// 内部面板打开方法
-        /// </summary>
-        private T OpenPanelInternal<T>(string panelName, UILayer layer, bool useCache, GameObject prefab) where T : UIPanel
-        {
-            Debug.Log($"<color=green>[UISystem] 打开UI面板</color>: {panelName}");
-
-            UIPanel panel = null;
-
-            // 1. 检查缓存
-            if (useCache && cachedPanels.TryGetValue(panelName, out panel))
-            {
-                // 如果面板已经激活，直接返回
-                if (panel.gameObject.activeInHierarchy)
-                {
-                    Debug.LogWarning($"[UISystem] 面板 {panelName} 已经打开");
-                    return panel as T;
-                }
-            }
-            else
-            {
-                // 2. 创建新面板
-                panel = CreatePanel<T>(panelName, layer, prefab);
-                if (panel == null) return null;
-
-                // 3. 缓存面板
-                if (useCache)
-                {
-                    cachedPanels[panelName] = panel;
-                }
-            }
-
-            // 4. 处理层级关系
-            HandlePanelLayering(panel, layer);
-
-            // 5. 显示面板
-            ShowPanel(panel, layer);
-
-            return panel as T;
-        }
-
-        /// <summary>
-        /// 创建面板
-        /// </summary>
         private T CreatePanel<T>(string panelName, UILayer layer, GameObject prefab) where T : UIPanel
         {
-            GameObject panelObject;
             Transform layerTransform = GetUILayer(layer);
+            if (layerTransform == null) return null;
 
-            if (layerTransform == null)
-            {
-                Debug.LogError($"[UISystem] 无法获取UI层级: {layer}");
-                return null;
-            }
-
+            GameObject panelObject;
             if (prefab != null)
             {
-                // 从预制体创建
                 panelObject = Instantiate(prefab, layerTransform);
             }
             else
             {
-                // 从Resources加载
                 GameObject prefabRes = Resources.Load<GameObject>($"UI/{panelName}");
                 if (prefabRes == null)
                 {
@@ -181,7 +132,6 @@ namespace FFramework.Utility
 
             panelObject.name = panelName;
 
-            // 获取UIPanel组件
             T panel = panelObject.GetComponent<T>();
             if (panel == null)
             {
@@ -193,66 +143,6 @@ namespace FFramework.Utility
             return panel;
         }
 
-        /// <summary>
-        /// 处理面板层级关系
-        /// </summary>
-        private void HandlePanelLayering(UIPanel panel, UILayer layer)
-        {
-            // 锁定当前栈顶面板（如果需要）
-            if (activeStack.Count > 0 && ShouldLockPreviousPanel(layer))
-            {
-                var topPanel = activeStack.Peek();
-                topPanel.OnLock();
-            }
-
-            // 添加到层级列表
-            if (!layerPanels[layer].Contains(panel))
-            {
-                layerPanels[layer].Add(panel);
-            }
-        }
-
-        /// <summary>
-        /// 显示面板
-        /// </summary>
-        private void ShowPanel(UIPanel panel, UILayer layer)
-        {
-            panel.Show();
-            activeStack.Push(panel);
-
-            // 将面板置于同层级最前
-            panel.transform.SetAsLastSibling();
-        }
-
-        /// <summary>
-        /// 内部关闭面板方法
-        /// </summary>
-        private void ClosePanelInternal(UIPanel panel)
-        {
-            if (panel == null) return;
-
-            Debug.Log($"<color=yellow>[UISystem] 关闭UI面板</color>: {panel.GetType().Name}");
-
-            // 从层级列表移除
-            foreach (var layerList in layerPanels.Values)
-            {
-                layerList.Remove(panel);
-            }
-
-            // 关闭面板
-            panel.Close();
-
-            // 解锁新的栈顶面板
-            if (activeStack.Count > 0)
-            {
-                var topPanel = activeStack.Peek();
-                topPanel.OnUnLock();
-            }
-        }
-
-        /// <summary>
-        /// 从栈中移除指定面板
-        /// </summary>
         private void RemovePanelFromStack(UIPanel targetPanel)
         {
             if (targetPanel == null) return;
@@ -271,7 +161,6 @@ namespace FFramework.Utility
                 tempStack.Push(panel);
             }
 
-            // 恢复栈
             while (tempStack.Count > 0)
             {
                 activeStack.Push(tempStack.Pop());
@@ -283,9 +172,22 @@ namespace FFramework.Utility
             }
         }
 
+        private GameObject FindChildRecursive(Transform parent, string childName)
+        {
+            foreach (Transform child in parent)
+            {
+                if (child.name == childName)
+                    return child.gameObject;
+
+                var result = FindChildRecursive(child, childName);
+                if (result != null) return result;
+            }
+            return null;
+        }
+
         #endregion
 
-        #region 实例方法
+        #region 核心面板管理
 
         /// <summary>
         /// 从Resources加载UI面板
@@ -334,7 +236,6 @@ namespace FFramework.Utility
             if (cachedPanels.TryGetValue(panelName, out UIPanel panel) &&
                 panel.gameObject.activeInHierarchy)
             {
-                // 从栈中移除
                 RemovePanelFromStack(panel);
                 ClosePanelInternal(panel);
             }
@@ -359,46 +260,24 @@ namespace FFramework.Utility
         }
 
         /// <summary>
-        /// 获取当前栈顶面板
+        /// 获取当前栈顶面板（指定类型）
         /// </summary>
         public T GetTopPanel<T>() where T : UIPanel
         {
-            if (activeStack.Count == 0) return null;
-            return activeStack.Peek() as T;
+            return CurrentPanel as T;
         }
 
         /// <summary>
-        /// 批量关闭指定层级的所有面板
+        /// 检查当前面板是否为指定类型
         /// </summary>
-        public void CloseAllPanelsInLayer(UILayer layer)
+        public bool IsCurrentPanel<T>() where T : UIPanel
         {
-            var panelsToClose = new List<UIPanel>(layerPanels[layer]);
-
-            foreach (var panel in panelsToClose)
-            {
-                if (panel != null && panel.gameObject.activeInHierarchy)
-                {
-                    RemovePanelFromStack(panel);
-                    ClosePanelInternal(panel);
-                }
-            }
+            return CurrentPanel is T;
         }
 
-        /// <summary>
-        /// 获取指定层级的活跃面板数量
-        /// </summary>
-        public int GetActivePanelCountInLayer(UILayer layer)
-        {
-            int count = 0;
-            foreach (var panel in layerPanels[layer])
-            {
-                if (panel != null && panel.gameObject.activeInHierarchy)
-                {
-                    count++;
-                }
-            }
-            return count;
-        }
+        #endregion
+
+        #region 面板批量管理
 
         /// <summary>
         /// 清理所有UI面板
@@ -419,7 +298,7 @@ namespace FFramework.Utility
                 }
             }
 
-            // 清理字典中的面板
+            // 清理缓存
             foreach (var kvp in cachedPanels)
             {
                 if (kvp.Value != null)
@@ -443,80 +322,78 @@ namespace FFramework.Utility
         }
 
         /// <summary>
-        /// 清理已销毁的面板引用
+        /// 清理指定层级的所有面板
         /// </summary>
-        public void CleanupDestroyedPanels()
+        public void ClearPanelsInLayer(UILayer layer, bool destroyGameObjects = true)
         {
-            // 清理缓存字典
-            var keysToRemove = new List<string>();
-            foreach (var kvp in cachedPanels)
-            {
-                if (kvp.Value == null)
-                {
-                    keysToRemove.Add(kvp.Key);
-                }
-            }
-            foreach (var key in keysToRemove)
-            {
-                cachedPanels.Remove(key);
-            }
+            Debug.Log($"<color=orange>[UISystem] 清理层级面板</color>: {layer}");
 
-            // 清理栈
-            var tempStack = new Stack<UIPanel>();
-            while (activeStack.Count > 0)
+            var panelsToRemove = new List<UIPanel>(layerPanels[layer]);
+
+            foreach (var panel in panelsToRemove)
             {
-                var panel = activeStack.Pop();
                 if (panel != null)
                 {
-                    tempStack.Push(panel);
+                    RemovePanelFromStack(panel);
+
+                    // 从缓存中移除
+                    var keysToRemove = new List<string>();
+                    foreach (var kvp in cachedPanels)
+                    {
+                        if (kvp.Value == panel)
+                        {
+                            keysToRemove.Add(kvp.Key);
+                        }
+                    }
+                    foreach (var key in keysToRemove)
+                    {
+                        cachedPanels.Remove(key);
+                    }
+
+                    panel.Close();
+                    if (destroyGameObjects && panel.gameObject != null)
+                    {
+                        Destroy(panel.gameObject);
+                    }
                 }
             }
-            while (tempStack.Count > 0)
+
+            layerPanels[layer].Clear();
+            Debug.Log($"[UISystem] 层级 {layer} 清理完成，共清理 {panelsToRemove.Count} 个面板");
+        }
+
+        /// <summary>
+        /// 获取指定层级的活跃面板数量
+        /// </summary>
+        public int GetActivePanelCountInLayer(UILayer layer)
+        {
+            int count = 0;
+            foreach (var panel in layerPanels[layer])
             {
-                activeStack.Push(tempStack.Pop());
+                if (panel != null && panel.gameObject.activeInHierarchy)
+                {
+                    count++;
+                }
             }
-
-            // 清理层级列表
-            foreach (var layerList in layerPanels.Values)
-            {
-                layerList.RemoveAll(panel => panel == null);
-            }
-
-            Debug.Log("[UISystem] 清理已销毁的面板引用完成");
+            return count;
         }
 
         /// <summary>
-        /// 将面板置于最前面显示
+        /// 检查指定层级是否有活跃面板
         /// </summary>
-        public void BringPanelToFront(UIPanel panel)
+        public bool HasActivePanelsInLayer(UILayer layer)
         {
-            if (panel == null) return;
-            panel.transform.SetAsLastSibling();
+            return GetActivePanelCountInLayer(layer) > 0;
         }
 
-        /// <summary>
-        /// 将面板置于最后面显示
-        /// </summary>
-        public void SendPanelToBack(UIPanel panel)
-        {
-            if (panel == null) return;
-            panel.transform.SetAsFirstSibling();
-        }
+        #endregion
+
+        #region 组件查找
 
         /// <summary>
-        /// 设置面板的显示顺序
+        /// 查找子物体（支持路径查找和递归查找）
         /// </summary>
-        public void SetPanelSortOrder(UIPanel panel, int sortOrder)
-        {
-            if (panel == null) return;
-            int targetIndex = Mathf.Clamp(sortOrder, 0, panel.transform.parent.childCount - 1);
-            panel.transform.SetSiblingIndex(targetIndex);
-        }
-
-        /// <summary>
-        /// 查找子物体（支持路径查找）
-        /// </summary>
-        public GameObject FindChildGameObject(GameObject panel, string childPath)
+        public GameObject FindChildGameObject(GameObject panel, string childPath, bool recursive = true)
         {
             if (string.IsNullOrEmpty(childPath) || panel == null)
             {
@@ -546,14 +423,14 @@ namespace FFramework.Utility
             }
             else
             {
-                // 递归查找
+                // 直接查找
                 Transform found = panel.transform.Find(childPath);
                 if (found != null) return found.gameObject;
 
-                foreach (Transform child in panel.transform)
+                // 递归查找（如果启用）
+                if (recursive)
                 {
-                    var result = FindChildGameObject(child.gameObject, childPath);
-                    if (result != null) return result;
+                    return FindChildRecursive(panel.transform, childPath);
                 }
 
                 Debug.LogError($"[UISystem] 在 {panel.name} 中找不到子物体 {childPath}");
@@ -562,141 +439,121 @@ namespace FFramework.Utility
         }
 
         /// <summary>
-        /// 获取或添加组件
+        /// 获取指定名称的子物体组件
         /// </summary>
-        public T GetOrAddComponent<T>(GameObject gameObject) where T : Component
+        public T GetChildComponent<T>(GameObject panel, string objectName, bool recursive = true) where T : Component
         {
-            if (gameObject == null) return null;
+            if (panel == null || string.IsNullOrEmpty(objectName))
+            {
+                Debug.LogError("[UISystem] 参数不能为空");
+                return null;
+            }
 
-            var component = gameObject.GetComponent<T>();
-            if (component == null)
-                component = gameObject.AddComponent<T>();
+            GameObject targetObj = FindChildGameObject(panel, objectName, recursive);
+            if (targetObj == null) return null;
 
-            return component;
+            return targetObj.GetComponent<T>();
+        }
+
+        /// <summary>
+        /// 获取所有指定类型的子组件
+        /// </summary>
+        public T[] GetAllChildComponents<T>(GameObject panel, bool includeInactive = true) where T : Component
+        {
+            if (panel == null)
+            {
+                Debug.LogError("[UISystem] panel不能为空");
+                return new T[0];
+            }
+
+            return panel.GetComponentsInChildren<T>(includeInactive);
+        }
+
+        /// <summary>
+        /// 通过组件类型查找第一个匹配的子物体
+        /// </summary>
+        public T GetFirstChildComponent<T>(GameObject panel, bool includeInactive = true) where T : Component
+        {
+            if (panel == null)
+            {
+                Debug.LogError("[UISystem] panel不能为空");
+                return null;
+            }
+
+            return panel.GetComponentInChildren<T>(includeInactive);
         }
 
         #endregion
 
-        #region 静态方法（兼容性接口）
+        #region 内部实现
 
-        /// <summary>
-        /// 从Resources加载UI面板（静态访问）
-        /// </summary>
-        public static T S_OpenPanel<T>(UILayer layer = UILayer.ContentLayer, bool useCache = true) where T : UIPanel
+        private T OpenPanelInternal<T>(string panelName, UILayer layer, bool useCache, GameObject prefab) where T : UIPanel
         {
-            return Instance.OpenPanel<T>(layer, useCache);
+            Debug.Log($"<color=green>[UISystem] 打开UI面板</color>: {panelName}");
+
+            UIPanel panel = null;
+
+            // 检查缓存
+            if (useCache && cachedPanels.TryGetValue(panelName, out panel))
+            {
+                if (panel.gameObject.activeInHierarchy)
+                {
+                    Debug.LogWarning($"[UISystem] 面板 {panelName} 已经打开");
+                    return panel as T;
+                }
+            }
+            else
+            {
+                // 创建新面板
+                panel = CreatePanel<T>(panelName, layer, prefab);
+                if (panel == null) return null;
+
+                if (useCache)
+                {
+                    cachedPanels[panelName] = panel;
+                }
+            }
+
+            // 处理层级关系
+            if (activeStack.Count > 0 && ShouldLockPreviousPanel(layer))
+            {
+                var topPanel = activeStack.Peek();
+                topPanel.OnLock();
+            }
+
+            if (!layerPanels[layer].Contains(panel))
+            {
+                layerPanels[layer].Add(panel);
+            }
+
+            // 显示面板
+            panel.Show();
+            activeStack.Push(panel);
+            panel.transform.SetAsLastSibling();
+
+            return panel as T;
         }
 
-        /// <summary>
-        /// 从预制体加载UI面板（静态访问）
-        /// </summary>
-        public static T S_OpenPanel<T>(GameObject prefab, UILayer layer = UILayer.ContentLayer, bool useCache = true) where T : UIPanel
+        private void ClosePanelInternal(UIPanel panel)
         {
-            return Instance.OpenPanel<T>(prefab, layer, useCache);
-        }
+            if (panel == null) return;
 
-        /// <summary>
-        /// 关闭当前顶层面板（静态访问）
-        /// </summary>
-        public static void S_CloseCurrentPanel()
-        {
-            Instance.CloseCurrentPanel();
-        }
+            Debug.Log($"<color=yellow>[UISystem] 关闭UI面板</color>: {panel.GetType().Name}");
 
-        /// <summary>
-        /// 关闭指定类型的面板（静态访问）
-        /// </summary>
-        public static void S_ClosePanel<T>() where T : UIPanel
-        {
-            Instance.ClosePanel<T>();
-        }
+            // 从层级列表移除
+            foreach (var layerList in layerPanels.Values)
+            {
+                layerList.Remove(panel);
+            }
 
-        /// <summary>
-        /// 获取指定类型的面板（静态访问）
-        /// </summary>
-        public static T S_GetPanel<T>() where T : UIPanel
-        {
-            return Instance.GetPanel<T>();
-        }
+            panel.Close();
 
-        /// <summary>
-        /// 获取当前栈顶面板（静态访问）
-        /// </summary>
-        public static T S_GetTopPanel<T>() where T : UIPanel
-        {
-            return Instance.GetTopPanel<T>();
-        }
-
-        /// <summary>
-        /// 批量关闭指定层级的所有面板（静态访问）
-        /// </summary>
-        public static void S_CloseAllPanelsInLayer(UILayer layer)
-        {
-            Instance.CloseAllPanelsInLayer(layer);
-        }
-
-        /// <summary>
-        /// 获取指定层级的活跃面板数量（静态访问）
-        /// </summary>
-        public static int S_GetActivePanelCountInLayer(UILayer layer)
-        {
-            return Instance.GetActivePanelCountInLayer(layer);
-        }
-
-        /// <summary>
-        /// 清理所有UI面板（静态访问）
-        /// </summary>
-        public static void S_ClearAllPanels(bool destroyGameObjects = true)
-        {
-            Instance.ClearAllPanels(destroyGameObjects);
-        }
-
-        /// <summary>
-        /// 清理已销毁的面板引用（静态访问）
-        /// </summary>
-        public static void S_CleanupDestroyedPanels()
-        {
-            Instance.CleanupDestroyedPanels();
-        }
-
-        /// <summary>
-        /// 将面板置于最前面显示（静态访问）
-        /// </summary>
-        public static void S_BringPanelToFront(UIPanel panel)
-        {
-            Instance.BringPanelToFront(panel);
-        }
-
-        /// <summary>
-        /// 将面板置于最后面显示（静态访问）
-        /// </summary>
-        public static void S_SendPanelToBack(UIPanel panel)
-        {
-            Instance.SendPanelToBack(panel);
-        }
-
-        /// <summary>
-        /// 设置面板的显示顺序（静态访问）
-        /// </summary>
-        public static void S_SetPanelSortOrder(UIPanel panel, int sortOrder)
-        {
-            Instance.SetPanelSortOrder(panel, sortOrder);
-        }
-
-        /// <summary>
-        /// 查找子物体（静态访问）
-        /// </summary>
-        public static GameObject S_FindChildGameObject(GameObject panel, string childPath)
-        {
-            return Instance.FindChildGameObject(panel, childPath);
-        }
-
-        /// <summary>
-        /// 获取或添加组件（静态访问）
-        /// </summary>
-        public static T S_GetOrAddComponent<T>(GameObject gameObject) where T : Component
-        {
-            return Instance.GetOrAddComponent<T>(gameObject);
+            // 解锁新的栈顶面板
+            if (activeStack.Count > 0)
+            {
+                var topPanel = activeStack.Peek();
+                topPanel.OnUnLock();
+            }
         }
 
         #endregion

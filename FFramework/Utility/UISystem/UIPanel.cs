@@ -18,9 +18,6 @@ namespace FFramework.Utility
         // 事件追踪列表，用于自动注销
         private List<System.Action> eventCleanupActions = new List<System.Action>();
 
-        // 运行时事件统计
-        private Dictionary<string, int> runtimeEventCounts = new Dictionary<string, int>();
-
         #endregion
 
         #region 属性
@@ -36,6 +33,9 @@ namespace FFramework.Utility
 
         /// <summary>面板层级</summary>
         public UILayer Layer { get; internal set; }
+
+        /// <summary>事件数量</summary>
+        public int EventCount => eventCleanupActions.Count;
 
         #endregion
 
@@ -68,139 +68,101 @@ namespace FFramework.Utility
 
         protected virtual void OnDestroy()
         {
-            // 先调用子类的销毁逻辑
             OnPanelDestroy();
-
-            // 然后清理资源
             CleanupAll();
         }
 
         #endregion
 
-        #region 抽象和虚方法 - 子类可重写
+        #region 抽象和虚方法 - 子类重写
 
-        /// <summary>
-        /// 面板初始化 - 只调用一次
-        /// </summary>
+        /// <summary>面板初始化 - 只调用一次</summary>
         protected abstract void Initialize();
 
-        /// <summary>
-        /// Awake时调用
-        /// </summary>
+        /// <summary>Awake时调用</summary>
         protected virtual void OnAwake() { }
 
-        /// <summary>
-        /// Start时调用
-        /// </summary>
+        /// <summary>Start时调用</summary>
         protected virtual void OnStart() { }
 
-        /// <summary>
-        /// 面板启用时调用
-        /// </summary>
+        /// <summary>面板启用时调用</summary>
         protected virtual void OnPanelEnable() { }
 
-        /// <summary>
-        /// 面板禁用时调用
-        /// </summary>
+        /// <summary>面板禁用时调用</summary>
         protected virtual void OnPanelDisable() { }
 
-        /// <summary>
-        /// 面板销毁时调用
-        /// </summary>
+        /// <summary>面板销毁时调用</summary>
         protected virtual void OnPanelDestroy() { }
 
-        /// <summary>
-        /// 面板显示时调用
-        /// </summary>
+        /// <summary>面板显示时调用</summary>
         protected virtual void OnShow() { }
 
-        /// <summary>
-        /// 面板隐藏时调用
-        /// </summary>
+        /// <summary>面板隐藏时调用</summary>
         protected virtual void OnHide() { }
 
-        /// <summary>
-        /// 面板锁定时调用
-        /// </summary>
+        /// <summary>面板锁定时调用</summary>
         protected virtual void OnLockPanel() { }
 
-        /// <summary>
-        /// 面板解锁时调用
-        /// </summary>
+        /// <summary>面板解锁时调用</summary>
         protected virtual void OnUnlockPanel() { }
 
         #endregion
 
-        #region 公共方法
+        #region 面板控制
 
-        /// <summary>
-        /// 显示面板
-        /// </summary>
+        /// <summary>显示面板</summary>
         public void Show()
         {
             if (isShowing) return;
 
-            GetOrSetCanvasGroup();
-
+            EnsureCanvasGroup();
             gameObject.SetActive(true);
             canvasGroup.blocksRaycasts = !isLocked;
             isShowing = true;
 
             OnShow();
-
-            Debug.Log($"<color=green>显示面板</color>: {GetType().Name}");
+            Debug.Log($"<color=green>[UIPanel] 显示面板</color>: {GetType().Name}");
         }
 
-        /// <summary>
-        /// 隐藏面板
-        /// </summary>
+        /// <summary>隐藏面板</summary>
         public void Hide()
         {
             if (!isShowing) return;
 
-            GetOrSetCanvasGroup();
-
+            EnsureCanvasGroup();
             canvasGroup.blocksRaycasts = false;
             gameObject.SetActive(false);
             isShowing = false;
 
             OnHide();
-
-            Debug.Log($"<color=yellow>隐藏面板</color>: {GetType().Name}");
+            Debug.Log($"<color=yellow>[UIPanel] 隐藏面板</color>: {GetType().Name}");
         }
 
-        /// <summary>
-        /// 关闭面板（隐藏的别名，语义更清晰）
-        /// </summary>
+        /// <summary>关闭面板（隐藏的别名）</summary>
         public void Close()
         {
             Hide();
         }
 
-        /// <summary>
-        /// 锁定面板（禁用交互）
-        /// </summary>
+        /// <summary>锁定面板（禁用交互）</summary>
         public void OnLock()
         {
             if (isLocked) return;
 
-            GetOrSetCanvasGroup();
+            EnsureCanvasGroup();
             canvasGroup.blocksRaycasts = false;
             isLocked = true;
 
             OnLockPanel();
-
-            Debug.Log($"<color=orange>锁定面板</color>: {GetType().Name}");
+            Debug.Log($"<color=orange>[UIPanel] 锁定面板</color>: {GetType().Name}");
         }
 
-        /// <summary>
-        /// 解锁面板（启用交互）
-        /// </summary>
+        /// <summary>解锁面板（启用交互）</summary>
         public void OnUnLock()
         {
             if (!isLocked) return;
 
-            GetOrSetCanvasGroup();
+            EnsureCanvasGroup();
             if (isShowing)
             {
                 canvasGroup.blocksRaycasts = true;
@@ -208,69 +170,55 @@ namespace FFramework.Utility
             isLocked = false;
 
             OnUnlockPanel();
-
-            Debug.Log($"<color=cyan>解锁面板</color>: {GetType().Name}");
+            Debug.Log($"<color=cyan>[UIPanel] 解锁面板</color>: {GetType().Name}");
         }
 
-        /// <summary>
-        /// 设置面板透明度
-        /// </summary>
+        #endregion
+
+        #region 面板属性设置
+
+        /// <summary>设置面板透明度</summary>
         public void SetAlpha(float alpha)
         {
-            GetOrSetCanvasGroup();
+            EnsureCanvasGroup();
             canvasGroup.alpha = Mathf.Clamp01(alpha);
         }
 
-        /// <summary>
-        /// 设置面板可交互性
-        /// </summary>
+        /// <summary>设置面板可交互性</summary>
         public void SetInteractable(bool interactable)
         {
-            GetOrSetCanvasGroup();
+            EnsureCanvasGroup();
             canvasGroup.interactable = interactable;
+        }
+
+        /// <summary>设置面板是否阻挡射线</summary>
+        public void SetBlocksRaycasts(bool blocksRaycasts)
+        {
+            EnsureCanvasGroup();
+            canvasGroup.blocksRaycasts = blocksRaycasts;
         }
 
         #endregion
 
         #region 事件管理
 
-        /// <summary>
-        /// 添加事件清理动作
-        /// </summary>
+        /// <summary>添加事件清理动作</summary>
         public void AddEventCleanup(System.Action cleanupAction, string componentName = "Unknown")
         {
             if (cleanupAction != null)
             {
                 eventCleanupActions.Add(cleanupAction);
-
-                // 统计运行时事件
-                if (runtimeEventCounts.ContainsKey(componentName))
-                    runtimeEventCounts[componentName]++;
-                else
-                    runtimeEventCounts[componentName] = 1;
             }
         }
 
-        /// <summary>
-        /// 移除指定的事件清理动作
-        /// </summary>
+        /// <summary>移除指定的事件清理动作</summary>
         public void RemoveEventCleanup(System.Action cleanupAction)
         {
             eventCleanupActions.Remove(cleanupAction);
         }
 
-        /// <summary>
-        /// 获取运行时事件统计
-        /// </summary>
-        public Dictionary<string, int> GetRuntimeEventCounts()
-        {
-            return new Dictionary<string, int>(runtimeEventCounts);
-        }
-
-        /// <summary>
-        /// 清理所有追踪的事件
-        /// </summary>
-        private void CleanupTrackedEvents()
+        /// <summary>清理所有追踪的事件</summary>
+        public void ClearTrackedEvents()
         {
             foreach (var cleanupAction in eventCleanupActions)
             {
@@ -280,21 +228,18 @@ namespace FFramework.Utility
                 }
                 catch (System.Exception e)
                 {
-                    Debug.LogError($"清理事件时发生错误: {e.Message}");
+                    Debug.LogError($"[UIPanel] 清理事件时发生错误: {e.Message}");
                 }
             }
             eventCleanupActions.Clear();
-            runtimeEventCounts.Clear();
         }
 
         #endregion
 
-        #region 私有方法
+        #region 内部方法
 
-        /// <summary>
-        /// 获取或设置CanvasGroup组件
-        /// </summary>
-        private void GetOrSetCanvasGroup()
+        /// <summary>确保CanvasGroup组件存在</summary>
+        private void EnsureCanvasGroup()
         {
             if (canvasGroup == null && !TryGetComponent<CanvasGroup>(out canvasGroup))
             {
@@ -302,15 +247,13 @@ namespace FFramework.Utility
             }
         }
 
-        /// <summary>
-        /// 清理所有资源
-        /// </summary>
+        /// <summary>清理所有资源</summary>
         private void CleanupAll()
         {
-            // 先清理追踪的事件
-            CleanupTrackedEvents();
+            // 清理追踪的事件
+            ClearTrackedEvents();
 
-            // 然后使用扩展方法清理所有UI事件（双重保险）
+            // 使用扩展方法清理所有UI事件（双重保险）
             try
             {
                 if (this != null && gameObject != null)
@@ -328,33 +271,27 @@ namespace FFramework.Utility
 
         #endregion
 
-        #region 调试和工具方法
+        #region 调试工具
 
-        /// <summary>
-        /// 打印面板状态信息
-        /// </summary>
+        /// <summary>打印面板状态信息</summary>
         [ContextMenu("打印面板状态")]
         public void PrintPanelStatus()
         {
-            Debug.Log($"面板状态 - {GetType().Name}:\n" +
-                     $"已初始化: {isInitialized}\n" +
-                     $"正在显示: {isShowing}\n" +
-                     $"已锁定: {isLocked}\n" +
-                     $"事件数量: {eventCleanupActions.Count}\n" +
-                     $"层级: {Layer}");
+            Debug.Log($"<color=cyan>[UIPanel] 面板状态</color> - {GetType().Name}:\n" +
+                     $"  已初始化: {isInitialized}\n" +
+                     $"  正在显示: {isShowing}\n" +
+                     $"  已锁定: {isLocked}\n" +
+                     $"  事件数量: {eventCleanupActions.Count}\n" +
+                     $"  层级: {Layer}");
         }
 
-        /// <summary>
-        /// 打印事件统计
-        /// </summary>
-        [ContextMenu("打印事件统计")]
-        public void PrintEventStatistics()
+        /// <summary>强制清理事件（调试用）</summary>
+        [ContextMenu("强制清理事件")]
+        public void ForceCleanupEvents()
         {
-            Debug.Log($"面板事件统计 - {GetType().Name}:");
-            foreach (var kvp in runtimeEventCounts)
-            {
-                Debug.Log($"  {kvp.Key}: {kvp.Value}个事件");
-            }
+            ClearTrackedEvents();
+            this.UnbindAllEvents();
+            Debug.Log($"[UIPanel] 强制清理面板 {name} 的所有事件");
         }
 
         #endregion
