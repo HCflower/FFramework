@@ -31,6 +31,120 @@ namespace FFramework.Utility
         }
 
         /// <summary>
+        /// 注册位置信息
+        /// </summary>
+        public class RegistrationInfo
+        {
+            public string CallerMethod { get; set; }
+            public string CallerClass { get; set; }
+            public string FileName { get; set; }
+            public int LineNumber { get; set; }
+            public DateTime RegistrationTime { get; set; }
+
+            public RegistrationInfo()
+            {
+                RegistrationTime = DateTime.Now;
+                ExtractCallerInfo();
+            }
+
+            private void ExtractCallerInfo()
+            {
+                var st = new StackTrace(true); // true 表示获取文件信息
+                var frames = st.GetFrames();
+
+                foreach (var frame in frames)
+                {
+                    var method = frame.GetMethod();
+                    var declaringType = method?.DeclaringType;
+                    if (declaringType == null) continue;
+
+                    // 跳过 EventSystem 相关类
+                    if (declaringType == typeof(EventSystem) ||
+                        declaringType.DeclaringType == typeof(EventSystem) ||
+                        declaringType.FullName?.Contains("EventSystem") == true)
+                        continue;
+
+                    // 跳过 Unity 系统类
+                    var ns = declaringType.Namespace ?? "";
+                    if (ns.StartsWith("UnityEngine") || ns.StartsWith("UnityEditor"))
+                        continue;
+
+                    string methodName = method.Name;
+                    string className = declaringType.Name;
+
+                    // 处理编译器生成的Lambda表达式类
+                    if (className.StartsWith("<>c") || className.Contains("DisplayClass"))
+                    {
+                        var outerType = declaringType.DeclaringType;
+                        if (outerType != null)
+                        {
+                            className = outerType.Name;
+
+                            // 尝试从方法名中提取原始方法名
+                            if (methodName.StartsWith("<") && methodName.Contains(">"))
+                            {
+                                int start = methodName.IndexOf('<') + 1;
+                                int end = methodName.IndexOf('>');
+                                if (end > start)
+                                {
+                                    string originalMethod = methodName.Substring(start, end - start);
+                                    methodName = $"{originalMethod}(Lambda)";
+                                }
+                                else
+                                {
+                                    methodName = "Lambda表达式";
+                                }
+                            }
+                        }
+                    }
+                    // 处理其他编译器生成的方法
+                    else if (methodName.StartsWith("<") && methodName.Contains(">"))
+                    {
+                        int start = methodName.IndexOf('<') + 1;
+                        int end = methodName.IndexOf('>');
+                        if (end > start)
+                        {
+                            string originalMethod = methodName.Substring(start, end - start);
+                            methodName = $"{originalMethod}(编译器生成)";
+                        }
+                    }
+
+                    CallerClass = className;
+                    CallerMethod = methodName;
+                    FileName = frame.GetFileName();
+                    LineNumber = frame.GetFileLineNumber();
+                    return;
+                }
+
+                CallerClass = "Unknown";
+                CallerMethod = "Unknown";
+                FileName = "";
+                LineNumber = 0;
+            }
+
+            public string GetLocationInfo()
+            {
+                return $"{CallerClass}.{CallerMethod}()";
+            }
+
+            public string GetDetailedInfo()
+            {
+                var info = $"注册位置: {GetLocationInfo()}\n注册时间: {RegistrationTime:HH:mm:ss.fff}";
+
+                if (!string.IsNullOrEmpty(FileName))
+                {
+                    info += $"\n文件: {System.IO.Path.GetFileName(FileName)}";
+                    if (LineNumber > 0)
+                    {
+                        info += $"\n行号: {LineNumber}";
+                    }
+                }
+
+                return info;
+            }
+        }
+
+        /// <summary>
         /// 无参事件信息
         /// </summary>
         public class EventInfo : EventInfoBase
@@ -118,11 +232,52 @@ namespace FFramework.Utility
 
                     try
                     {
-                        (listener.Callback as Action<T>)?.Invoke((T)parameter);
+                        // 增强的空引用检查和类型转换
+                        var callback = listener.Callback as Action<T>;
+                        if (callback == null)
+                        {
+                            UnityEngine.Debug.LogError($"EventSystem: 回调类型转换失败，期望 Action<{typeof(T).Name}>");
+                            continue;
+                        }
+
+                        // 安全的参数转换
+                        if (parameter == null && !typeof(T).IsClass && Nullable.GetUnderlyingType(typeof(T)) == null)
+                        {
+                            UnityEngine.Debug.LogError($"EventSystem: 无法将 null 转换为值类型 {typeof(T).Name}");
+                            continue;
+                        }
+
+                        T typedParameter;
+                        try
+                        {
+                            typedParameter = (T)parameter;
+                        }
+                        catch (InvalidCastException)
+                        {
+                            UnityEngine.Debug.LogError($"EventSystem: 参数类型不匹配，无法将 {parameter?.GetType().Name ?? "null"} 转换为 {typeof(T).Name}");
+                            continue;
+                        }
+
+                        callback.Invoke(typedParameter);
                     }
                     catch (Exception ex)
                     {
-                        UnityEngine.Debug.LogError($"EventSystem: 执行回调时发生异常: {ex.Message}");
+                        // 更详细的错误信息
+                        var targetName = listener.Target switch
+                        {
+                            MonoBehaviour mono when mono != null => mono.gameObject.name,
+                            MonoBehaviour => "[已销毁MonoBehaviour]",
+                            null => "[静态方法]",
+                            _ => listener.Target.GetType().Name
+                        };
+
+                        UnityEngine.Debug.LogError($"EventSystem: 执行回调时发生异常\n" +
+                                                 $"目标: {targetName}\n" +
+                                                 $"方法: {listener.Callback?.Method?.Name ?? "Unknown"}\n" +
+                                                 $"参数类型: {parameter?.GetType().Name ?? "null"}\n" +
+                                                 $"期望类型: {typeof(T).Name}\n" +
+                                                 $"异常: {ex.Message}\n" +
+                                                 $"堆栈: {ex.StackTrace}");
                     }
                 }
             }
@@ -269,11 +424,13 @@ namespace FFramework.Utility
             public object Target { get; private set; }
             public Delegate Callback { get; private set; }
             public bool IsActive { get; set; } = true;
+            public RegistrationInfo RegistrationInfo { get; private set; }
 
             public ListenerInfo(Delegate callback)
             {
                 Callback = callback ?? throw new ArgumentNullException(nameof(callback));
                 Target = callback.Target;
+                RegistrationInfo = new RegistrationInfo();
             }
 
             public bool IsTargetValid()
@@ -295,7 +452,35 @@ namespace FFramework.Utility
                     null => "[静态]",
                     _ => "[实例]"
                 };
-                return $"{Callback.Method.Name}({targetName})";
+                return $"{RegistrationInfo.CallerMethod}({targetName})";
+            }
+
+            public string GetDetailedInfo()
+            {
+                var callbackInfo = GetCallbackInfo();
+                return $"{RegistrationInfo.GetDetailedInfo()}\n\n回调信息:\n{callbackInfo}";
+            }
+
+            private string GetCallbackInfo()
+            {
+                if (Callback == null) return "无回调信息";
+
+                var method = Callback.Method;
+                var declaringType = method.DeclaringType;
+
+                string methodInfo = $"方法: {method.Name}";
+                string typeInfo = $"类型: {declaringType?.Name ?? "Unknown"}";
+                string assemblyInfo = $"程序集: {declaringType?.Assembly?.GetName()?.Name ?? "Unknown"}";
+
+                string targetInfo = Target switch
+                {
+                    null => "目标: 静态方法",
+                    MonoBehaviour mono when mono != null => $"目标: {mono.gameObject.name} ({mono.GetType().Name})",
+                    MonoBehaviour => "目标: 已销毁的MonoBehaviour",
+                    _ => $"目标: {Target.GetType().Name}实例"
+                };
+
+                return $"{methodInfo}\n{typeInfo}\n{assemblyInfo}\n{targetInfo}";
             }
         }
 
@@ -567,6 +752,7 @@ namespace FFramework.Utility
                 for (int i = 0; i < listeners.Count; i++)
                 {
                     UnityEngine.Debug.Log($"{i + 1}. {listeners[i].GetShortInfo()}");
+                    UnityEngine.Debug.Log($"   注册位置: {listeners[i].RegistrationInfo.GetLocationInfo()}");
                 }
             }
 

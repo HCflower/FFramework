@@ -237,10 +237,9 @@ public class GameManager : MonoBehaviour {
     }
 }
 
-// PlayerModel、PlayerViewController、GameManager 示例请参考框架源码或上方“快速开始”部分。
 ```
 
-````
+---
 
 ## 核心概念概览
 
@@ -289,7 +288,7 @@ public class GameStartup : MonoBehaviour
         ArchitectureManager.Instance.GetModel<InventoryModel>().AddCoin(10);
     }
 }
-````
+```
 
 ---
 
@@ -399,6 +398,8 @@ public class AudioManager : SingletonMono<AudioManager>
 > 建议为每个模块拆出独立文档详述（见“后续扩展”）。
 
 ---
+
+## 最佳实践与目录建议
 
 ## 最佳实践与目录建议
 

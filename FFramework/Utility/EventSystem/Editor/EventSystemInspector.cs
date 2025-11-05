@@ -43,12 +43,14 @@ namespace FFramework.Editor
             public string MethodName;
             public string AssemblyName;
             public Delegate Callback;
+            public EventSystem.RegistrationInfo RegistrationInfo;
 
             public EnhancedListenerInfo(EventSystem.ListenerInfo listenerInfo, string eventName)
             {
                 EventName = eventName;
                 Target = listenerInfo.Target;
                 Callback = listenerInfo.Callback;
+                RegistrationInfo = listenerInfo.RegistrationInfo;
 
                 if (listenerInfo.Callback != null)
                 {
@@ -65,7 +67,126 @@ namespace FFramework.Editor
 
             public string GetDetailedInfo()
             {
-                return $"事件: {EventName}\n类: {ClassName}\n方法: {MethodName}\n程序集: {AssemblyName}";
+                // 美化回调方法名显示
+                string friendlyMethodName = GetFriendlyMethodName(MethodName);
+                string friendlyClassName = GetFriendlyClassName(ClassName);
+
+                return $"事件: {EventName}\n" +
+                       $"注册位置: {RegistrationInfo.GetLocationInfo()}\n" +
+                       $"注册时间: {RegistrationInfo.RegistrationTime:HH:mm:ss.fff}\n" +
+                       $"文件: {System.IO.Path.GetFileName(RegistrationInfo.FileName ?? "")}\n" +
+                       $"行号: {(RegistrationInfo.LineNumber > 0 ? RegistrationInfo.LineNumber.ToString() : "未知")}\n\n" +
+                       $"回调信息:\n" +
+                       $"类: {friendlyClassName}\n" +
+                       $"方法: {friendlyMethodName}\n" +
+                       $"程序集: {AssemblyName}";
+            }
+
+            public string GetShortDisplayText()
+            {
+                // 优先显示注册位置信息，并美化方法名
+                string displayMethod = GetFriendlyDisplayMethod();
+                string displayClass = GetShortClassName(RegistrationInfo.CallerClass ?? ClassName ?? "Unknown");
+
+                return $"{displayClass}.{TruncateString(displayMethod, 15)}";
+            }
+
+            /// <summary>
+            /// 获取友好的显示方法名
+            /// </summary>
+            private string GetFriendlyDisplayMethod()
+            {
+                // 优先使用注册位置的方法名
+                if (!string.IsNullOrEmpty(RegistrationInfo.CallerMethod))
+                {
+                    return RegistrationInfo.CallerMethod;
+                }
+
+                // 回退到回调方法名，并进行美化
+                return GetFriendlyMethodName(MethodName ?? "Unknown");
+            }
+
+            /// <summary>
+            /// 美化方法名显示
+            /// </summary>
+            private string GetFriendlyMethodName(string methodName)
+            {
+                if (string.IsNullOrEmpty(methodName))
+                    return "Unknown";
+
+                // 处理Lambda表达式方法名
+                if (methodName.StartsWith("<") && methodName.Contains(">b__"))
+                {
+                    // 提取原始方法名
+                    int start = methodName.IndexOf('<') + 1;
+                    int end = methodName.IndexOf('>');
+                    if (end > start)
+                    {
+                        string originalMethod = methodName.Substring(start, end - start);
+                        return $"{originalMethod}(λ)"; // 使用希腊字母λ表示Lambda
+                    }
+                    return "Lambda表达式";
+                }
+
+                // 处理其他编译器生成的方法
+                if (methodName.StartsWith("<") && methodName.Contains(">"))
+                {
+                    int start = methodName.IndexOf('<') + 1;
+                    int end = methodName.IndexOf('>');
+                    if (end > start)
+                    {
+                        string originalMethod = methodName.Substring(start, end - start);
+                        return $"{originalMethod}(编译器生成)";
+                    }
+                    return "编译器生成方法";
+                }
+
+                return methodName;
+            }
+
+            /// <summary>
+            /// 美化类名显示
+            /// </summary>
+            private string GetFriendlyClassName(string className)
+            {
+                if (string.IsNullOrEmpty(className))
+                    return "Unknown";
+
+                // 处理编译器生成的Lambda类
+                if (className.StartsWith("<>c"))
+                {
+                    return "Lambda表达式类";
+                }
+
+                // 处理显示类（DisplayClass）
+                if (className.Contains("DisplayClass"))
+                {
+                    return "闭包类";
+                }
+
+                return className;
+            }
+
+            private string GetShortClassName(string fullClassName)
+            {
+                if (string.IsNullOrEmpty(fullClassName))
+                    return "Unknown";
+
+                string[] parts = fullClassName.Split('.');
+                string shortName = parts[parts.Length - 1];
+
+                return TruncateString(shortName, 12);
+            }
+
+            private string TruncateString(string text, int maxLength)
+            {
+                if (string.IsNullOrEmpty(text))
+                    return "";
+
+                if (text.Length <= maxLength)
+                    return text;
+
+                return text.Substring(0, maxLength - 1) + "..";
             }
         }
 
@@ -106,12 +227,42 @@ namespace FFramework.Editor
             {
                 var contextInfo = GetContextDescription(TriggerContext);
 
+                // 美化触发方法名显示
+                string friendlyMethodName = GetFriendlyTriggerMethodName(CallerMethod);
+
                 return $"事件: {EventName}\n" +
                        $"类: {CallerClass}\n" +
-                       $"方法: {CallerMethod}\n" +
+                       $"方法: {friendlyMethodName}\n" +
                        $"触发次数: {TriggerCount}\n" +
                        $"最后触发: {TriggerTime:HH:mm:ss.fff}\n" +
                        $"上下文: {contextInfo}";
+            }
+
+            /// <summary>
+            /// 美化触发方法名显示
+            /// </summary>
+            private string GetFriendlyTriggerMethodName(string methodName)
+            {
+                if (string.IsNullOrEmpty(methodName))
+                    return "Unknown";
+
+                // 处理Lambda表达式方法名
+                if (methodName.StartsWith("<") && methodName.Contains(">"))
+                {
+                    int start = methodName.IndexOf('<') + 1;
+                    int end = methodName.IndexOf('>');
+                    if (end > start)
+                    {
+                        string originalMethod = methodName.Substring(start, end - start);
+                        if (methodName.Contains("b__"))
+                        {
+                            return $"{originalMethod}(λ)";
+                        }
+                        return $"{originalMethod}(编译器生成)";
+                    }
+                }
+
+                return methodName;
             }
 
             private string GetContextDescription(object context)
@@ -361,9 +512,8 @@ namespace FFramework.Editor
             {
                 EditorGUILayout.BeginHorizontal();
 
-                // 主要信息按钮
-                string shortClassName = GetShortClassName(info.ClassName);
-                string displayText = $"{shortClassName}.{TruncateString(info.MethodName, 12)}()";
+                // 主要信息按钮 - 使用注册位置信息
+                string displayText = info.GetShortDisplayText();
 
                 // GameObject信息
                 string goPart = "";
@@ -427,7 +577,11 @@ namespace FFramework.Editor
 
                     // 触发位置信息按钮
                     string shortClassName = GetShortClassName(triggerInfo.CallerClass);
-                    string displayText = $"{shortClassName}.{TruncateString(triggerInfo.CallerMethod, 10)}()";
+
+                    // 美化方法名显示
+                    string friendlyMethodName = GetFriendlyTriggerMethodName(triggerInfo.CallerMethod);
+                    string displayText = $"{shortClassName}.{TruncateString(friendlyMethodName, 12)}";
+
                     string timeText = triggerInfo.TriggerTime.ToString("HH:mm:ss.fff");
                     string countText = triggerInfo.TriggerCount > 1 ? $"×{triggerInfo.TriggerCount}" : "";
 
@@ -449,10 +603,7 @@ namespace FFramework.Editor
 
                     GUI.backgroundColor = btnColor;
 
-                    // 不再显示定位按钮
-
                     EditorGUILayout.EndHorizontal();
-
                     EditorGUILayout.Space(1);
                 }
             }
@@ -465,21 +616,30 @@ namespace FFramework.Editor
         }
 
         /// <summary>
-        /// 获取上下文的显示文本（简短版本）
+        /// 美化触发方法名显示 (Helper方法)
         /// </summary>
-        private string GetContextDisplayText(object context)
+        private string GetFriendlyTriggerMethodName(string methodName)
         {
-            if (context == null) return "";
+            if (string.IsNullOrEmpty(methodName))
+                return "Unknown";
 
-            return context switch
+            // 处理Lambda表达式方法名
+            if (methodName.StartsWith("<") && methodName.Contains(">"))
             {
-                MonoBehaviour mono when mono != null => $"[{TruncateString(mono.gameObject.name, 8)}]",
-                MonoBehaviour => "[已销毁]",
-                GameObject go when go != null => $"[{TruncateString(go.name, 8)}]",
-                GameObject => "[已销毁]",
-                string str when !string.IsNullOrEmpty(str) => $"[{TruncateString(str, 8)}]",
-                _ => $"[{context.GetType().Name}]"
-            };
+                int start = methodName.IndexOf('<') + 1;
+                int end = methodName.IndexOf('>');
+                if (end > start)
+                {
+                    string originalMethod = methodName.Substring(start, end - start);
+                    if (methodName.Contains("b__"))
+                    {
+                        return $"{originalMethod}(λ)";
+                    }
+                    return $"{originalMethod}(编译器生成)";
+                }
+            }
+
+            return methodName;
         }
 
         #endregion
@@ -517,6 +677,33 @@ namespace FFramework.Editor
                 return text;
 
             return text.Substring(0, maxLength - 1) + "..";
+        }
+
+        /// <summary>
+        /// 获取上下文信息的简短显示文本
+        /// </summary>
+        private string GetContextDisplayText(object context)
+        {
+            if (context == null)
+                return "";
+
+            return context switch
+            {
+                MonoBehaviour mono when mono != null =>
+                    $"[{TruncateString(mono.gameObject.name, 8)}]",
+                MonoBehaviour =>
+                    "[已销毁]",
+                GameObject go when go != null =>
+                    $"[{TruncateString(go.name, 8)}]",
+                GameObject =>
+                    "[已销毁GO]",
+                string str when !string.IsNullOrEmpty(str) =>
+                    $"[\"{TruncateString(str, 8)}\"]",
+                string =>
+                    "[空字符串]",
+                _ =>
+                    $"[{TruncateString(context.GetType().Name, 8)}]"
+            };
         }
         #endregion
 
