@@ -23,71 +23,463 @@ public class PrefabPlacerTool : EditorWindow
         RandomDistribution = 1          // 随机分布
     }
 
-    private enum ObjectType
+    // 对象项数据结构
+    [System.Serializable]
+    public class PlaceableObject
     {
-        Prefab = 0,                     // 预制体
-        Mesh = 1                        // 网格    
+        public GameObject prefab;
+        public Mesh mesh;
+        public Material material;
+        public float weight = 1f; // 权重，用于随机选择
+        public bool isEnabled = false; // 是否启用
+
+        public bool IsValid()
+        {
+            return prefab != null || mesh != null;
+        }
+
+        public string GetName()
+        {
+            if (prefab != null) return prefab.name;
+            if (mesh != null) return mesh.name + (material != null ? $" ({material.name})" : " (无材质)");
+            return "空对象";
+        }
+
+        public Texture2D GetPreviewTexture()
+        {
+            if (prefab != null)
+            {
+                return AssetPreview.GetAssetPreview(prefab);
+            }
+            else if (mesh != null)
+            {
+                return AssetPreview.GetAssetPreview(mesh);
+            }
+            return null;
+        }
     }
 
     private PlacementMode placementMode = PlacementMode.SinglePlacement;
     private DistributionType distributionType = DistributionType.UniformDistribution;
-    private ObjectType objectType = ObjectType.Prefab;
-    private GameObject prefabToPlace;
-    private Mesh meshToPlace;
-    private Material meshMaterial;
+
+    private List<PlaceableObject> placeableObjects = new List<PlaceableObject>();
+    private int selectedObjectIndex = -1;
+
     private int placementCount = 5;
     private float placementRadius = 5f;
     private float lineSpacing = 2f;
     private float lineRandomOffset = 0.5f;
 
     private bool randomRotation = false;
+    private bool randomScale = false;
+    private float minScale = 0.8f;
+    private float maxScale = 1.2f;
     private bool alignToSurface = true;
     private LayerMask surfaceLayer = 1;
     private bool showPreview = true;
 
     // 放置状态
     private bool isInPlacementMode = false;
+    private bool isInCleanupMode = false;
     private float placementRotation = 0f;
     private Vector3 lastMousePosition;
     private List<GameObject> placedObjects = new List<GameObject>();
     private Vector2 scrollPosition;
+    private Vector2 objectListScrollPosition;
 
     // 随机种子
     private int randomSeed = 0;
     private System.Random random;
-    private System.Random rotationRandom; // 新增：专门用于旋转的随机数生成器
-
-    // 缓存的随机位置，避免预览时重新计算
-    private Vector3[] cachedRandomPositions;
-    private bool needRecalculateRandomPositions = true;
+    private System.Random rotationRandom;
+    private System.Random scaleRandom;
 
     // GUI折叠状态
     private bool showAdvancedOptions = true;
     private bool showRandomSettings = false;
     private bool showDirectionSettings = true;
+    private bool showObjectList = true;
+    private bool showObjectSettings = false;
+
+    // 网格布局相关
+    private const float GRID_ITEM_SIZE = 80f;
+    private const float GRID_SPACING = 5f;
+    private const float GRID_LIST_HEIGHT = 200f;
 
     private void OnGUI()
     {
+        scrollPosition = EditorGUILayout.BeginScrollView(scrollPosition);
         DrawHeader();
+        DrawObjectList();
+        CheckAutoCollapse();
+        DrawObjectSettings();
         DrawSettings();
         DrawPlacementControls();
-        DrawHistory();
+        EditorGUILayout.EndScrollView();
+    }
+
+    // 检查窗口高度并自动折叠部分区域
+    private void CheckAutoCollapse()
+    {
+        float minHeightForExpand = 600f;
+
+        if (position.height < minHeightForExpand)
+        {
+            if (showAdvancedOptions || showRandomSettings || showDirectionSettings)
+            {
+                showAdvancedOptions = false;
+                showRandomSettings = false;
+                showDirectionSettings = false;
+            }
+        }
     }
 
     private void DrawHeader()
     {
-        // 用HelpBox包裹标题
         EditorGUILayout.BeginVertical(EditorStyles.helpBox);
         {
             GUIStyle titleStyle = new GUIStyle(EditorStyles.boldLabel);
             titleStyle.fontSize = 16;
             titleStyle.alignment = TextAnchor.MiddleCenter;
             EditorGUILayout.LabelField("预制体摆放工具", titleStyle, GUILayout.Height(32));
-            EditorGUILayout.HelpBox("在场景视图中点击放置 \nCtrl+滚轮:旋转角度 | Shift+滚轮:随机种子 | Ctrl+Alt+滚轮:范围缩放", MessageType.Info);
+            EditorGUILayout.HelpBox("在场景视图中点击放置 \nCtrl+滚轮:旋转角度 | Shift+滚轮:随机位置变化 | Ctrl+Alt+滚轮:范围/间隔缩放 | ESC:退出放置模式", MessageType.Info);
         }
         EditorGUILayout.EndVertical();
 
         EditorGUILayout.Space(3);
+    }
+
+    // 绘制对象列表（网格布局）
+    private void DrawObjectList()
+    {
+        EditorGUILayout.BeginVertical("helpbox");
+        {
+            EditorGUILayout.BeginHorizontal();
+            GUIStyle leftButtonStyle = new GUIStyle(GUI.skin.button);
+            leftButtonStyle.alignment = TextAnchor.MiddleLeft;
+            leftButtonStyle.fontSize = 12;
+            leftButtonStyle.fontStyle = FontStyle.Bold;
+
+            string listBtnText = showObjectList ? "▼ 预制体/网格库" : "▶ 预制体/网格库";
+            if (GUILayout.Button(listBtnText, leftButtonStyle, GUILayout.Height(22), GUILayout.ExpandWidth(true)))
+            {
+                showObjectList = !showObjectList;
+            }
+            EditorGUILayout.EndHorizontal();
+
+            if (showObjectList)
+            {
+                EditorGUILayout.Space(5);
+
+                // 操作按钮行
+                EditorGUILayout.BeginHorizontal();
+                EditorGUILayout.LabelField("拖拽预制体或网格到下方网格", EditorStyles.miniLabel);
+                GUILayout.FlexibleSpace();
+
+                if (GUILayout.Button("添加空项", GUILayout.Width(80)))
+                {
+                    placeableObjects.Add(new PlaceableObject());
+                }
+                if (GUILayout.Button("清空列表", GUILayout.Width(80)))
+                {
+                    if (EditorUtility.DisplayDialog("确认清空", "确定要清空整个列表吗？", "确定", "取消"))
+                    {
+                        placeableObjects.Clear();
+                        selectedObjectIndex = -1;
+                    }
+                }
+                EditorGUILayout.EndHorizontal();
+
+                EditorGUILayout.Space(3);
+
+                // 网格布局区域
+                Rect gridArea = GUILayoutUtility.GetRect(0, GRID_LIST_HEIGHT, GUILayout.ExpandWidth(true));
+                GUI.Box(gridArea, "", EditorStyles.helpBox);
+
+                HandleDragAndDrop(gridArea);
+
+                objectListScrollPosition = GUI.BeginScrollView(
+                    new Rect(gridArea.x + 5, gridArea.y + 5, gridArea.width - 10, gridArea.height - 10),
+                    objectListScrollPosition,
+                    new Rect(0, 0, CalculateGridContentWidth(), CalculateGridContentHeight())
+                );
+
+                DrawGridLayout();
+
+                GUI.EndScrollView();
+
+                // 统计信息
+                int enabledCount = GetEnabledObjectsCount();
+                string statusText = "";
+                if (placeableObjects.Count > 0)
+                {
+                    statusText = $"总数: {placeableObjects.Count}, 已启用: {enabledCount}";
+                    if (selectedObjectIndex >= 0 && selectedObjectIndex < placeableObjects.Count)
+                    {
+                        statusText += $", 已选中: {placeableObjects[selectedObjectIndex].GetName()}";
+                    }
+                }
+                else
+                {
+                    statusText = "将预制体或网格拖拽到上方网格中";
+                }
+
+                EditorGUILayout.LabelField(statusText, EditorStyles.miniLabel);
+            }
+        }
+        EditorGUILayout.EndVertical();
+
+        EditorGUILayout.Space(3);
+    }
+
+    // 计算网格内容宽度
+    private float CalculateGridContentWidth()
+    {
+        float availableWidth = position.width - 40f;
+        int itemsPerRow = Mathf.FloorToInt(availableWidth / (GRID_ITEM_SIZE + GRID_SPACING));
+        if (itemsPerRow < 1) itemsPerRow = 1;
+        return itemsPerRow * (GRID_ITEM_SIZE + GRID_SPACING);
+    }
+
+    // 计算网格内容高度
+    private float CalculateGridContentHeight()
+    {
+        float availableWidth = position.width - 40f;
+        int itemsPerRow = Mathf.FloorToInt(availableWidth / (GRID_ITEM_SIZE + GRID_SPACING));
+        if (itemsPerRow < 1) itemsPerRow = 1;
+
+        int rows = Mathf.CeilToInt((float)placeableObjects.Count / itemsPerRow);
+        return Mathf.Max(rows * (GRID_ITEM_SIZE + GRID_SPACING), GRID_LIST_HEIGHT - 20f);
+    }
+
+    // 绘制网格布局
+    private void DrawGridLayout()
+    {
+        if (placeableObjects.Count == 0)
+        {
+            GUIStyle centeredStyle = new GUIStyle(EditorStyles.label);
+            centeredStyle.alignment = TextAnchor.MiddleCenter;
+            centeredStyle.normal.textColor = Color.gray;
+
+            Rect emptyRect = new Rect(0, GRID_LIST_HEIGHT * 0.4f, CalculateGridContentWidth(), 30);
+            GUI.Label(emptyRect, "拖拽预制体或网格到此处", centeredStyle);
+            return;
+        }
+
+        float availableWidth = position.width - 40f;
+        int itemsPerRow = Mathf.FloorToInt(availableWidth / (GRID_ITEM_SIZE + GRID_SPACING));
+        if (itemsPerRow < 1) itemsPerRow = 1;
+
+        for (int i = 0; i < placeableObjects.Count; i++)
+        {
+            int row = i / itemsPerRow;
+            int col = i % itemsPerRow;
+
+            float x = col * (GRID_ITEM_SIZE + GRID_SPACING);
+            float y = row * (GRID_ITEM_SIZE + GRID_SPACING);
+
+            Rect itemRect = new Rect(x, y, GRID_ITEM_SIZE, GRID_ITEM_SIZE);
+            DrawGridItem(itemRect, i);
+        }
+    }
+
+    // 绘制网格单个项目
+    private void DrawGridItem(Rect rect, int index)
+    {
+        PlaceableObject obj = placeableObjects[index];
+
+        GUI.Box(rect, "", EditorStyles.helpBox);
+
+        Rect previewRect = new Rect(rect.x + 2, rect.y + 2, rect.width - 4, rect.height - 4);
+
+        Texture2D preview = obj.GetPreviewTexture();
+        if (preview != null)
+        {
+            GUI.DrawTexture(previewRect, preview, ScaleMode.ScaleToFit, true);
+        }
+        else
+        {
+            GUIStyle iconStyle = new GUIStyle(EditorStyles.label);
+            iconStyle.alignment = TextAnchor.MiddleCenter;
+            iconStyle.fontSize = 24;
+            GUIContent iconContent = obj.prefab != null ? EditorGUIUtility.IconContent("Prefab Icon") : EditorGUIUtility.IconContent("MeshRenderer Icon");
+            GUI.Label(previewRect, iconContent, iconStyle);
+        }
+
+        if (!obj.isEnabled)
+        {
+            Color maskColor = new Color(0.1f, 0.1f, 0.1f, 0.5f);
+            EditorGUI.DrawRect(previewRect, maskColor);
+        }
+
+        if (index == selectedObjectIndex)
+        {
+            Color borderColor = new Color(1f, 0.7f, 0.2f, 1f);
+            float borderWidth = 3f;
+            Rect borderRect = new Rect(previewRect.x - borderWidth / 2, previewRect.y - borderWidth / 2, previewRect.width + borderWidth, previewRect.height + borderWidth);
+            Handles.BeginGUI();
+            Handles.DrawSolidRectangleWithOutline(borderRect, Color.clear, borderColor);
+            Handles.EndGUI();
+        }
+
+        if (Event.current.type == EventType.MouseDown && rect.Contains(Event.current.mousePosition))
+        {
+            selectedObjectIndex = index;
+            showObjectSettings = true;
+            Event.current.Use();
+        }
+    }
+
+    // 绘制选中对象的设置
+    private void DrawObjectSettings()
+    {
+        if (selectedObjectIndex < 0 || selectedObjectIndex >= placeableObjects.Count)
+        {
+            return;
+        }
+
+        PlaceableObject selectedObj = placeableObjects[selectedObjectIndex];
+
+        EditorGUILayout.BeginVertical("helpbox");
+        {
+            EditorGUILayout.BeginHorizontal();
+            GUIStyle leftButtonStyle = new GUIStyle(GUI.skin.button);
+            leftButtonStyle.alignment = TextAnchor.MiddleLeft;
+            leftButtonStyle.fontSize = 12;
+            leftButtonStyle.fontStyle = FontStyle.Bold;
+
+            string settingsText = showObjectSettings ? $"▼ 对象设置 - {selectedObj.GetName()}" : $"▶ 对象设置 - {selectedObj.GetName()}";
+            if (GUILayout.Button(settingsText, leftButtonStyle, GUILayout.Height(22), GUILayout.ExpandWidth(true)))
+            {
+                showObjectSettings = !showObjectSettings;
+            }
+            EditorGUILayout.EndHorizontal();
+
+            if (showObjectSettings)
+            {
+                EditorGUILayout.Space(5);
+
+                if (selectedObj.prefab != null)
+                {
+                    GameObject newPrefab = (GameObject)EditorGUILayout.ObjectField("预制体", selectedObj.prefab, typeof(GameObject), false);
+                    if (newPrefab != selectedObj.prefab)
+                    {
+                        if (newPrefab == null || PrefabUtility.IsPartOfPrefabAsset(newPrefab))
+                        {
+                            selectedObj.prefab = newPrefab;
+                            selectedObj.mesh = null;
+                            selectedObj.material = null;
+                        }
+                        else
+                        {
+                            EditorUtility.DisplayDialog("错误", "请选择预制体资源", "确定");
+                        }
+                    }
+                }
+                else
+                {
+                    selectedObj.mesh = (Mesh)EditorGUILayout.ObjectField("网格", selectedObj.mesh, typeof(Mesh), false);
+                    selectedObj.material = (Material)EditorGUILayout.ObjectField("材质", selectedObj.material, typeof(Material), false);
+
+                    if (selectedObj.mesh != null && GUILayout.Button("转换为预制体模式"))
+                    {
+                        selectedObj.mesh = null;
+                        selectedObj.material = null;
+                    }
+                }
+
+                EditorGUILayout.Space(3);
+
+                selectedObj.isEnabled = EditorGUILayout.ToggleLeft("启用此对象", selectedObj.isEnabled);
+
+                EditorGUILayout.LabelField("随机权重", EditorStyles.boldLabel);
+                selectedObj.weight = EditorGUILayout.Slider("权重", selectedObj.weight, 0.1f, 10f);
+                EditorGUILayout.HelpBox($"权重越高，被随机选中的概率越大\n当前权重: {selectedObj.weight:F1}", MessageType.Info);
+
+                EditorGUILayout.Space(3);
+
+                EditorGUILayout.BeginHorizontal();
+                {
+                    if (GUILayout.Button("复制对象"))
+                    {
+                        PlaceableObject copy = new PlaceableObject
+                        {
+                            prefab = selectedObj.prefab,
+                            mesh = selectedObj.mesh,
+                            material = selectedObj.material,
+                            weight = selectedObj.weight,
+                            isEnabled = selectedObj.isEnabled
+                        };
+                        placeableObjects.Insert(selectedObjectIndex + 1, copy);
+                    }
+
+                    if (GUILayout.Button("删除对象"))
+                    {
+                        if (EditorUtility.DisplayDialog("确认删除", $"确定要删除 '{selectedObj.GetName()}' 吗？", "确定", "取消"))
+                        {
+                            placeableObjects.RemoveAt(selectedObjectIndex);
+                            selectedObjectIndex = -1;
+                            showObjectSettings = false;
+                        }
+                    }
+                }
+                EditorGUILayout.EndHorizontal();
+            }
+        }
+        EditorGUILayout.EndVertical();
+
+        EditorGUILayout.Space(3);
+    }
+
+    // 处理拖拽操作
+    private void HandleDragAndDrop(Rect dropArea)
+    {
+        Event evt = Event.current;
+
+        switch (evt.type)
+        {
+            case EventType.DragUpdated:
+            case EventType.DragPerform:
+                if (!dropArea.Contains(evt.mousePosition))
+                    return;
+
+                DragAndDrop.visualMode = DragAndDropVisualMode.Copy;
+
+                if (evt.type == EventType.DragPerform)
+                {
+                    DragAndDrop.AcceptDrag();
+
+                    foreach (Object draggedObject in DragAndDrop.objectReferences)
+                    {
+                        PlaceableObject newObj = new PlaceableObject();
+
+                        if (draggedObject is GameObject)
+                        {
+                            GameObject go = draggedObject as GameObject;
+                            if (PrefabUtility.IsPartOfPrefabAsset(go))
+                            {
+                                newObj.prefab = go;
+                            }
+                            else
+                            {
+                                Debug.LogWarning($"对象 {go.name} 不是预制体资源");
+                                continue;
+                            }
+                        }
+                        else if (draggedObject is Mesh)
+                        {
+                            newObj.mesh = draggedObject as Mesh;
+                        }
+                        else
+                        {
+                            Debug.LogWarning($"不支持的对象类型: {draggedObject.GetType()}");
+                            continue;
+                        }
+
+                        placeableObjects.Add(newObj);
+                    }
+                }
+                break;
+        }
     }
 
     private void DrawSettings()
@@ -97,25 +489,8 @@ public class PrefabPlacerTool : EditorWindow
             EditorGUILayout.LabelField("基础设置", EditorStyles.boldLabel);
             EditorGUILayout.Space(3);
 
-            // 对象类型选择
-            objectType = (ObjectType)EditorGUILayout.EnumPopup("对象类型", objectType);
-
-            if (objectType == ObjectType.Prefab)
-            {
-                prefabToPlace = (GameObject)EditorGUILayout.ObjectField("预制体", prefabToPlace, typeof(GameObject), false);
-            }
-            else
-            {
-                meshToPlace = (Mesh)EditorGUILayout.ObjectField("网格", meshToPlace, typeof(Mesh), false);
-                meshMaterial = (Material)EditorGUILayout.ObjectField("材质", meshMaterial, typeof(Material), false);
-            }
-
-            EditorGUILayout.Space(5);
-
-            // 放置模式选择
             placementMode = (PlacementMode)EditorGUILayout.EnumPopup("放置模式", placementMode);
 
-            // 根据不同模式显示不同参数
             EditorGUILayout.Space(3);
             DrawModeSpecificSettings();
         }
@@ -123,16 +498,13 @@ public class PrefabPlacerTool : EditorWindow
 
         EditorGUILayout.Space(3);
 
-        // 高级选项(可折叠)
         DrawAdvancedOptions();
 
-        // 随机设置(可折叠)
         if (placementMode != PlacementMode.SinglePlacement)
         {
             DrawRandomSettings();
         }
 
-        // 方向设置(可折叠)
         DrawDirectionSettings();
     }
 
@@ -147,14 +519,9 @@ public class PrefabPlacerTool : EditorWindow
                 break;
 
             case PlacementMode.StraightLineArrangement:
-                EditorGUI.BeginChangeCheck();
                 placementCount = EditorGUILayout.IntSlider("放置数量", placementCount, 2, 50);
                 lineSpacing = EditorGUILayout.Slider("间隔距离", lineSpacing, 0.5f, 10f);
                 lineRandomOffset = EditorGUILayout.Slider("随机偏移", lineRandomOffset, 0f, 5f);
-                if (EditorGUI.EndChangeCheck())
-                {
-                    needRecalculateRandomPositions = true;
-                }
 
                 if (lineRandomOffset > 0)
                 {
@@ -167,14 +534,9 @@ public class PrefabPlacerTool : EditorWindow
                 break;
 
             case PlacementMode.RangePlacement:
-                EditorGUI.BeginChangeCheck();
                 placementCount = EditorGUILayout.IntSlider("放置数量", placementCount, 2, 100);
                 placementRadius = EditorGUILayout.Slider("圆形半径", placementRadius, 1f, 50f);
                 distributionType = (DistributionType)EditorGUILayout.EnumPopup("分布类型", distributionType);
-                if (EditorGUI.EndChangeCheck())
-                {
-                    needRecalculateRandomPositions = true;
-                }
 
                 if (distributionType == DistributionType.UniformDistribution)
                 {
@@ -195,7 +557,6 @@ public class PrefabPlacerTool : EditorWindow
         EditorGUILayout.BeginVertical("helpbox");
         {
             EditorGUILayout.BeginHorizontal();
-            // 自定义左对齐按钮样式
             GUIStyle leftButtonStyle = new GUIStyle(GUI.skin.button);
             leftButtonStyle.alignment = TextAnchor.MiddleLeft;
             leftButtonStyle.fontSize = 12;
@@ -210,11 +571,25 @@ public class PrefabPlacerTool : EditorWindow
 
             if (showAdvancedOptions)
             {
-                // 左对齐标签样式
                 GUIStyle leftLabel = new GUIStyle(EditorStyles.label);
                 leftLabel.alignment = TextAnchor.MiddleLeft;
 
                 randomRotation = EditorGUILayout.ToggleLeft("随机旋转", randomRotation, leftLabel);
+
+                randomScale = EditorGUILayout.ToggleLeft("随机缩放", randomScale, leftLabel);
+                if (randomScale)
+                {
+                    EditorGUI.indentLevel++;
+                    minScale = EditorGUILayout.Slider("最小缩放", minScale, 0.1f, 2f);
+                    maxScale = EditorGUILayout.Slider("最大缩放", maxScale, 0.1f, 2f);
+
+                    if (minScale > maxScale)
+                    {
+                        maxScale = minScale;
+                    }
+                    EditorGUI.indentLevel--;
+                }
+
                 alignToSurface = EditorGUILayout.ToggleLeft("贴合表面", alignToSurface, leftLabel);
                 showPreview = EditorGUILayout.ToggleLeft("显示预览", showPreview, leftLabel);
 
@@ -232,7 +607,6 @@ public class PrefabPlacerTool : EditorWindow
         EditorGUILayout.BeginVertical("helpbox");
         {
             EditorGUILayout.BeginHorizontal();
-            // 自定义左对齐按钮样式
             GUIStyle leftButtonStyle = new GUIStyle(GUI.skin.button);
             leftButtonStyle.alignment = TextAnchor.MiddleLeft;
             leftButtonStyle.fontSize = 12;
@@ -247,20 +621,14 @@ public class PrefabPlacerTool : EditorWindow
 
             if (showRandomSettings)
             {
-                EditorGUI.BeginChangeCheck();
-                randomSeed = EditorGUILayout.IntField("随机种子", randomSeed);
-                if (EditorGUI.EndChangeCheck())
-                {
-                    needRecalculateRandomPositions = true;
-                }
+                randomSeed = Mathf.Max(0, EditorGUILayout.IntField("随机种子", randomSeed));
 
                 if (GUILayout.Button("重新生成随机数", GUILayout.Height(25)))
                 {
                     randomSeed = Random.Range(0, 10000);
-                    InitializeRandom();
-                    needRecalculateRandomPositions = true;
+                    InitializeRandom(); // 仅影响对象选择与旋转/缩放随机，不直接改变 randomPositionIndex
                 }
-                EditorGUILayout.HelpBox("相同种子会产生相同的随机分布", MessageType.None);
+                EditorGUILayout.HelpBox("相同种子 -> 相同权重随机选择序列; 修改随机位置序号 -> 切换不同的布局位置", MessageType.None);
             }
         }
         EditorGUILayout.EndVertical();
@@ -271,7 +639,6 @@ public class PrefabPlacerTool : EditorWindow
         EditorGUILayout.BeginVertical("helpbox");
         {
             EditorGUILayout.BeginHorizontal();
-            // 自定义左对齐按钮样式
             GUIStyle leftButtonStyle = new GUIStyle(GUI.skin.button);
             leftButtonStyle.alignment = TextAnchor.MiddleLeft;
             leftButtonStyle.fontSize = 12;
@@ -301,39 +668,67 @@ public class PrefabPlacerTool : EditorWindow
         EditorGUILayout.BeginVertical("helpbox");
         {
             EditorGUILayout.LabelField("放置控制", EditorStyles.boldLabel);
-            EditorGUILayout.Space(3);
 
             EditorGUILayout.BeginHorizontal();
             {
                 GUI.backgroundColor = isInPlacementMode ? new Color(1f, 0.5f, 0.5f) : new Color(0.5f, 1f, 0.5f);
-
-                if (!isInPlacementMode)
+                if (!isInPlacementMode && !isInCleanupMode)
                 {
-                    if (GUILayout.Button("开始放置", GUILayout.Height(26)))
+                    if (GUILayout.Button("开始放置", GUILayout.Height(24)))
                     {
                         StartPlacementMode();
                     }
                 }
-                else
+                else if (isInPlacementMode)
                 {
-                    if (GUILayout.Button("取消放置", GUILayout.Height(26)))
+                    if (GUILayout.Button("取消放置", GUILayout.Height(24)))
                     {
                         CancelPlacementMode();
                     }
                 }
 
+                GUI.backgroundColor = isInCleanupMode ? new Color(1f, 0.5f, 0.5f) : new Color(1f, 0.8f, 0.3f);
+                if (!isInPlacementMode && !isInCleanupMode)
+                {
+                    if (GUILayout.Button("清理模式", GUILayout.Height(24)))
+                    {
+                        StartCleanupMode();
+                    }
+                }
+                else if (isInCleanupMode)
+                {
+                    if (GUILayout.Button("退出清理", GUILayout.Height(24)))
+                    {
+                        CancelCleanupMode();
+                    }
+                }
+
                 GUI.backgroundColor = Color.white;
 
-                if (GUILayout.Button("清除所有", GUILayout.Height(26), GUILayout.Width(100)))
+                GUI.backgroundColor = new Color(1f, 0.5f, 0.5f);
+                if (GUILayout.Button("清除记录", GUILayout.Height(24), GUILayout.Width(100)))
                 {
                     ClearAllPlacedObjects();
                 }
+                GUI.backgroundColor = Color.white;
             }
             EditorGUILayout.EndHorizontal();
 
-            // 放置信息面板
-            if ((prefabToPlace != null && objectType == ObjectType.Prefab) ||
-                (meshToPlace != null && objectType == ObjectType.Mesh))
+            if (isInCleanupMode)
+            {
+                EditorGUILayout.Space(3);
+                EditorGUILayout.BeginVertical("helpbox");
+                {
+                    EditorGUILayout.LabelField("清理模式", EditorStyles.miniBoldLabel);
+                    EditorGUILayout.HelpBox("点击场景中清理范围内所有启用的预制体/网格类型", MessageType.Warning);
+
+                    int enabledCount = GetEnabledObjectsCount();
+                    EditorGUILayout.LabelField($"当前清理目标: 所有启用的对象类型 ({enabledCount}个)", EditorStyles.miniLabel);
+                }
+                EditorGUILayout.EndVertical();
+            }
+
+            if (GetEnabledObjectsCount() > 0)
             {
                 EditorGUILayout.Space(3);
                 EditorGUILayout.BeginVertical("helpbox");
@@ -349,11 +744,12 @@ public class PrefabPlacerTool : EditorWindow
                     }
 
                     EditorGUILayout.LabelField($"方向: {placementRotation:0.0}°", EditorStyles.miniLabel);
+                    EditorGUILayout.LabelField($"可用对象: {GetEnabledObjectsCount()} 个", EditorStyles.miniLabel);
 
-                    string objectName = objectType == ObjectType.Prefab ?
-                        (prefabToPlace != null ? prefabToPlace.name : "无") :
-                        (meshToPlace != null ? meshToPlace.name : "无");
-                    EditorGUILayout.LabelField($"对象: {objectName}", EditorStyles.miniLabel);
+                    if (placedObjects.Count > 0)
+                    {
+                        EditorGUILayout.LabelField($"已放置: {placedObjects.Count} 个对象", EditorStyles.miniLabel);
+                    }
                 }
                 EditorGUILayout.EndVertical();
             }
@@ -361,6 +757,183 @@ public class PrefabPlacerTool : EditorWindow
         EditorGUILayout.EndVertical();
     }
 
+    // 启动清理模式
+    private void StartCleanupMode()
+    {
+        if (GetEnabledObjectsCount() == 0)
+        {
+            EditorUtility.DisplayDialog("错误", "请先启用至少一个预制体", "确定");
+            return;
+        }
+
+        isInCleanupMode = true;
+        SceneView.duringSceneGui += OnCleanupSceneGUI;
+        Debug.Log("进入清理模式:点击场景中清理范围内的启用对象,按ESC退出");
+
+        SceneView.RepaintAll();
+        Repaint();
+    }
+
+    // 取消清理模式
+    private void CancelCleanupMode()
+    {
+        isInCleanupMode = false;
+        SceneView.duringSceneGui -= OnCleanupSceneGUI;
+        Debug.Log("已退出清理模式");
+
+        SceneView.RepaintAll();
+        Repaint();
+    }
+
+    // 清理模式场景GUI处理
+    private void OnCleanupSceneGUI(SceneView sceneView)
+    {
+        Event e = Event.current;
+
+        if (e.type == EventType.ScrollWheel)
+        {
+            float delta = e.delta.y;
+            if (e.control && e.alt)
+            {
+                placementRadius = Mathf.Clamp(placementRadius - delta * 0.5f, 1f, 50f);
+                Repaint();
+                e.Use();
+                return;
+            }
+        }
+
+        if (e.type == EventType.KeyDown && e.keyCode == KeyCode.Escape)
+        {
+            CancelCleanupMode();
+            e.Use();
+            return;
+        }
+
+        if (e.type == EventType.MouseDown && e.button == 0 && !e.control)
+        {
+            Vector3 center = GetMouseWorldPosition(e.mousePosition);
+
+            Collider[] colliders = Physics.OverlapSphere(center, placementRadius);
+            int cleanedCount = 0;
+
+            List<GameObject> objectsToDestroy = new List<GameObject>();
+
+            foreach (var col in colliders)
+            {
+                GameObject go = col.gameObject;
+                if (ShouldCleanup(go))
+                {
+                    GameObject rootObject = GetRootObject(go);
+                    if (!objectsToDestroy.Contains(rootObject))
+                    {
+                        objectsToDestroy.Add(rootObject);
+                    }
+                }
+            }
+
+            foreach (GameObject obj in objectsToDestroy)
+            {
+                Undo.DestroyObjectImmediate(obj);
+                placedObjects.Remove(obj);
+                cleanedCount++;
+            }
+
+            Debug.Log($"清理范围内对象数量: {cleanedCount}");
+            Repaint();
+            e.Use();
+            return;
+        }
+
+        if (e.type == EventType.Repaint)
+        {
+            DrawCleanupIndicator();
+        }
+    }
+
+    // 获取对象的根对象（预制体根或自身）
+    private GameObject GetRootObject(GameObject obj)
+    {
+        GameObject prefabRoot = PrefabUtility.GetNearestPrefabInstanceRoot(obj);
+        return prefabRoot != null ? prefabRoot : obj;
+    }
+
+    // 判断对象是否应该被清理
+    private bool ShouldCleanup(GameObject targetObject)
+    {
+        foreach (var obj in placeableObjects)
+        {
+            if (!obj.isEnabled || !obj.IsValid()) continue;
+
+            if (obj.prefab != null)
+            {
+                GameObject prefabRoot = PrefabUtility.GetNearestPrefabInstanceRoot(targetObject);
+                if (prefabRoot != null)
+                {
+                    GameObject prefabAsset = PrefabUtility.GetCorrespondingObjectFromSource(prefabRoot);
+                    if (prefabAsset == obj.prefab)
+                    {
+                        return true;
+                    }
+                }
+            }
+            else if (obj.mesh != null)
+            {
+                MeshFilter meshFilter = targetObject.GetComponent<MeshFilter>();
+                if (meshFilter != null && meshFilter.sharedMesh == obj.mesh)
+                {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    // 绘制清理模式指示器
+    private void DrawCleanupIndicator()
+    {
+        Vector3 mouseWorldPos = GetMouseWorldPosition(Event.current.mousePosition);
+
+        Handles.color = new Color(1f, 0.3f, 0.3f, 0.5f);
+        Handles.DrawSolidDisc(mouseWorldPos, Vector3.up, placementRadius);
+        Handles.color = Color.red;
+        Handles.DrawWireDisc(mouseWorldPos, Vector3.up, placementRadius);
+
+        GUIStyle labelStyle = new GUIStyle(GUI.skin.label);
+        labelStyle.normal.textColor = Color.white;
+        labelStyle.alignment = TextAnchor.MiddleCenter;
+        labelStyle.fontStyle = FontStyle.Bold;
+        labelStyle.fontSize = 12;
+
+        int enabledCount = GetEnabledObjectsCount();
+        string infoText = $"清理模式\n目标: 所有启用对象 ({enabledCount}个)";
+
+        Handles.Label(mouseWorldPos + Vector3.up * 2f, infoText, labelStyle);
+    }
+
+    void OnDestroy()
+    {
+        if (isInPlacementMode)
+        {
+            CancelPlacementMode();
+        }
+        if (isInCleanupMode)
+        {
+            CancelCleanupMode();
+        }
+    }
+
+    // 获取启用对象数量
+    private int GetEnabledObjectsCount()
+    {
+        int count = 0;
+        foreach (var obj in placeableObjects)
+        {
+            if (obj.isEnabled && obj.IsValid()) count++;
+        }
+        return count;
+    }
+
+    // 获取模式显示文本
     private string GetModeDisplayText()
     {
         switch (placementMode)
@@ -376,72 +949,8 @@ public class PrefabPlacerTool : EditorWindow
         }
     }
 
-    private bool showHistory = true; // 在类字段区添加
-
-    private void DrawHistory()
-    {
-        // 折叠按钮
-        EditorGUILayout.BeginHorizontal();
-        // 自定义左对齐按钮样式
-        GUIStyle leftButtonStyle = new GUIStyle(GUI.skin.button);
-        leftButtonStyle.alignment = TextAnchor.MiddleLeft;
-        leftButtonStyle.fontSize = 12;
-        leftButtonStyle.fontStyle = FontStyle.Bold;
-        string historyBtnText = showHistory ? "▼ 放置历史" : "▶ 放置历史";
-        if (GUILayout.Button(historyBtnText, leftButtonStyle, GUILayout.Height(22), GUILayout.ExpandWidth(true)))
-        {
-            showHistory = !showHistory;
-        }
-        EditorGUILayout.EndHorizontal();
-
-        if (!showHistory || placedObjects.Count == 0) return;
-
-        EditorGUILayout.Space(3);
-        EditorGUILayout.BeginVertical("box");
-        {
-            EditorGUILayout.LabelField($"放置历史 ({placedObjects.Count} 个对象)", EditorStyles.boldLabel);
-            EditorGUILayout.Space(1);
-
-            scrollPosition = EditorGUILayout.BeginScrollView(scrollPosition, GUILayout.Height(180));
-            {
-                for (int i = placedObjects.Count - 1; i >= 0; i--)
-                {
-                    if (placedObjects[i] == null)
-                    {
-                        placedObjects.RemoveAt(i);
-                        continue;
-                    }
-
-                    EditorGUILayout.BeginHorizontal();
-                    {
-                        EditorGUILayout.ObjectField(placedObjects[i], typeof(GameObject), true);
-
-                        if (GUILayout.Button("定位", GUILayout.Width(50)))
-                        {
-                            EditorGUIUtility.PingObject(placedObjects[i]);
-                            Selection.activeGameObject = placedObjects[i];
-                        }
-
-                        if (GUILayout.Button("删除", GUILayout.Width(50)))
-                        {
-                            DestroyImmediate(placedObjects[i]);
-                            placedObjects.RemoveAt(i);
-                        }
-                    }
-                    EditorGUILayout.EndHorizontal();
-                }
-            }
-            EditorGUILayout.EndScrollView();
-
-            if (GUILayout.Button("清除历史", GUILayout.Height(25)))
-            {
-                ClearAllPlacedObjects();
-            }
-        }
-        EditorGUILayout.EndVertical();
-    }
-
-    private void DrawRangeIndicator(SceneView sceneView)
+    // 绘制范围指示器
+    private void DrawRangeIndicator()
     {
         Vector3 placementPosition = GetMouseWorldPosition(lastMousePosition);
         Quaternion rotation = Quaternion.Euler(0, placementRotation, 0);
@@ -449,13 +958,13 @@ public class PrefabPlacerTool : EditorWindow
         switch (placementMode)
         {
             case PlacementMode.SinglePlacement:
-                DrawSinglePlacementIndicator(placementPosition, rotation);
+                DrawSinglePlacementIndicator(placementPosition);
                 break;
             case PlacementMode.StraightLineArrangement:
                 DrawLinearRange(placementPosition, rotation);
                 break;
             case PlacementMode.RangePlacement:
-                DrawCircularArea(placementPosition, rotation);
+                DrawCircularArea(placementPosition);
                 break;
         }
 
@@ -469,11 +978,11 @@ public class PrefabPlacerTool : EditorWindow
             DrawPlacementPreviews(placementPosition, rotation);
         }
 
-        // 显示信息标签
         DrawInfoLabel(placementPosition);
     }
 
-    private void DrawSinglePlacementIndicator(Vector3 center, Quaternion rotation)
+    // 绘制单个放置指示器
+    private void DrawSinglePlacementIndicator(Vector3 center)
     {
         Handles.color = new Color(0, 1, 0, 0.5f);
         Handles.DrawSolidDisc(center, Vector3.up, 0.25f);
@@ -481,6 +990,7 @@ public class PrefabPlacerTool : EditorWindow
         Handles.DrawWireDisc(center, Vector3.up, 0.25f);
     }
 
+    // 绘制信息标签
     private void DrawInfoLabel(Vector3 position)
     {
         GUIStyle labelStyle = new GUIStyle(GUI.skin.label);
@@ -495,14 +1005,14 @@ public class PrefabPlacerTool : EditorWindow
             infoText += $"\n数量: {placementCount}";
         }
         infoText += $"\n方向: {placementRotation:0.0}°";
+        infoText += $"\n对象: {GetEnabledObjectsCount()} 个可用";
 
         Handles.Label(position + Vector3.up * 2f, infoText, labelStyle);
     }
 
+    // 绘制直线范围
     private void DrawLinearRange(Vector3 center, Quaternion rotation)
     {
-        Handles.color = Color.blue;
-
         if (lineRandomOffset > 0)
         {
             Handles.color = new Color(1, 0.5f, 0, 0.2f);
@@ -514,18 +1024,19 @@ public class PrefabPlacerTool : EditorWindow
         }
     }
 
+    // 绘制方向指示器
     private void DrawDirectionIndicator(Vector3 center, Quaternion rotation)
     {
         Vector3 direction = rotation * Vector3.right;
-        Vector3 arrowEnd = center + direction * 1f;
 
         Handles.color = Color.yellow;
         Handles.ArrowHandleCap(0, center, Quaternion.LookRotation(direction), 1f, EventType.Repaint);
 
         Handles.color = new Color(1, 1, 0, 0.5f);
-        Handles.DrawDottedLine(center, arrowEnd, 5f);
+        Handles.DrawDottedLine(center, center + direction, 5f);
     }
 
+    // 绘制放置预览
     private void DrawPlacementPreviews(Vector3 center, Quaternion rotation)
     {
         Vector3[] positions = CalculatePlacementPositions(center, rotation);
@@ -536,8 +1047,7 @@ public class PrefabPlacerTool : EditorWindow
             Handles.SphereHandleCap(0, pos, Quaternion.identity, 0.15f, EventType.Repaint);
         }
 
-        if ((objectType == ObjectType.Prefab && prefabToPlace != null) ||
-            (objectType == ObjectType.Mesh && meshToPlace != null))
+        if (GetEnabledObjectsCount() > 0)
         {
             Handles.color = new Color(1, 1, 1, 0.3f);
             foreach (Vector3 pos in positions)
@@ -547,6 +1057,7 @@ public class PrefabPlacerTool : EditorWindow
         }
     }
 
+    // 获取鼠标世界坐标
     private Vector3 GetMouseWorldPosition(Vector2 mousePosition)
     {
         Ray worldRay = HandleUtility.GUIPointToWorldRay(mousePosition);
@@ -569,6 +1080,7 @@ public class PrefabPlacerTool : EditorWindow
         return Vector3.zero;
     }
 
+    // 调整位置贴合表面
     private Vector3 AdjustPositionToSurface(Vector3 position)
     {
         if (alignToSurface)
@@ -582,15 +1094,51 @@ public class PrefabPlacerTool : EditorWindow
         return position;
     }
 
+    // 获取随机对象
+    private PlaceableObject GetRandomObject()
+    {
+        var enabledObjects = new List<PlaceableObject>();
+        foreach (var obj in placeableObjects)
+        {
+            if (obj.isEnabled && obj.IsValid())
+            {
+                enabledObjects.Add(obj);
+            }
+        }
+
+        if (enabledObjects.Count == 0) return null;
+        if (enabledObjects.Count == 1) return enabledObjects[0];
+
+        float totalWeight = 0f;
+        foreach (var obj in enabledObjects)
+        {
+            totalWeight += obj.weight;
+        }
+
+        float randomValue = (float)(random.NextDouble() * totalWeight);
+        float currentWeight = 0f;
+
+        foreach (var obj in enabledObjects)
+        {
+            currentWeight += obj.weight;
+            if (randomValue <= currentWeight)
+            {
+                return obj;
+            }
+        }
+
+        return enabledObjects[enabledObjects.Count - 1];
+    }
+
+    // 计算放置旋转角度
     private Quaternion[] CalculatePlacementRotations(Quaternion baseRotation)
     {
         List<Quaternion> rotations = new List<Quaternion>();
         int count = placementMode == PlacementMode.SinglePlacement ? 1 : placementCount;
 
-        // 为旋转创建独立的随机数生成器
         if (randomRotation && rotationRandom == null)
         {
-            rotationRandom = new System.Random(randomSeed + 1000); // 使用不同的种子偏移
+            rotationRandom = new System.Random(randomSeed + 1000);
         }
 
         for (int i = 0; i < count; i++)
@@ -607,31 +1155,67 @@ public class PrefabPlacerTool : EditorWindow
         return rotations.ToArray();
     }
 
-    private void PlaceObjectsAtMousePosition(SceneView sceneView)
+    // 计算放置缩放
+    private Vector3[] CalculatePlacementScales()
     {
+        List<Vector3> scales = new List<Vector3>();
+        int count = placementMode == PlacementMode.SinglePlacement ? 1 : placementCount;
+
+        if (randomScale && scaleRandom == null)
+        {
+            scaleRandom = new System.Random(randomSeed + 2000);
+        }
+
+        for (int i = 0; i < count; i++)
+        {
+            Vector3 scale = Vector3.one;
+            if (randomScale && scaleRandom != null)
+            {
+                float randomScaleValue = Mathf.Lerp(minScale, maxScale, (float)scaleRandom.NextDouble());
+                scale = Vector3.one * randomScaleValue;
+            }
+            scales.Add(scale);
+        }
+
+        return scales.ToArray();
+    }
+
+    // 在鼠标位置放置对象
+    private void PlaceObjectsAtMousePosition()
+    {
+        if (GetEnabledObjectsCount() == 0)
+        {
+            EditorUtility.DisplayDialog("错误", "没有可用的对象进行放置", "确定");
+            return;
+        }
+
         Vector3 placementPosition = GetMouseWorldPosition(lastMousePosition);
         Quaternion baseRotation = Quaternion.Euler(0, placementRotation, 0);
         Vector3[] positions = CalculatePlacementPositions(placementPosition, baseRotation);
         Quaternion[] rotations = CalculatePlacementRotations(baseRotation);
+        Vector3[] scales = CalculatePlacementScales();
 
         for (int i = 0; i < positions.Length; i++)
         {
+            PlaceableObject selectedObj = GetRandomObject();
+            if (selectedObj == null) continue;
+
             GameObject newObject = null;
 
-            if (objectType == ObjectType.Prefab && prefabToPlace != null)
+            if (selectedObj.prefab != null)
             {
-                newObject = (GameObject)PrefabUtility.InstantiatePrefab(prefabToPlace);
+                newObject = (GameObject)PrefabUtility.InstantiatePrefab(selectedObj.prefab);
             }
-            else if (objectType == ObjectType.Mesh && meshToPlace != null)
+            else if (selectedObj.mesh != null)
             {
-                newObject = new GameObject($"PlacedMesh_{meshToPlace.name}_{placedObjects.Count + i}");
+                newObject = new GameObject($"PlacedMesh_{selectedObj.mesh.name}_{placedObjects.Count + i}");
                 MeshFilter meshFilter = newObject.AddComponent<MeshFilter>();
                 MeshRenderer meshRenderer = newObject.AddComponent<MeshRenderer>();
 
-                meshFilter.mesh = meshToPlace;
-                if (meshMaterial != null)
+                meshFilter.mesh = selectedObj.mesh;
+                if (selectedObj.material != null)
                 {
-                    meshRenderer.material = meshMaterial;
+                    meshRenderer.material = selectedObj.material;
                 }
                 else
                 {
@@ -643,6 +1227,7 @@ public class PrefabPlacerTool : EditorWindow
             {
                 newObject.transform.position = positions[i];
                 newObject.transform.rotation = rotations[i];
+                newObject.transform.localScale = scales[i];
 
                 placedObjects.Add(newObject);
                 Undo.RegisterCreatedObjectUndo(newObject, "Place Object");
@@ -650,11 +1235,17 @@ public class PrefabPlacerTool : EditorWindow
         }
 
         Debug.Log($"成功放置 {positions.Length} 个对象，模式: {placementMode}，方向: {placementRotation:0}°");
+        Repaint();
     }
 
+    // 清除所有已放置对象
     private void ClearAllPlacedObjects()
     {
-        if (placedObjects.Count == 0) return;
+        if (placedObjects.Count == 0)
+        {
+            Debug.Log("没有需要清除的对象");
+            return;
+        }
 
         if (EditorUtility.DisplayDialog("确认清除", $"确定要删除所有 {placedObjects.Count} 个已放置的对象吗?", "确定", "取消"))
         {
@@ -662,14 +1253,199 @@ public class PrefabPlacerTool : EditorWindow
             {
                 if (obj != null)
                 {
-                    DestroyImmediate(obj);
+                    Undo.DestroyObjectImmediate(obj);
                 }
             }
             placedObjects.Clear();
             Debug.Log("已清除所有放置的对象");
+            Repaint();
         }
     }
 
+    // 启动放置模式
+    private void StartPlacementMode()
+    {
+        if (GetEnabledObjectsCount() == 0)
+        {
+            EditorUtility.DisplayDialog("错误", "没有可用的对象进行放置", "确定");
+            return;
+        }
+
+        isInPlacementMode = true;
+        InitializeRandom();
+        SceneView.duringSceneGui += OnPlacementSceneGUI;
+        Debug.Log("进入放置模式:在场景中点击放置对象,按ESC退出");
+
+        SceneView.RepaintAll();
+        Repaint();
+    }
+
+    // 取消放置模式
+    private void CancelPlacementMode()
+    {
+        isInPlacementMode = false;
+        SceneView.duringSceneGui -= OnPlacementSceneGUI;
+        Debug.Log("已退出放置模式");
+
+        SceneView.RepaintAll();
+        Repaint();
+    }
+
+    // 初始化随机数生成器
+    private void InitializeRandom()
+    {
+        random = new System.Random(randomSeed);
+        rotationRandom = new System.Random(randomSeed + 1000);
+        scaleRandom = new System.Random(randomSeed + 2000);
+    }
+
+    // 放置模式场景GUI处理
+    private void OnPlacementSceneGUI(SceneView sceneView)
+    {
+        Event e = Event.current;
+
+        lastMousePosition = e.mousePosition;
+
+        if (e.type == EventType.KeyDown && e.keyCode == KeyCode.Escape)
+        {
+            CancelPlacementMode();
+            e.Use();
+            return;
+        }
+
+        if (e.type == EventType.ScrollWheel)
+        {
+            float delta = e.delta.y;
+
+            if (e.control && e.alt)
+            {
+                if (placementMode == PlacementMode.RangePlacement)
+                {
+                    placementRadius = Mathf.Clamp(placementRadius - delta * 0.5f, 1f, 50f);
+                }
+                else if (placementMode == PlacementMode.StraightLineArrangement)
+                {
+                    lineSpacing = Mathf.Clamp(lineSpacing - delta * 0.1f, 0.5f, 10f);
+                }
+            }
+            else if (e.control)
+            {
+                placementRotation = (placementRotation - delta * 5f) % 360f;
+                if (placementRotation < 0) placementRotation += 360f;
+            }
+            else if (e.shift)
+            {
+                // 直接根据 delta 判断方向，避免 Sign 可能的不一致
+                int step;
+                if (e.delta.y > 0)
+                    step = -1; // 下滑减少
+                else
+                    step = 1;  // 上滑增加
+
+                randomSeed = Mathf.Max(0, randomSeed + step);
+                Debug.Log($"Shift+滚轮: delta.y={e.delta.y}, step={step}, randomSeed={randomSeed}"); // 调试输出
+                InitializeRandom();
+                Repaint();
+            }
+            Repaint();
+            e.Use();
+            return;
+        }
+
+        if (e.type == EventType.MouseDown && e.button == 0 && !e.control)
+        {
+            PlaceObjectsAtMousePosition();
+            e.Use();
+            return;
+        }
+
+        if (e.type == EventType.Repaint)
+        {
+            DrawRangeIndicator();
+        }
+    }
+
+    // 计算放置位置 (稳定随机: 仅当种子/参数变化或鼠标中心变化时结果改变)
+    private Vector3[] CalculatePlacementPositions(Vector3 center, Quaternion rotation)
+    {
+        List<Vector3> positions = new List<Vector3>();
+        int count = placementMode == PlacementMode.SinglePlacement ? 1 : placementCount;
+        int positionSeedBase = randomSeed * 99991;
+
+        // 随机分布时的整体偏移中心（让分布不总是围绕圆心）
+        Vector2 clusterOffset = Vector2.zero;
+        if (placementMode == PlacementMode.RangePlacement && distributionType == DistributionType.RandomDistribution)
+        {
+            System.Random offsetRandom = new System.Random(positionSeedBase + 88888);
+            float offsetAngle = (float)offsetRandom.NextDouble() * Mathf.PI * 2f;
+            float offsetRadius = placementRadius * 0.4f * (float)offsetRandom.NextDouble(); // 偏移最多40%半径
+            clusterOffset = new Vector2(Mathf.Cos(offsetAngle), Mathf.Sin(offsetAngle)) * offsetRadius;
+        }
+
+        switch (placementMode)
+        {
+            case PlacementMode.SinglePlacement:
+                positions.Add(AdjustPositionToSurface(center));
+                break;
+
+            case PlacementMode.StraightLineArrangement:
+                for (int i = 0; i < count; i++)
+                {
+                    Vector3 basePosition = center + rotation * Vector3.right * (i - (count - 1) * 0.5f) * lineSpacing;
+                    if (lineRandomOffset > 0f)
+                    {
+                        System.Random r = new System.Random(positionSeedBase + i * 7919);
+                        float ox = (float)r.NextDouble() - 0.5f;
+                        float oz = (float)r.NextDouble() - 0.5f;
+                        basePosition += new Vector3(ox, 0, oz) * lineRandomOffset;
+                    }
+                    positions.Add(AdjustPositionToSurface(basePosition));
+                }
+                break;
+            case PlacementMode.RangePlacement:
+                for (int i = 0; i < count; i++)
+                {
+                    Vector3 pos;
+                    if (distributionType == DistributionType.UniformDistribution)
+                    {
+                        float t = (float)i / count;
+                        float angle = t * 360f + placementRotation; // 加上 placementRotation
+                        float radius = placementRadius * Mathf.Sqrt(t);
+                        pos = center + Quaternion.Euler(0, angle, 0) * Vector3.forward * radius;
+                    }
+                    else // RandomDistribution
+                    {
+                        System.Random r = new System.Random(positionSeedBase + i * 104729);
+                        float x, z;
+                        do
+                        {
+                            x = ((float)r.NextDouble() * 2f - 1f) * placementRadius;
+                            z = ((float)r.NextDouble() * 2f - 1f) * placementRadius;
+                        } while (x * x + z * z > placementRadius * placementRadius);
+
+                        // 应用旋转到随机位置
+                        Vector3 localPos = new Vector3(x, 0, z);
+                        pos = center + Quaternion.Euler(0, placementRotation, 0) * localPos;
+                    }
+                    positions.Add(AdjustPositionToSurface(pos));
+                }
+                break;
+        }
+
+        return positions.ToArray();
+    }
+
+    // 绘制圆形区域
+    private void DrawCircularArea(Vector3 center)
+    {
+        Handles.color = new Color(0, 1, 1, 0.3f); // 青绿色半透明
+        Handles.DrawSolidDisc(center, Vector3.up, placementRadius);
+
+        Handles.color = new Color(0, 1, 1, 1f); // 青绿色描边
+        Handles.DrawWireDisc(center, Vector3.up, placementRadius);
+    }
+
+    // LayerMask字段
     private LayerMask LayerMaskField(string label, LayerMask layerMask)
     {
         List<string> layers = new List<string>();
@@ -689,280 +1465,17 @@ public class PrefabPlacerTool : EditorWindow
         for (int i = 0; i < layerNumbers.Count; i++)
         {
             if (((1 << layerNumbers[i]) & layerMask.value) > 0)
-                maskWithoutEmpty |= (1 << i);
+                maskWithoutEmpty |= 1 << i;
         }
 
         maskWithoutEmpty = EditorGUILayout.MaskField(label, maskWithoutEmpty, layers.ToArray());
         int mask = 0;
         for (int i = 0; i < layerNumbers.Count; i++)
         {
-            if ((maskWithoutEmpty & (1 << i)) > 0)
-                mask |= (1 << layerNumbers[i]);
+            if ((maskWithoutEmpty & (1 << i)) != 0)
+                mask |= 1 << layerNumbers[i];
         }
 
         return mask;
-    }
-
-    private void DrawCircularArea(Vector3 center, Quaternion rotation)
-    {
-        Handles.color = new Color(0, 0.5f, 1, 0.3f);
-        Handles.DrawSolidDisc(center, Vector3.up, placementRadius);
-        Handles.color = new Color(0, 0.5f, 1, 1f);
-        Handles.DrawWireDisc(center, Vector3.up, placementRadius);
-    }
-
-    private Vector3[] CalculatePlacementPositions(Vector3 center, Quaternion rotation)
-    {
-        List<Vector3> positions = new List<Vector3>();
-
-        switch (placementMode)
-        {
-            case PlacementMode.SinglePlacement:
-                positions.Add(AdjustPositionToSurface(center));
-                break;
-
-            case PlacementMode.StraightLineArrangement:
-                // 确保初始化随机数生成器
-                if (lineRandomOffset > 0 && random == null)
-                {
-                    InitializeRandom();
-                }
-
-                // 当有随机偏移时，使用缓存位置避免抖动
-                if (lineRandomOffset > 0)
-                {
-                    if (needRecalculateRandomPositions || cachedRandomPositions == null || cachedRandomPositions.Length != placementCount)
-                    {
-                        RecalculateRandomPositions();
-                        needRecalculateRandomPositions = false;
-                    }
-
-                    for (int i = 0; i < placementCount; i++)
-                    {
-                        Vector3 basePos = center + rotation * Vector3.right * i * lineSpacing;
-                        Vector3 worldPos = basePos + rotation * cachedRandomPositions[i];
-                        positions.Add(AdjustPositionToSurface(worldPos));
-                    }
-                }
-                else
-                {
-                    // 无随机偏移时直接计算
-                    for (int i = 0; i < placementCount; i++)
-                    {
-                        Vector3 basePos = center + rotation * Vector3.right * i * lineSpacing;
-                        positions.Add(AdjustPositionToSurface(basePos));
-                    }
-                }
-                break;
-
-            case PlacementMode.RangePlacement:
-                if (distributionType == DistributionType.UniformDistribution)
-                {
-                    // 圆形均匀分布 - 使用同心圆方法
-                    int rings = Mathf.CeilToInt(Mathf.Sqrt(placementCount));
-                    int placedCount = 0;
-
-                    for (int ring = 0; ring < rings && placedCount < placementCount; ring++)
-                    {
-                        float ringRadius = (ring + 1) * placementRadius / rings;
-                        int objectsInRing = ring == 0 ? 1 : Mathf.RoundToInt(6 * ring);
-
-                        if (ring == 0)
-                        {
-                            // 中心点
-                            positions.Add(AdjustPositionToSurface(center));
-                            placedCount++;
-                        }
-                        else
-                        {
-                            for (int i = 0; i < objectsInRing && placedCount < placementCount; i++)
-                            {
-                                float angle = i * Mathf.PI * 2f / objectsInRing;
-                                Vector3 localPos = new Vector3(Mathf.Cos(angle), 0, Mathf.Sin(angle)) * ringRadius;
-                                Vector3 worldPos = center + rotation * localPos;
-                                positions.Add(AdjustPositionToSurface(worldPos));
-                                placedCount++;
-                            }
-                        }
-                    }
-                }
-                else
-                {
-                    // 圆形随机分布 - 使用缓存的位置
-                    if (needRecalculateRandomPositions || cachedRandomPositions == null || cachedRandomPositions.Length != placementCount)
-                    {
-                        RecalculateRandomPositions();
-                        needRecalculateRandomPositions = false;
-                    }
-
-                    // 应用当前的中心位置和旋转到缓存的相对位置
-                    for (int i = 0; i < cachedRandomPositions.Length; i++)
-                    {
-                        Vector3 worldPos = center + rotation * cachedRandomPositions[i];
-                        positions.Add(AdjustPositionToSurface(worldPos));
-                    }
-                }
-                break;
-        }
-
-        return positions.ToArray();
-    }
-
-    private void RecalculateRandomPositions()
-    {
-        cachedRandomPositions = new Vector3[placementCount];
-
-        if (random != null)
-        {
-            // 为每次重新计算创建新的随机数生成器，确保使用正确的种子
-            System.Random posRandom = new System.Random(randomSeed);
-
-            if (placementMode == PlacementMode.StraightLineArrangement)
-            {
-                // 直线模式：生成圆形内的随机偏移
-                for (int i = 0; i < placementCount; i++)
-                {
-                    float randomAngle = (float)(posRandom.NextDouble() * Mathf.PI * 2);
-                    float randomDistance = (float)(posRandom.NextDouble() * lineRandomOffset);
-                    Vector2 randomCircle = new Vector2(Mathf.Cos(randomAngle), Mathf.Sin(randomAngle)) * randomDistance;
-                    cachedRandomPositions[i] = new Vector3(randomCircle.x, 0, randomCircle.y);
-                }
-            }
-            else if (placementMode == PlacementMode.RangePlacement)
-            {
-                // 范围模式:生成圆形内的随机点
-                for (int i = 0; i < placementCount; i++)
-                {
-                    float randomAngle = (float)(posRandom.NextDouble() * Mathf.PI * 2);
-                    float randomRadius = Mathf.Sqrt((float)posRandom.NextDouble()) * placementRadius;
-
-                    cachedRandomPositions[i] = new Vector3(
-                        Mathf.Cos(randomAngle) * randomRadius,
-                        0,
-                        Mathf.Sin(randomAngle) * randomRadius
-                    );
-                }
-            }
-        }
-    }
-
-    private void StartPlacementMode()
-    {
-        if (objectType == ObjectType.Prefab && prefabToPlace == null)
-        {
-            EditorUtility.DisplayDialog("错误", "请先选择要放置的预制体", "确定");
-            return;
-        }
-
-        if (objectType == ObjectType.Mesh && meshToPlace == null)
-        {
-            EditorUtility.DisplayDialog("错误", "请先选择要放置的网格", "确定");
-            return;
-        }
-
-        isInPlacementMode = true;
-        InitializeRandom();
-        needRecalculateRandomPositions = true;
-        SceneView.duringSceneGui += OnSceneGUI;
-        Debug.Log("进入放置模式:在场景视图中点击放置位置,按ESC取消\nCtrl+滚轮:旋转角度 | Shift+滚轮:随机种子 | Ctrl+Alt+滚轮:范围缩放");
-
-        SceneView.RepaintAll();
-        Repaint();
-    }
-
-    private void CancelPlacementMode()
-    {
-        isInPlacementMode = false;
-        SceneView.duringSceneGui -= OnSceneGUI;
-        Debug.Log("已取消放置模式");
-
-        SceneView.RepaintAll();
-        Repaint();
-    }
-
-    private void InitializeRandom()
-    {
-        random = new System.Random(randomSeed);
-        rotationRandom = new System.Random(randomSeed + 1000); // 旋转使用不同的种子
-        needRecalculateRandomPositions = true;
-    }
-
-    private void OnSceneGUI(SceneView sceneView)
-    {
-        Event e = Event.current;
-
-        // Ctrl + Alt + 鼠标滚轮 = 范围缩放 (优先级最高，先判断)
-        if (e.type == EventType.ScrollWheel && e.control && e.alt)
-        {
-            float scaleDelta = -e.delta.y * 0.2f;
-
-            if (placementMode == PlacementMode.StraightLineArrangement)
-            {
-                lineSpacing = Mathf.Clamp(lineSpacing + scaleDelta, 0.5f, 10f);
-            }
-            else if (placementMode == PlacementMode.RangePlacement)
-            {
-                placementRadius = Mathf.Clamp(placementRadius + scaleDelta, 1f, 50f);
-            }
-
-            needRecalculateRandomPositions = true;
-            e.Use();
-            Repaint();
-            sceneView.Repaint();
-            return;
-        }
-
-        // Ctrl + 鼠标滚轮 = 方向旋转
-        if (e.type == EventType.ScrollWheel && e.control && !e.alt && !e.shift)
-        {
-            float rotationDelta = -e.delta.y * 2f;
-            placementRotation += rotationDelta;
-            placementRotation %= 360f;
-            if (placementRotation < 0) placementRotation += 360f;
-
-            e.Use();
-            Repaint();
-            sceneView.Repaint();
-            return;
-        }
-
-        // Shift + 鼠标滚轮 = 改变随机种子并立即重新计算随机位置
-        if (e.type == EventType.ScrollWheel && e.shift && !e.control && !e.alt)
-        {
-            float scrollDelta = Mathf.Abs(e.delta.y) > 0 ? e.delta.y : e.delta.x;
-            if (Mathf.Abs(scrollDelta) > 0)
-            {
-                randomSeed += (int)(-scrollDelta * 10); // 每次滚动种子变化
-                InitializeRandom();
-                needRecalculateRandomPositions = true;
-                Debug.Log($"随机种子:{randomSeed}, 滚轮:{scrollDelta}");
-            }
-
-            e.Use();
-            Repaint();
-            sceneView.Repaint();
-            return;
-        }
-
-        // 鼠标移动时更新位置
-        if (e.type == EventType.MouseMove)
-        {
-            lastMousePosition = e.mousePosition;
-        }
-
-        // 左键点击放置对象
-        if (e.type == EventType.MouseDown && e.button == 0 && !e.control)
-        {
-            PlaceObjectsAtMousePosition(sceneView);
-            e.Use();
-            return;
-        }
-
-        DrawRangeIndicator(sceneView);
-
-        if (e.type == EventType.Repaint || e.type == EventType.Layout)
-        {
-            sceneView.Repaint();
-        }
     }
 }
