@@ -4,7 +4,7 @@ using UnityEditor;
 
 public class PrefabPlacerTool : EditorWindow
 {
-    [MenuItem("Tools/预制体放置工具")]
+    [MenuItem("FFramework/Tools/预制体放置工具")]
     public static void ShowWindow()
     {
         GetWindow<PrefabPlacerTool>("预制体放置工具");
