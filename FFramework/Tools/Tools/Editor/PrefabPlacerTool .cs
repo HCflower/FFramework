@@ -75,6 +75,7 @@ public class PrefabPlacerTool : EditorWindow
     private float minScale = 0.8f;
     private float maxScale = 1.2f;
     private bool alignToSurface = true;
+    private bool alignToSurfaceNormal = true; // 新增：是否对齐法线方向
     private LayerMask surfaceLayer = 1;
     private bool showPreview = true;
 
@@ -450,24 +451,62 @@ public class PrefabPlacerTool : EditorWindow
 
                     foreach (Object draggedObject in DragAndDrop.objectReferences)
                     {
-                        PlaceableObject newObj = new PlaceableObject();
-
-                        if (draggedObject is GameObject)
+                        // 文件夹处理
+                        if (draggedObject is DefaultAsset)
                         {
-                            GameObject go = draggedObject as GameObject;
-                            if (PrefabUtility.IsPartOfPrefabAsset(go))
+                            string folderPath = AssetDatabase.GetAssetPath(draggedObject);
+                            string[] guids = AssetDatabase.FindAssets("t:GameObject t:Mesh", new[] { folderPath });
+                            foreach (string guid in guids)
                             {
-                                newObj.prefab = go;
+                                string assetPath = AssetDatabase.GUIDToAssetPath(guid);
+                                Object assetObj = AssetDatabase.LoadAssetAtPath<Object>(assetPath);
+
+                                PlaceableObject newObj = new PlaceableObject();
+
+                                if (assetObj is GameObject go)
+                                {
+                                    if (PrefabUtility.IsPartOfPrefabAsset(go))
+                                    {
+                                        newObj.prefab = go;
+                                    }
+                                    else
+                                    {
+                                        Debug.LogWarning($"对象 {go.name} 不是预制体资源");
+                                        continue;
+                                    }
+                                }
+                                else if (assetObj is Mesh mesh)
+                                {
+                                    newObj.mesh = mesh;
+                                }
+                                else
+                                {
+                                    Debug.LogWarning($"不支持的对象类型: {assetObj.GetType()}");
+                                    continue;
+                                }
+
+                                placeableObjects.Add(newObj);
+                            }
+                            continue;
+                        }
+
+                        PlaceableObject obj = new PlaceableObject();
+
+                        if (draggedObject is GameObject goObj)
+                        {
+                            if (PrefabUtility.IsPartOfPrefabAsset(goObj))
+                            {
+                                obj.prefab = goObj;
                             }
                             else
                             {
-                                Debug.LogWarning($"对象 {go.name} 不是预制体资源");
+                                Debug.LogWarning($"对象 {goObj.name} 不是预制体资源");
                                 continue;
                             }
                         }
-                        else if (draggedObject is Mesh)
+                        else if (draggedObject is Mesh meshObj)
                         {
-                            newObj.mesh = draggedObject as Mesh;
+                            obj.mesh = meshObj as Mesh;
                         }
                         else
                         {
@@ -475,7 +514,7 @@ public class PrefabPlacerTool : EditorWindow
                             continue;
                         }
 
-                        placeableObjects.Add(newObj);
+                        placeableObjects.Add(obj);
                     }
                 }
                 break;
@@ -591,12 +630,18 @@ public class PrefabPlacerTool : EditorWindow
                 }
 
                 alignToSurface = EditorGUILayout.ToggleLeft("贴合表面", alignToSurface, leftLabel);
-                showPreview = EditorGUILayout.ToggleLeft("显示预览", showPreview, leftLabel);
 
+                // 新增：法线对齐选项
                 if (alignToSurface)
                 {
+                    EditorGUI.indentLevel++;
+                    alignToSurfaceNormal = EditorGUILayout.ToggleLeft("对齐法线方向", alignToSurfaceNormal, leftLabel);
+                    EditorGUI.indentLevel--;
+
                     surfaceLayer = LayerMaskField("表面图层", surfaceLayer);
                 }
+
+                showPreview = EditorGUILayout.ToggleLeft("显示预览", showPreview, leftLabel);
             }
         }
         EditorGUILayout.EndVertical();
@@ -626,9 +671,9 @@ public class PrefabPlacerTool : EditorWindow
                 if (GUILayout.Button("重新生成随机数", GUILayout.Height(25)))
                 {
                     randomSeed = Random.Range(0, 10000);
-                    InitializeRandom(); // 仅影响对象选择与旋转/缩放随机，不直接改变 randomPositionIndex
+                    InitializeRandom(); // 仅影响对象选择与旋转/缩放随机
                 }
-                EditorGUILayout.HelpBox("相同种子 -> 相同权重随机选择序列; 修改随机位置序号 -> 切换不同的布局位置", MessageType.None);
+                EditorGUILayout.HelpBox("相同种子 -> 相同权重随机选择序列", MessageType.None);
             }
         }
         EditorGUILayout.EndVertical();
@@ -893,7 +938,7 @@ public class PrefabPlacerTool : EditorWindow
     {
         Vector3 mouseWorldPos = GetMouseWorldPosition(Event.current.mousePosition);
 
-        Handles.color = new Color(1f, 0.3f, 0.3f, 0.5f);
+        Handles.color = new Color(1f, 0.3f, 0.3f, 0.15f);
         Handles.DrawSolidDisc(mouseWorldPos, Vector3.up, placementRadius);
         Handles.color = Color.red;
         Handles.DrawWireDisc(mouseWorldPos, Vector3.up, placementRadius);
@@ -1036,10 +1081,11 @@ public class PrefabPlacerTool : EditorWindow
         Handles.DrawDottedLine(center, center + direction, 5f);
     }
 
-    // 绘制放置预览
+    // 绘制放置预览（支持法线对齐预览）
     private void DrawPlacementPreviews(Vector3 center, Quaternion rotation)
     {
         Vector3[] positions = CalculatePlacementPositions(center, rotation);
+        Quaternion[] rotations = CalculatePlacementRotations(rotation, positions);
 
         Handles.color = new Color(1, 0, 1, 0.8f);
         foreach (Vector3 pos in positions)
@@ -1050,9 +1096,21 @@ public class PrefabPlacerTool : EditorWindow
         if (GetEnabledObjectsCount() > 0)
         {
             Handles.color = new Color(1, 1, 1, 0.3f);
-            foreach (Vector3 pos in positions)
+            for (int i = 0; i < positions.Length; i++)
             {
-                Handles.CubeHandleCap(0, pos, rotation, 0.3f, EventType.Repaint);
+                // 使用计算出的旋转来显示预览
+                Handles.CubeHandleCap(0, positions[i], rotations[i], 0.3f, EventType.Repaint);
+
+                // 如果启用了法线对齐，显示法线方向箭头（只设置箭头颜色，不影响Cube颜色）
+                if (alignToSurface && alignToSurfaceNormal)
+                {
+                    Color arrowColor = new Color(0.5f, 0.2f, 1f, 0.85f); // 蓝紫色
+                    Handles.color = arrowColor;
+                    Vector3 up = rotations[i] * Vector3.up;
+                    Handles.ArrowHandleCap(0, positions[i], Quaternion.LookRotation(up), 0.5f, EventType.Repaint);
+
+                    Handles.color = new Color(1, 1, 1, 0.3f); // 恢复Cube颜色，防止后续影响
+                }
             }
         }
     }
@@ -1081,60 +1139,40 @@ public class PrefabPlacerTool : EditorWindow
     }
 
     // 调整位置贴合表面
-    private Vector3 AdjustPositionToSurface(Vector3 position)
+    private Vector3 AdjustPositionToSurface(Vector3 position, out Quaternion surfaceRotation)
     {
+        surfaceRotation = Quaternion.identity;
+
         if (alignToSurface)
         {
             RaycastHit hit;
             if (Physics.Raycast(position + Vector3.up * 10f, Vector3.down, out hit, Mathf.Infinity, surfaceLayer))
             {
+                // 如果启用了法线对齐，计算表面旋转
+                if (alignToSurfaceNormal)
+                {
+                    // 计算从Vector3.up到hit.normal的旋转
+                    surfaceRotation = Quaternion.FromToRotation(Vector3.up, hit.normal);
+                }
+
                 return hit.point;
             }
         }
         return position;
     }
 
-    // 获取随机对象
-    private PlaceableObject GetRandomObject()
+    // 重载原来的方法以保持兼容性
+    private Vector3 AdjustPositionToSurface(Vector3 position)
     {
-        var enabledObjects = new List<PlaceableObject>();
-        foreach (var obj in placeableObjects)
-        {
-            if (obj.isEnabled && obj.IsValid())
-            {
-                enabledObjects.Add(obj);
-            }
-        }
-
-        if (enabledObjects.Count == 0) return null;
-        if (enabledObjects.Count == 1) return enabledObjects[0];
-
-        float totalWeight = 0f;
-        foreach (var obj in enabledObjects)
-        {
-            totalWeight += obj.weight;
-        }
-
-        float randomValue = (float)(random.NextDouble() * totalWeight);
-        float currentWeight = 0f;
-
-        foreach (var obj in enabledObjects)
-        {
-            currentWeight += obj.weight;
-            if (randomValue <= currentWeight)
-            {
-                return obj;
-            }
-        }
-
-        return enabledObjects[enabledObjects.Count - 1];
+        Quaternion surfaceRotation;
+        return AdjustPositionToSurface(position, out surfaceRotation);
     }
 
-    // 计算放置旋转角度
-    private Quaternion[] CalculatePlacementRotations(Quaternion baseRotation)
+    // 计算放置旋转角度（更新版本，支持法线对齐）
+    private Quaternion[] CalculatePlacementRotations(Quaternion baseRotation, Vector3[] positions)
     {
         List<Quaternion> rotations = new List<Quaternion>();
-        int count = placementMode == PlacementMode.SinglePlacement ? 1 : placementCount;
+        int count = positions.Length;
 
         if (randomRotation && rotationRandom == null)
         {
@@ -1144,11 +1182,32 @@ public class PrefabPlacerTool : EditorWindow
         for (int i = 0; i < count; i++)
         {
             Quaternion rotation = baseRotation;
+
+            // 如果启用了表面对齐和法线对齐，先计算表面旋转
+            if (alignToSurface && alignToSurfaceNormal)
+            {
+                Quaternion surfaceRotation;
+                AdjustPositionToSurface(positions[i], out surfaceRotation);
+                rotation = surfaceRotation * baseRotation;
+            }
+
+            // 应用随机旋转
             if (randomRotation && rotationRandom != null)
             {
                 float randomAngle = (float)(rotationRandom.NextDouble() * 360);
-                rotation = baseRotation * Quaternion.Euler(0, randomAngle, 0);
+                if (alignToSurface && alignToSurfaceNormal)
+                {
+                    // 在表面法线的基础上进行随机旋转
+                    Quaternion surfaceRotation;
+                    AdjustPositionToSurface(positions[i], out surfaceRotation);
+                    rotation = surfaceRotation * Quaternion.Euler(0, randomAngle, 0);
+                }
+                else
+                {
+                    rotation = baseRotation * Quaternion.Euler(0, randomAngle, 0);
+                }
             }
+
             rotations.Add(rotation);
         }
 
@@ -1180,7 +1239,7 @@ public class PrefabPlacerTool : EditorWindow
         return scales.ToArray();
     }
 
-    // 在鼠标位置放置对象
+    // 在鼠标位置放置对象（更新版本）
     private void PlaceObjectsAtMousePosition()
     {
         if (GetEnabledObjectsCount() == 0)
@@ -1192,7 +1251,7 @@ public class PrefabPlacerTool : EditorWindow
         Vector3 placementPosition = GetMouseWorldPosition(lastMousePosition);
         Quaternion baseRotation = Quaternion.Euler(0, placementRotation, 0);
         Vector3[] positions = CalculatePlacementPositions(placementPosition, baseRotation);
-        Quaternion[] rotations = CalculatePlacementRotations(baseRotation);
+        Quaternion[] rotations = CalculatePlacementRotations(baseRotation, positions);
         Vector3[] scales = CalculatePlacementScales();
 
         for (int i = 0; i < positions.Length; i++)
@@ -1236,6 +1295,63 @@ public class PrefabPlacerTool : EditorWindow
 
         Debug.Log($"成功放置 {positions.Length} 个对象，模式: {placementMode}，方向: {placementRotation:0}°");
         Repaint();
+    }
+
+    // 根据权重随机选择一个启用的对象
+    private PlaceableObject GetRandomObject()
+    {
+        if (placeableObjects == null || placeableObjects.Count == 0)
+            return null;
+
+        // 获取所有启用且有效的对象
+        List<PlaceableObject> enabledObjects = new List<PlaceableObject>();
+        foreach (var obj in placeableObjects)
+        {
+            if (obj.isEnabled && obj.IsValid())
+            {
+                enabledObjects.Add(obj);
+            }
+        }
+
+        if (enabledObjects.Count == 0)
+            return null;
+
+        // 如果只有一个对象，直接返回
+        if (enabledObjects.Count == 1)
+            return enabledObjects[0];
+
+        // 计算总权重
+        float totalWeight = 0f;
+        foreach (var obj in enabledObjects)
+        {
+            totalWeight += obj.weight;
+        }
+
+        if (totalWeight <= 0f)
+            return enabledObjects[0]; // 如果权重都是0或负数，返回第一个
+
+        // 确保随机数生成器已初始化
+        if (random == null)
+        {
+            random = new System.Random(randomSeed);
+        }
+
+        // 生成随机值
+        float randomValue = (float)random.NextDouble() * totalWeight;
+
+        // 根据权重选择对象
+        float currentWeight = 0f;
+        foreach (var obj in enabledObjects)
+        {
+            currentWeight += obj.weight;
+            if (randomValue <= currentWeight)
+            {
+                return obj;
+            }
+        }
+
+        // 兜底返回最后一个对象（理论上不应该执行到这里）
+        return enabledObjects[enabledObjects.Count - 1];
     }
 
     // 清除所有已放置对象
@@ -1365,22 +1481,12 @@ public class PrefabPlacerTool : EditorWindow
         }
     }
 
-    // 计算放置位置 (稳定随机: 仅当种子/参数变化或鼠标中心变化时结果改变)
+    // 计算放置位置 (更新版本，支持法线对齐)
     private Vector3[] CalculatePlacementPositions(Vector3 center, Quaternion rotation)
     {
         List<Vector3> positions = new List<Vector3>();
         int count = placementMode == PlacementMode.SinglePlacement ? 1 : placementCount;
         int positionSeedBase = randomSeed * 99991;
-
-        // 随机分布时的整体偏移中心（让分布不总是围绕圆心）
-        Vector2 clusterOffset = Vector2.zero;
-        if (placementMode == PlacementMode.RangePlacement && distributionType == DistributionType.RandomDistribution)
-        {
-            System.Random offsetRandom = new System.Random(positionSeedBase + 88888);
-            float offsetAngle = (float)offsetRandom.NextDouble() * Mathf.PI * 2f;
-            float offsetRadius = placementRadius * 0.4f * (float)offsetRandom.NextDouble(); // 偏移最多40%半径
-            clusterOffset = new Vector2(Mathf.Cos(offsetAngle), Mathf.Sin(offsetAngle)) * offsetRadius;
-        }
 
         switch (placementMode)
         {
@@ -1402,6 +1508,7 @@ public class PrefabPlacerTool : EditorWindow
                     positions.Add(AdjustPositionToSurface(basePosition));
                 }
                 break;
+
             case PlacementMode.RangePlacement:
                 for (int i = 0; i < count; i++)
                 {
@@ -1409,7 +1516,7 @@ public class PrefabPlacerTool : EditorWindow
                     if (distributionType == DistributionType.UniformDistribution)
                     {
                         float t = (float)i / count;
-                        float angle = t * 360f + placementRotation; // 加上 placementRotation
+                        float angle = t * 360f + placementRotation;
                         float radius = placementRadius * Mathf.Sqrt(t);
                         pos = center + Quaternion.Euler(0, angle, 0) * Vector3.forward * radius;
                     }
@@ -1423,7 +1530,6 @@ public class PrefabPlacerTool : EditorWindow
                             z = ((float)r.NextDouble() * 2f - 1f) * placementRadius;
                         } while (x * x + z * z > placementRadius * placementRadius);
 
-                        // 应用旋转到随机位置
                         Vector3 localPos = new Vector3(x, 0, z);
                         pos = center + Quaternion.Euler(0, placementRotation, 0) * localPos;
                     }
@@ -1438,10 +1544,10 @@ public class PrefabPlacerTool : EditorWindow
     // 绘制圆形区域
     private void DrawCircularArea(Vector3 center)
     {
-        Handles.color = new Color(0, 1, 1, 0.3f); // 青绿色半透明
+        Handles.color = new Color(0, 1, 0, 0.15f); // 绿色半透明
         Handles.DrawSolidDisc(center, Vector3.up, placementRadius);
 
-        Handles.color = new Color(0, 1, 1, 1f); // 青绿色描边
+        Handles.color = new Color(0, 1, 0, 0.5f); // 绿色描边
         Handles.DrawWireDisc(center, Vector3.up, placementRadius);
     }
 
