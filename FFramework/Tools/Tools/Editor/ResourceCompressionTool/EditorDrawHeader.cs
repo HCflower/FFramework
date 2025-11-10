@@ -187,7 +187,7 @@ public partial class ResourceCompressionTool
                         {
                             selectedTextures.Clear();
                             textureItemFoldouts.Clear();
-                            ClearPreviewCache(); // 清理预览图缓存
+                            previewCache.Clear();
                         }
                     }
                 }
@@ -466,12 +466,6 @@ public partial class ResourceCompressionTool
         }
         EditorGUILayout.EndVertical();
     }
-
-    private void ClearPreviewCache()
-    {
-        previewCache.Clear();
-    }
-
 
     private void DrawAudioList()
     {

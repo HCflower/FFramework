@@ -342,9 +342,11 @@ public partial class ResourceCompressionTool
                 CompressSelectedAudios();
                 break;
             case CompressionPage.Model:
-                EditorUtility.DisplayDialog("提示", "模型压缩尚未实现。", "确定");
+                EditorUtility.DisplayDialog("提示", "模型压缩尚未实现", "确定");
                 break;
         }
+        AssetDatabase.SaveAssets();
+        EditorUtility.DisplayDialog("提示", "所有资源已保存！", "确定");
     }
 
     private void CompressSelectedTextures()
