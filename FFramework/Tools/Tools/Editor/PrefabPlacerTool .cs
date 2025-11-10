@@ -2,12 +2,16 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEditor;
 
+/// <summary>
+/// 预制体摆放工具
+/// </summary>
 public class PrefabPlacerTool : EditorWindow
 {
     [MenuItem("FFramework/Tools/预制体放置工具")]
     public static void ShowWindow()
     {
-        GetWindow<PrefabPlacerTool>("预制体放置工具");
+        PrefabPlacerTool window = GetWindow<PrefabPlacerTool>("预制体放置工具");
+        window.minSize = new Vector2(400, 610);
     }
 
     private enum PlacementMode
@@ -142,7 +146,10 @@ public class PrefabPlacerTool : EditorWindow
             titleStyle.fontSize = 16;
             titleStyle.alignment = TextAnchor.MiddleCenter;
             EditorGUILayout.LabelField("预制体摆放工具", titleStyle, GUILayout.Height(32));
-            EditorGUILayout.HelpBox("在场景视图中点击放置 \nCtrl+滚轮:旋转角度 | Shift+滚轮:随机位置变化 | Ctrl+Alt+滚轮:范围/间隔缩放 | ESC:退出放置模式", MessageType.Info);
+            EditorGUILayout.HelpBox("在场景视图中点击放置\n" +
+                                  "Ctrl+滚轮:旋转角度 | Shift+滚轮:随机位置变化\n" +
+                                  "Alt+滚轮:调整数量 | Ctrl+Alt+滚轮:范围/间隔缩放\n" +
+                                  "ESC:退出放置模式", MessageType.Info);
         }
         EditorGUILayout.EndVertical();
 
@@ -260,8 +267,9 @@ public class PrefabPlacerTool : EditorWindow
             GUIStyle centeredStyle = new GUIStyle(EditorStyles.label);
             centeredStyle.alignment = TextAnchor.MiddleCenter;
             centeredStyle.normal.textColor = Color.gray;
-
-            Rect emptyRect = new Rect(0, GRID_LIST_HEIGHT * 0.4f, CalculateGridContentWidth(), 30);
+            float gridWidth = Mathf.Min(CalculateGridContentWidth(), position.width - 40f);
+            float gridX = (position.width - gridWidth) / 2f;
+            Rect emptyRect = new Rect(gridX, GRID_LIST_HEIGHT * 0.4f, gridWidth, 30);
             GUI.Label(emptyRect, "拖拽预制体或网格到此处", centeredStyle);
             return;
         }
@@ -306,6 +314,18 @@ public class PrefabPlacerTool : EditorWindow
             GUI.Label(previewRect, iconContent, iconStyle);
         }
 
+        // 添加启用/禁用复选框在左上角
+        float checkboxSize = 16f;
+        Rect checkboxRect = new Rect(rect.x + 2, rect.y + 2, checkboxSize, checkboxSize);
+
+        // 直接绘制复选框（不加Box背景）
+        bool newEnabled = GUI.Toggle(checkboxRect, obj.isEnabled, "");
+        if (newEnabled != obj.isEnabled)
+        {
+            obj.isEnabled = newEnabled;
+            // 保持选中状态，用户仍可在设置面板中查看和修改
+        }
+
         if (!obj.isEnabled)
         {
             Color maskColor = new Color(0.1f, 0.1f, 0.1f, 0.5f);
@@ -324,9 +344,13 @@ public class PrefabPlacerTool : EditorWindow
 
         if (Event.current.type == EventType.MouseDown && rect.Contains(Event.current.mousePosition))
         {
-            selectedObjectIndex = index;
-            showObjectSettings = true;
-            Event.current.Use();
+            // 检查是否点击在复选框区域，如果是则不处理选中逻辑
+            if (!checkboxRect.Contains(Event.current.mousePosition))
+            {
+                selectedObjectIndex = index;
+                showObjectSettings = true;
+                Event.current.Use();
+            }
         }
     }
 
@@ -619,8 +643,8 @@ public class PrefabPlacerTool : EditorWindow
                 if (randomScale)
                 {
                     EditorGUI.indentLevel++;
-                    minScale = EditorGUILayout.Slider("最小缩放", minScale, 0.1f, 2f);
-                    maxScale = EditorGUILayout.Slider("最大缩放", maxScale, 0.1f, 2f);
+                    minScale = EditorGUILayout.Slider("最小缩放", minScale, 0.1f, 99f);
+                    maxScale = EditorGUILayout.Slider("最大缩放", maxScale, 0.1f, 100f);
 
                     if (minScale > maxScale)
                     {
@@ -1435,6 +1459,7 @@ public class PrefabPlacerTool : EditorWindow
 
             if (e.control && e.alt)
             {
+                // Ctrl+Alt+滚轮：调整范围/间隔
                 if (placementMode == PlacementMode.RangePlacement)
                 {
                     placementRadius = Mathf.Clamp(placementRadius - delta * 0.5f, 1f, 50f);
@@ -1444,14 +1469,26 @@ public class PrefabPlacerTool : EditorWindow
                     lineSpacing = Mathf.Clamp(lineSpacing - delta * 0.1f, 0.5f, 10f);
                 }
             }
+            else if (e.alt)
+            {
+                // Alt+滚轮：调整放置数量（仅在非单个放置模式下生效）
+                if (placementMode != PlacementMode.SinglePlacement)
+                {
+                    int step = delta > 0 ? -1 : 1;
+                    placementCount = Mathf.Clamp(placementCount + step, 2, placementMode == PlacementMode.RangePlacement ? 100 : 50);
+                    Debug.Log($"Alt+滚轮: 放置数量调整为 {placementCount}");
+                    Repaint();
+                }
+            }
             else if (e.control)
             {
+                // Ctrl+滚轮：旋转角度
                 placementRotation = (placementRotation - delta * 5f) % 360f;
                 if (placementRotation < 0) placementRotation += 360f;
             }
             else if (e.shift)
             {
-                // 直接根据 delta 判断方向，避免 Sign 可能的不一致
+                // Shift+滚轮：随机种子变化
                 int step;
                 if (e.delta.y > 0)
                     step = -1; // 下滑减少
@@ -1459,7 +1496,7 @@ public class PrefabPlacerTool : EditorWindow
                     step = 1;  // 上滑增加
 
                 randomSeed = Mathf.Max(0, randomSeed + step);
-                Debug.Log($"Shift+滚轮: delta.y={e.delta.y}, step={step}, randomSeed={randomSeed}"); // 调试输出
+                Debug.Log($"Shift+滚轮: delta.y={e.delta.y}, step={step}, randomSeed={randomSeed}");
                 InitializeRandom();
                 Repaint();
             }

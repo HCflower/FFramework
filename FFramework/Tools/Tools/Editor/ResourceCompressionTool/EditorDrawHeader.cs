@@ -1,9 +1,13 @@
 using UnityEngine;
 using UnityEditor;
 using System.IO;
+using System.Collections.Generic;
 
 public partial class ResourceCompressionTool
 {
+    // 在类顶部添加预览图缓存字典
+    private Dictionary<string, Texture2D> previewCache = new Dictionary<string, Texture2D>();
+
     private void DrawHeader()
     {
         EditorGUILayout.Space(5);
@@ -21,7 +25,7 @@ public partial class ResourceCompressionTool
 
     private void DrawNavigation()
     {
-        EditorGUILayout.BeginVertical("box", GUILayout.MaxWidth(position.width));
+        EditorGUILayout.BeginVertical(EditorStyles.helpBox, GUILayout.MaxWidth(position.width));
         EditorGUILayout.BeginHorizontal();
         {
             EditorGUILayout.LabelField("功能模块:", GUILayout.Width(60));
@@ -62,7 +66,7 @@ public partial class ResourceCompressionTool
 
     private void DrawDragAndDropArea()
     {
-        EditorGUILayout.BeginVertical("box", GUILayout.MaxWidth(position.width));
+        EditorGUILayout.BeginVertical(EditorStyles.helpBox, GUILayout.MaxWidth(position.width));
         {
             EditorGUILayout.LabelField("拖拽区域", EditorStyles.boldLabel);
             EditorGUILayout.HelpBox("将图片文件或文件夹拖拽到下方区域", MessageType.Info);
@@ -84,16 +88,16 @@ public partial class ResourceCompressionTool
 
     private void DrawTextureSettings()
     {
-        EditorGUILayout.BeginVertical("box", GUILayout.MaxWidth(position.width));
+        EditorGUILayout.BeginVertical(EditorStyles.helpBox, GUILayout.MaxWidth(position.width));
         {
+            GUILayout.Space(2);
+            // 折叠按钮和应用按钮在同一行，且都在TipBox内
             EditorGUILayout.BeginHorizontal();
+            showTextureSettings = EditorGUILayout.Foldout(showTextureSettings, "图片设置", true);
+            GUILayout.FlexibleSpace();
+            if (selectedTextures.Count > 0 && GUILayout.Button("应用设置", GUILayout.Height(20), GUILayout.Width(80)))
             {
-                showTextureSettings = EditorGUILayout.Foldout(showTextureSettings, "图片设置", true);
-                GUILayout.FlexibleSpace();
-                if (selectedTextures.Count > 0 && GUILayout.Button("应用设置", GUILayout.Height(20), GUILayout.Width(80)))
-                {
-                    ApplyTextureSettings();
-                }
+                ApplyTextureSettings();
             }
             EditorGUILayout.EndHorizontal();
 
@@ -121,10 +125,8 @@ public partial class ResourceCompressionTool
 
                     EditorGUILayout.Space(5);
                     EditorGUILayout.BeginHorizontal();
-                    {
-                        if (GUILayout.Button("重置设置", GUILayout.Height(25))) ResetTextureSettings();
-                        if (GUILayout.Button("从第一张读取", GUILayout.Height(25))) LoadSettingsFromFirstTexture();
-                    }
+                    if (GUILayout.Button("重置设置", GUILayout.Height(25))) ResetTextureSettings();
+                    if (GUILayout.Button("从第一张读取", GUILayout.Height(25))) LoadSettingsFromFirstTexture();
                     EditorGUILayout.EndHorizontal();
                 }
                 EditorGUILayout.EndVertical();
@@ -135,7 +137,7 @@ public partial class ResourceCompressionTool
 
     private void DrawCompressionSettings()
     {
-        EditorGUILayout.BeginVertical("box", GUILayout.MaxWidth(position.width));
+        EditorGUILayout.BeginVertical(EditorStyles.helpBox, GUILayout.MaxWidth(position.width));
         {
             showCompressionSettings = EditorGUILayout.Foldout(showCompressionSettings, "压缩设置", true);
 
@@ -162,7 +164,7 @@ public partial class ResourceCompressionTool
 
     private void DrawTextureListSection()
     {
-        EditorGUILayout.BeginVertical("box", GUILayout.MaxWidth(position.width));
+        EditorGUILayout.BeginVertical(EditorStyles.helpBox, GUILayout.MaxWidth(position.width));
         {
             EditorGUILayout.BeginHorizontal();
             {
@@ -185,6 +187,7 @@ public partial class ResourceCompressionTool
                         {
                             selectedTextures.Clear();
                             textureItemFoldouts.Clear();
+                            ClearPreviewCache(); // 清理预览图缓存
                         }
                     }
                 }
@@ -193,8 +196,10 @@ public partial class ResourceCompressionTool
 
             if (showTextureList)
             {
-                if (selectedTextures.Count == 0) EditorGUILayout.HelpBox("请添加图片文件", MessageType.Info);
-                else DrawTextureList();
+                if (selectedTextures.Count == 0)
+                    EditorGUILayout.HelpBox("请添加图片文件", MessageType.Info);
+                else
+                    DrawTextureList();
             }
         }
         EditorGUILayout.EndVertical();
@@ -218,13 +223,20 @@ public partial class ResourceCompressionTool
                 Rect mainRect = GUILayoutUtility.GetRect(0, 28, GUILayout.ExpandWidth(true));
                 Rect buttonRect = new Rect(mainRect.x + 1, mainRect.y + 1, mainRect.width, mainRect.height - 2);
 
-                Texture2D preview = AssetPreview.GetAssetPreview(texture) ?? Texture2D.whiteTexture;
+                // 使用缓存的预览图，避免抖动
+                Texture2D preview = GetCachedPreview(texture, texturePath);
                 long memoryUsage = CalculateTextureMemoryUsage(texture, null);
                 float memoryMB = memoryUsage / (1024f * 1024f);
 
                 string arrowText = textureItemFoldouts[textureKey] ? "▼" : "▶";
                 GUIContent buttonContent = new GUIContent($"{arrowText}  {texture.name}", preview);
-                GUIStyle buttonStyle = new GUIStyle(GUI.skin.button) { alignment = TextAnchor.MiddleLeft, imagePosition = ImagePosition.ImageLeft, fontStyle = FontStyle.Bold, padding = new RectOffset(8, 60, 4, 4) };
+                GUIStyle buttonStyle = new GUIStyle(GUI.skin.button)
+                {
+                    alignment = TextAnchor.MiddleLeft,
+                    imagePosition = ImagePosition.ImageLeft,
+                    fontStyle = FontStyle.Bold,
+                    padding = new RectOffset(8, 60, 4, 4)
+                };
 
                 if (GUI.Button(buttonRect, buttonContent, buttonStyle))
                 {
@@ -232,7 +244,12 @@ public partial class ResourceCompressionTool
                 }
 
                 Rect memoryRect = new Rect(buttonRect.xMax - 55, buttonRect.y + 6, 50, 16);
-                GUIStyle memoryStyle = new GUIStyle(EditorStyles.miniLabel) { normal = { textColor = memoryMB > 10 ? Color.red : memoryMB > 5 ? Color.yellow : Color.green }, alignment = TextAnchor.MiddleRight, fontStyle = FontStyle.Bold };
+                GUIStyle memoryStyle = new GUIStyle(EditorStyles.miniLabel)
+                {
+                    normal = { textColor = memoryMB > 10 ? Color.red : memoryMB > 5 ? Color.yellow : Color.green },
+                    alignment = TextAnchor.MiddleRight,
+                    fontStyle = FontStyle.Bold
+                };
                 GUI.Label(memoryRect, $"{memoryMB:0.0}MB", memoryStyle);
 
                 if (textureItemFoldouts[textureKey])
@@ -269,6 +286,41 @@ public partial class ResourceCompressionTool
         EditorGUILayout.EndVertical();
     }
 
+    // 添加预览图缓存方法
+    private Texture2D GetCachedPreview(Texture2D texture, string texturePath)
+    {
+        if (previewCache.ContainsKey(texturePath))
+        {
+            return previewCache[texturePath];
+        }
+
+        // 异步获取预览图
+        Texture2D preview = AssetPreview.GetAssetPreview(texture);
+        if (preview == null)
+        {
+            // 如果预览图还未准备好，使用默认图标并标记需要重绘
+            preview = EditorGUIUtility.IconContent("Texture Icon").image as Texture2D ?? Texture2D.whiteTexture;
+
+            // 延迟获取真实预览图
+            EditorApplication.delayCall += () =>
+            {
+                Texture2D realPreview = AssetPreview.GetAssetPreview(texture);
+                if (realPreview != null && !previewCache.ContainsKey(texturePath))
+                {
+                    previewCache[texturePath] = realPreview;
+                    Repaint();
+                }
+            };
+        }
+        else
+        {
+            // 缓存预览图
+            previewCache[texturePath] = preview;
+        }
+
+        return preview;
+    }
+
     #endregion
 
     #region Audio GUI
@@ -283,7 +335,7 @@ public partial class ResourceCompressionTool
 
     private void DrawAudioDragAndDropArea()
     {
-        EditorGUILayout.BeginVertical("box", GUILayout.MaxWidth(position.width));
+        EditorGUILayout.BeginVertical(EditorStyles.helpBox, GUILayout.MaxWidth(position.width));
         {
             EditorGUILayout.LabelField("拖拽区域", EditorStyles.boldLabel);
             EditorGUILayout.HelpBox("将音频文件或文件夹拖拽到下方区域", MessageType.Info);
@@ -301,7 +353,7 @@ public partial class ResourceCompressionTool
 
     private void DrawAudioSettings()
     {
-        EditorGUILayout.BeginVertical("box", GUILayout.MaxWidth(position.width));
+        EditorGUILayout.BeginVertical(EditorStyles.helpBox, GUILayout.MaxWidth(position.width));
         {
             EditorGUILayout.BeginHorizontal();
             {
@@ -348,7 +400,7 @@ public partial class ResourceCompressionTool
 
     private void DrawAudioCompressionSettings()
     {
-        EditorGUILayout.BeginVertical("box", GUILayout.MaxWidth(position.width));
+        EditorGUILayout.BeginVertical(EditorStyles.helpBox, GUILayout.MaxWidth(position.width));
         {
             showAudioCompressionSettings = EditorGUILayout.Foldout(showAudioCompressionSettings, "压缩设置", true);
             if (showAudioCompressionSettings)
@@ -375,7 +427,7 @@ public partial class ResourceCompressionTool
 
     private void DrawAudioListSection()
     {
-        EditorGUILayout.BeginVertical("box", GUILayout.MaxWidth(position.width));
+        EditorGUILayout.BeginVertical(EditorStyles.helpBox, GUILayout.MaxWidth(position.width));
         {
             EditorGUILayout.BeginHorizontal();
             {
@@ -406,12 +458,20 @@ public partial class ResourceCompressionTool
 
             if (showAudioList)
             {
-                if (selectedAudioClips.Count == 0) EditorGUILayout.HelpBox("请添加音频文件", MessageType.Info);
-                else DrawAudioList();
+                if (selectedAudioClips.Count == 0)
+                    EditorGUILayout.HelpBox("请添加音频文件", MessageType.Info);
+                else
+                    DrawAudioList();
             }
         }
         EditorGUILayout.EndVertical();
     }
+
+    private void ClearPreviewCache()
+    {
+        previewCache.Clear();
+    }
+
 
     private void DrawAudioList()
     {
@@ -435,7 +495,9 @@ public partial class ResourceCompressionTool
                 float memoryMB = memoryUsage / (1024f * 1024f);
 
                 string arrowText = audioItemFoldouts[audioKey] ? "▼" : "▶";
-                GUIContent buttonContent = new GUIContent($"{arrowText}  {audio.name}");
+                // 获取Unity内置音频图标
+                Texture2D audioIcon = EditorGUIUtility.IconContent("AudioClip Icon").image as Texture2D;
+                GUIContent buttonContent = new GUIContent($"{arrowText}  {audio.name}", audioIcon);
                 GUIStyle buttonStyle = new GUIStyle(GUI.skin.button) { alignment = TextAnchor.MiddleLeft, fontStyle = FontStyle.Bold, padding = new RectOffset(8, 60, 4, 4) };
 
                 if (GUI.Button(buttonRect, buttonContent, buttonStyle))
@@ -487,7 +549,7 @@ public partial class ResourceCompressionTool
 
     private void DrawModelCompressionPage()
     {
-        EditorGUILayout.BeginVertical("box", GUILayout.MaxWidth(position.width));
+        EditorGUILayout.BeginVertical(EditorStyles.helpBox, GUILayout.MaxWidth(position.width));
         {
             EditorGUILayout.LabelField("模型压缩功能开发中...", EditorStyles.boldLabel);
             EditorGUILayout.Space();
