@@ -164,7 +164,7 @@ public enum UILayer
 
 **层级特性：**
 
-- `PopupLayer`和`PostProcessingLayer`不会锁定下层面板
+- `PopupLayer`和 `PostProcessingLayer`不会锁定下层面板
 - 其他层级打开时会自动锁定下层面板交互
 - 面板按层级顺序渲染
 
@@ -404,10 +404,10 @@ this.GetButton("Btn").interactable = false; // 每次都查找
 ## 常见问题
 
 **Q: 面板打开失败？**
-A: 检查`Resources/UI/`路径和预制体名称是否与类名一致
+A: 检查 `Resources/UI/`路径和预制体名称是否与类名一致
 
 **Q: 事件重复触发？**
-A: 确保使用`autoTrack=true`或手动清理事件
+A: 确保使用 `autoTrack=true`或手动清理事件
 
 **Q: 找不到组件？**
 A: 检查 GameObject 名称拼写和层级结构

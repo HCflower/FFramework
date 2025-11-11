@@ -75,11 +75,14 @@ public class PrefabPlacerTool : EditorWindow
     private float lineRandomOffset = 0.5f;
 
     private bool randomRotation = false;
+    private bool randomRotationX = false;
+    private bool randomRotationY = true;
+    private bool randomRotationZ = false;
     private bool randomScale = false;
-    private float minScale = 0.8f;
-    private float maxScale = 1.2f;
+    private float minScale = 1.0f;
+    private float maxScale = 1.25f;
     private bool alignToSurface = true;
-    private bool alignToSurfaceNormal = true; // 新增：是否对齐法线方向
+    private bool alignToSurfaceNormal = true;
     private LayerMask surfaceLayer = 1;
     private bool showPreview = true;
 
@@ -186,6 +189,20 @@ public class PrefabPlacerTool : EditorWindow
                 if (GUILayout.Button("添加空项", GUILayout.Width(80)))
                 {
                     placeableObjects.Add(new PlaceableObject());
+                }
+                if (GUILayout.Button("启用所有", GUILayout.Width(80)))
+                {
+                    foreach (var obj in placeableObjects)
+                    {
+                        obj.isEnabled = true;
+                    }
+                }
+                if (GUILayout.Button("禁用所有", GUILayout.Width(80)))
+                {
+                    foreach (var obj in placeableObjects)
+                    {
+                        obj.isEnabled = false;
+                    }
                 }
                 if (GUILayout.Button("清空列表", GUILayout.Width(80)))
                 {
@@ -485,23 +502,35 @@ public class PrefabPlacerTool : EditorWindow
                                 string assetPath = AssetDatabase.GUIDToAssetPath(guid);
                                 Object assetObj = AssetDatabase.LoadAssetAtPath<Object>(assetPath);
 
-                                PlaceableObject newObj = new PlaceableObject();
-
+                                // 去重判断
+                                bool exists = false;
                                 if (assetObj is GameObject go)
                                 {
-                                    if (PrefabUtility.IsPartOfPrefabAsset(go))
-                                    {
-                                        newObj.prefab = go;
-                                    }
-                                    else
-                                    {
-                                        Debug.LogWarning($"对象 {go.name} 不是预制体资源");
-                                        continue;
-                                    }
+                                    exists = placeableObjects.Exists(o => o.prefab == go);
                                 }
                                 else if (assetObj is Mesh mesh)
                                 {
-                                    newObj.mesh = mesh;
+                                    exists = placeableObjects.Exists(o => o.mesh == mesh);
+                                }
+                                if (exists) continue;
+
+                                PlaceableObject newObj = new PlaceableObject();
+
+                                if (assetObj is GameObject go2)
+                                {
+                                    if (PrefabUtility.IsPartOfPrefabAsset(go2))
+                                    {
+                                        newObj.prefab = go2;
+                                    }
+                                    else
+                                    {
+                                        Debug.LogWarning($"对象 {go2.name} 不是预制体资源");
+                                        continue;
+                                    }
+                                }
+                                else if (assetObj is Mesh mesh2)
+                                {
+                                    newObj.mesh = mesh2;
                                 }
                                 else
                                 {
@@ -514,23 +543,35 @@ public class PrefabPlacerTool : EditorWindow
                             continue;
                         }
 
-                        PlaceableObject obj = new PlaceableObject();
-
+                        // 去重判断
+                        bool alreadyExists = false;
                         if (draggedObject is GameObject goObj)
                         {
-                            if (PrefabUtility.IsPartOfPrefabAsset(goObj))
-                            {
-                                obj.prefab = goObj;
-                            }
-                            else
-                            {
-                                Debug.LogWarning($"对象 {goObj.name} 不是预制体资源");
-                                continue;
-                            }
+                            alreadyExists = placeableObjects.Exists(o => o.prefab == goObj);
                         }
                         else if (draggedObject is Mesh meshObj)
                         {
-                            obj.mesh = meshObj as Mesh;
+                            alreadyExists = placeableObjects.Exists(o => o.mesh == meshObj);
+                        }
+                        if (alreadyExists) continue;
+
+                        PlaceableObject obj = new PlaceableObject();
+
+                        if (draggedObject is GameObject goObj2)
+                        {
+                            if (PrefabUtility.IsPartOfPrefabAsset(goObj2))
+                            {
+                                obj.prefab = goObj2;
+                            }
+                            else
+                            {
+                                Debug.LogWarning($"对象 {goObj2.name} 不是预制体资源");
+                                continue;
+                            }
+                        }
+                        else if (draggedObject is Mesh meshObj2)
+                        {
+                            obj.mesh = meshObj2 as Mesh;
                         }
                         else
                         {
@@ -638,6 +679,14 @@ public class PrefabPlacerTool : EditorWindow
                 leftLabel.alignment = TextAnchor.MiddleLeft;
 
                 randomRotation = EditorGUILayout.ToggleLeft("随机旋转", randomRotation, leftLabel);
+                if (randomRotation)
+                {
+                    EditorGUI.indentLevel++;
+                    randomRotationX = EditorGUILayout.ToggleLeft("X轴随机", randomRotationX, leftLabel);
+                    randomRotationY = EditorGUILayout.ToggleLeft("Y轴随机", randomRotationY, leftLabel);
+                    randomRotationZ = EditorGUILayout.ToggleLeft("Z轴随机", randomRotationZ, leftLabel);
+                    EditorGUI.indentLevel--;
+                }
 
                 randomScale = EditorGUILayout.ToggleLeft("随机缩放", randomScale, leftLabel);
                 if (randomScale)
@@ -1207,29 +1256,30 @@ public class PrefabPlacerTool : EditorWindow
         {
             Quaternion rotation = baseRotation;
 
-            // 如果启用了表面对齐和法线对齐，先计算表面旋转
-            if (alignToSurface && alignToSurfaceNormal)
+            // 随机旋转各轴
+            if (randomRotation && rotationRandom != null)
+            {
+                float rx = randomRotationX ? (float)rotationRandom.NextDouble() * 360f : 0f;
+                float ry = randomRotationY ? (float)rotationRandom.NextDouble() * 360f : 0f;
+                float rz = randomRotationZ ? (float)rotationRandom.NextDouble() * 360f : 0f;
+                Quaternion randRot = Quaternion.Euler(rx, ry, rz);
+
+                if (alignToSurface && alignToSurfaceNormal)
+                {
+                    Quaternion surfaceRotation;
+                    AdjustPositionToSurface(positions[i], out surfaceRotation);
+                    rotation = surfaceRotation * randRot;
+                }
+                else
+                {
+                    rotation = baseRotation * randRot;
+                }
+            }
+            else if (alignToSurface && alignToSurfaceNormal)
             {
                 Quaternion surfaceRotation;
                 AdjustPositionToSurface(positions[i], out surfaceRotation);
                 rotation = surfaceRotation * baseRotation;
-            }
-
-            // 应用随机旋转
-            if (randomRotation && rotationRandom != null)
-            {
-                float randomAngle = (float)(rotationRandom.NextDouble() * 360);
-                if (alignToSurface && alignToSurfaceNormal)
-                {
-                    // 在表面法线的基础上进行随机旋转
-                    Quaternion surfaceRotation;
-                    AdjustPositionToSurface(positions[i], out surfaceRotation);
-                    rotation = surfaceRotation * Quaternion.Euler(0, randomAngle, 0);
-                }
-                else
-                {
-                    rotation = baseRotation * Quaternion.Euler(0, randomAngle, 0);
-                }
             }
 
             rotations.Add(rotation);
@@ -1581,10 +1631,10 @@ public class PrefabPlacerTool : EditorWindow
     // 绘制圆形区域
     private void DrawCircularArea(Vector3 center)
     {
-        Handles.color = new Color(0, 1, 0, 0.15f); // 绿色半透明
+        Handles.color = new Color(0, 1, 0, 0.1f); // 绿色半透明
         Handles.DrawSolidDisc(center, Vector3.up, placementRadius);
 
-        Handles.color = new Color(0, 1, 0, 0.5f); // 绿色描边
+        Handles.color = new Color(0, 1, 0, 0.35f); // 绿色描边
         Handles.DrawWireDisc(center, Vector3.up, placementRadius);
     }
 

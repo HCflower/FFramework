@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using UnityEngine.EventSystems;
 using UnityEngine.Events;
 using UnityEngine.UI;
 using UnityEngine;
@@ -187,22 +186,6 @@ namespace FFramework.Utility
         public static T GetComponent<T>(this UIPanel panel, string objectName, bool recursive = true) where T : Component
         {
             return UISystem.Instance.GetChildComponent<T>(panel.gameObject, objectName, recursive);
-        }
-
-        /// <summary>
-        /// 获取所有指定类型的子组件
-        /// </summary>
-        public static T[] GetAllComponents<T>(this UIPanel panel, bool includeInactive = true) where T : Component
-        {
-            return UISystem.Instance.GetAllChildComponents<T>(panel.gameObject, includeInactive);
-        }
-
-        /// <summary>
-        /// 通过组件类型查找第一个匹配的子物体
-        /// </summary>
-        public static T GetFirstComponent<T>(this UIPanel panel, bool includeInactive = true) where T : Component
-        {
-            return UISystem.Instance.GetFirstChildComponent<T>(panel.gameObject, includeInactive);
         }
 
         // 常用组件快捷获取

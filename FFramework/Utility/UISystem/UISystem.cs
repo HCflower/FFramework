@@ -44,17 +44,6 @@ namespace FFramework.Utility
 
         #endregion
 
-        #region 静态访问（兼容性）
-
-        public static int S_OpenPanelCount => Instance.OpenPanelCount;
-        public static int S_CachedPanelCount => Instance.CachedPanelCount;
-        public static bool S_HasOpenPanels => Instance.HasOpenPanels;
-        public static UIPanel S_CurrentPanel => Instance.CurrentPanel;
-        public static string S_CurrentPanelName => Instance.CurrentPanelName;
-        public static string S_CurrentPanelTypeName => Instance.CurrentPanelTypeName;
-
-        #endregion
-
         #region Unity生命周期
 
         protected override void InitializeSingleton()
@@ -390,10 +379,8 @@ namespace FFramework.Utility
 
         #region 组件查找
 
-        /// <summary>
-        /// 查找子物体（支持路径查找和递归查找）
-        /// </summary>
-        public GameObject FindChildGameObject(GameObject panel, string childPath, bool recursive = true)
+        // 查找子物体（支持路径查找和递归查找）
+        private GameObject FindChildGameObject(GameObject panel, string childPath, bool recursive = true)
         {
             if (string.IsNullOrEmpty(childPath) || panel == null)
             {
@@ -453,34 +440,6 @@ namespace FFramework.Utility
             if (targetObj == null) return null;
 
             return targetObj.GetComponent<T>();
-        }
-
-        /// <summary>
-        /// 获取所有指定类型的子组件
-        /// </summary>
-        public T[] GetAllChildComponents<T>(GameObject panel, bool includeInactive = true) where T : Component
-        {
-            if (panel == null)
-            {
-                Debug.LogError("[UISystem] panel不能为空");
-                return new T[0];
-            }
-
-            return panel.GetComponentsInChildren<T>(includeInactive);
-        }
-
-        /// <summary>
-        /// 通过组件类型查找第一个匹配的子物体
-        /// </summary>
-        public T GetFirstChildComponent<T>(GameObject panel, bool includeInactive = true) where T : Component
-        {
-            if (panel == null)
-            {
-                Debug.LogError("[UISystem] panel不能为空");
-                return null;
-            }
-
-            return panel.GetComponentInChildren<T>(includeInactive);
         }
 
         #endregion

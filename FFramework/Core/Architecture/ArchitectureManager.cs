@@ -8,6 +8,7 @@ namespace FFramework.Architecture
     /// <summary>
     /// 架构管理器 - 管理Model和ViewController的生命周期
     /// </summary>
+    [DefaultExecutionOrder(-100)]
     public class ArchitectureManager : SingletonMono<ArchitectureManager>
     {
         // 存储所有Models
