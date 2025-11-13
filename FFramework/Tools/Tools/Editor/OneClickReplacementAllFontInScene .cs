@@ -198,7 +198,7 @@ namespace FFramework.Tools
             GUILayout.Space(5);
 
             // 替换按钮
-            GUI.backgroundColor = (targetFont != null || targetTMPFont != null) ? new Color(1f, 0.8f, 0.2f, 0.3f) : Color.gray;
+            GUI.backgroundColor = (targetFont != null || targetTMPFont != null) ? Color.cyan : Color.gray;
             EditorGUI.BeginDisabledGroup(targetFont == null && targetTMPFont == null);
             if (GUILayout.Button("一键替换字体", buttonStyle))
             {
@@ -255,7 +255,7 @@ namespace FFramework.Tools
                     }
                 }
 
-                // 替换TextMeshPro组件字体
+                // 替换TextMeshPro组件字体（UGUI）
                 if (targetTMPFont != null)
                 {
                     TextMeshProUGUI tmpComponent = obj.GetComponent<TextMeshProUGUI>();
@@ -264,6 +264,15 @@ namespace FFramework.Tools
                         tmpComponent.font = targetTMPFont;
                         tmpReplaceCount++;
                         EditorUtility.SetDirty(tmpComponent);
+                    }
+
+                    // 新增：替换3D TMP字体
+                    TextMeshPro tmp3dComponent = obj.GetComponent<TextMeshPro>();
+                    if (tmp3dComponent != null && tmp3dComponent.font != targetTMPFont)
+                    {
+                        tmp3dComponent.font = targetTMPFont;
+                        tmpReplaceCount++;
+                        EditorUtility.SetDirty(tmp3dComponent);
                     }
                 }
             }

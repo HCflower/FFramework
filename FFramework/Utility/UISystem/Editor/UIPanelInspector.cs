@@ -58,6 +58,11 @@ namespace FFramework.Editor
             EditorGUILayout.BeginHorizontal();
             EditorGUILayout.LabelField("序列化字段", EditorStyles.boldLabel);
             GUILayout.FlexibleSpace();
+            // 脚本文件定位按钮
+            if (GUILayout.Button("定位脚本", GUILayout.Width(80), GUILayout.Height(20)))
+            {
+                PingScriptFile();
+            }
             if (GUILayout.Button("打开脚本", GUILayout.Width(80), GUILayout.Height(20)))
             {
                 OpenScript();
@@ -80,6 +85,21 @@ namespace FFramework.Editor
 
             serializedObject.ApplyModifiedProperties();
             EditorGUILayout.EndVertical();
+        }
+
+        // 脚本文件定位方法
+        private void PingScriptFile()
+        {
+            if (panel == null) return;
+            MonoScript script = MonoScript.FromMonoBehaviour(panel);
+            if (script != null)
+            {
+                EditorGUIUtility.PingObject(script);
+            }
+            else
+            {
+                Debug.LogWarning("无法找到脚本文件");
+            }
         }
 
         /// <summary>
