@@ -1,12 +1,15 @@
+// =============================================================
+// 描述：对象池
+// 作者：HCFlower
+// 创建时间：2025-11-15 18:49:00
+// 版本：1.0.0
+// =============================================================
 using System.Collections.Generic;
 using FFramework.Architecture;
 using UnityEngine;
 
 namespace FFramework.Utility
 {
-    /// <summary>
-    /// 对象池组件
-    /// </summary>
     public class ObjectPool : SingletonMono<ObjectPool>
     {
         /// <summary>

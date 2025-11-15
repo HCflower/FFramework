@@ -1,12 +1,15 @@
+// =============================================================
+// 描述：UI根节点
+// 作者：HCFlower
+// 创建时间：2025-11-15 18:49:00
+// 版本：1.0.0
+// =============================================================
 using FFramework.Architecture;
 using UnityEngine.UI;
 using UnityEngine;
 
 namespace FFramework.Utility
 {
-    ///<summary>
-    /// UI根节点
-    /// </summary>
     public class UIRoot : SingletonMono<UIRoot>
     {
         public Transform BackgroundLayer;       //背景层 - 静态背景

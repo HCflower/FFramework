@@ -1,30 +1,15 @@
-using Cysharp.Threading.Tasks;
-using System.Threading;
+// =============================================================
+// 描述：震动效果基类
+// 作者：HCFlower
+// 创建时间：2025-11-16 00:44:00
+// 版本：1.0.0
+// =============================================================
+using System.Collections;
 using UnityEngine;
 using System;
 
 namespace FFramework.Utility
 {
-    /// <summary>
-    /// 震动组件基类
-    /// 包含所有震动组件的通用功能，使用UniTask提升性能
-    /// 
-    /// 性能优化特点：
-    /// 1. 使用UniTask替代协程，减少内存分配和GC压力
-    /// 2. 缓存计算结果，避免重复计算
-    /// 3. 支持指定更新频率，在大量震动对象场景下提升性能
-    /// 4. 使用CancellationToken进行更好的生命周期管理
-    /// 
-    /// 使用示例：
-    /// 标准使用
-    /// smoothShake.StartShake();
-    /// 
-    ///  快速震动
-    /// smoothShake.StartQuickShake(0.3f, 3.0f, 1.0f);
-    /// 
-    /// 高性能震动（适用于大量对象）
-    /// smoothShake.StartQuickShakeOptimized(0.2f, 2.0f, 0.5f, 33); // 30fps更新频率
-    /// </summary>
     public abstract class ShakeBase : MonoBehaviour
     {
         [Header("震动预设")]
@@ -34,8 +19,10 @@ namespace FFramework.Utility
         // 内部状态
         protected Vector3 originalPosition;
         protected Vector3 originalRotation;
-        protected CancellationTokenSource shakeCancellationTokenSource;
         protected bool isShaking = false;
+
+        // 协程句柄
+        private Coroutine shakeCoroutine;
 
         // 性能优化：缓存计算结果，减少GC分配
         private Vector3 cachedPositionOffset;
@@ -140,7 +127,7 @@ namespace FFramework.Utility
         /// <summary>
         /// 开始震动
         /// </summary>
-        public virtual async void StartShake()
+        public virtual void StartShake()
         {
             if (shakePreset == null)
             {
@@ -155,21 +142,7 @@ namespace FFramework.Utility
 
             SaveOriginalTransform();
 
-            // 创建新的取消令牌
-            shakeCancellationTokenSource = new CancellationTokenSource();
-
-            try
-            {
-                await ShakeTaskAsync(shakeCancellationTokenSource.Token);
-            }
-            catch (OperationCanceledException)
-            {
-                // 震动被取消，正常情况
-            }
-            catch (System.Exception ex)
-            {
-                Debug.LogError($"ShakeBase: 震动执行出错: {ex.Message}");
-            }
+            shakeCoroutine = StartCoroutine(ShakeCoroutine());
         }
 
         /// <summary>
@@ -220,168 +193,46 @@ namespace FFramework.Utility
         /// </summary>
         public virtual void StopShake()
         {
-            if (shakeCancellationTokenSource != null)
+            if (shakeCoroutine != null)
             {
-                shakeCancellationTokenSource.Cancel();
-                shakeCancellationTokenSource.Dispose();
-                shakeCancellationTokenSource = null;
+                StopCoroutine(shakeCoroutine);
+                shakeCoroutine = null;
             }
 
             isShaking = false;
             ResetTransform();
         }
 
-        /// <summary>
-        /// 开始震动（高性能版本，可指定更新频率）
-        /// </summary>
-        /// <param name="updateRate">更新频率（毫秒），0表示每帧更新</param>
-        public virtual async void StartShakeOptimized(int updateRate = 0)
-        {
-            if (shakePreset == null)
-            {
-                Debug.LogWarning($"ShakeBase: 没有设置震动预设文件，无法开始震动");
-                return;
-            }
-
-            if (isShaking)
-            {
-                StopShake();
-            }
-
-            SaveOriginalTransform();
-
-            // 创建新的取消令牌
-            shakeCancellationTokenSource = new CancellationTokenSource();
-
-            try
-            {
-                if (updateRate > 0)
-                {
-                    await ShakeTaskOptimizedAsync(shakeCancellationTokenSource.Token, updateRate);
-                }
-                else
-                {
-                    await ShakeTaskAsync(shakeCancellationTokenSource.Token);
-                }
-            }
-            catch (OperationCanceledException)
-            {
-                // 震动被取消，正常情况
-            }
-            catch (System.Exception ex)
-            {
-                Debug.LogError($"ShakeBase: 震动执行出错: {ex.Message}");
-            }
-        }
-
-        /// <summary>
-        /// 优化的震动任务（指定更新频率以提升性能）
-        /// </summary>
-        /// <param name="cancellationToken">取消令牌</param>
-        /// <param name="updateRateMs">更新频率（毫秒）</param>
-        protected virtual async UniTask ShakeTaskOptimizedAsync(CancellationToken cancellationToken, int updateRateMs)
-        {
-            isShaking = true;
-            float totalDuration = fadeInDuration + holdDuration + fadeOutDuration;
-            float elapsed = 0f;
-            float updateInterval = updateRateMs / 1000f;
-            float nextUpdateTime = 0f;
-
-            try
-            {
-                while (elapsed < totalDuration && isShaking && !cancellationToken.IsCancellationRequested)
-                {
-                    if (elapsed >= nextUpdateTime)
-                    {
-                        // 只在指定时间间隔更新计算
-                        float intensity = CalculateIntensity(elapsed);
-                        cachedPositionOffset = positionShake.Evaluate(elapsed) * intensity;
-                        cachedRotationOffset = rotationShake.Evaluate(elapsed) * intensity;
-                        nextUpdateTime = elapsed + updateInterval;
-                    }
-
-                    // 每帧应用震动
-                    ApplyShake(cachedPositionOffset, cachedRotationOffset);
-                    elapsed += Time.deltaTime;
-
-                    await UniTask.NextFrame(PlayerLoopTiming.Update, cancellationToken);
-                }
-            }
-            finally
-            {
-                // 震动结束，重置变换
-                ResetTransform();
-                isShaking = false;
-
-                // 清理缓存值
-                lastCalculatedTime = -1f;
-                lastCalculatedIntensity = 0f;
-                cachedPositionOffset = Vector3.zero;
-                cachedRotationOffset = Vector3.zero;
-
-                // 清理取消令牌源
-                if (shakeCancellationTokenSource != null)
-                {
-                    shakeCancellationTokenSource.Dispose();
-                    shakeCancellationTokenSource = null;
-                }
-            }
-        }
-        protected virtual async UniTask ShakeTaskAsync(CancellationToken cancellationToken)
+        private IEnumerator ShakeCoroutine()
         {
             isShaking = true;
             float totalDuration = fadeInDuration + holdDuration + fadeOutDuration;
             float elapsed = 0f;
 
-            // 性能优化：预计算时间相关值
-            float deltaTime;
-
-            try
+            while (elapsed < totalDuration && isShaking)
             {
-                while (elapsed < totalDuration && isShaking && !cancellationToken.IsCancellationRequested)
+                if (Mathf.Abs(elapsed - lastCalculatedTime) > 0.001f)
                 {
-                    // 性能优化：避免重复计算相同时间点的值
-                    if (Mathf.Abs(elapsed - lastCalculatedTime) > 0.001f)
-                    {
-                        lastCalculatedTime = elapsed;
-                        lastCalculatedIntensity = CalculateIntensity(elapsed);
+                    lastCalculatedTime = elapsed;
+                    lastCalculatedIntensity = CalculateIntensity(elapsed);
 
-                        // 计算震动偏移（缓存结果）
-                        cachedPositionOffset = positionShake.Evaluate(elapsed) * lastCalculatedIntensity;
-                        cachedRotationOffset = rotationShake.Evaluate(elapsed) * lastCalculatedIntensity;
-                    }
-
-                    // 应用震动（由子类实现具体逻辑）
-                    ApplyShake(cachedPositionOffset, cachedRotationOffset);
-
-                    // 性能优化：直接获取deltaTime，避免重复访问
-                    deltaTime = Time.deltaTime;
-                    elapsed += deltaTime;
-
-                    // 使用UniTask的NextFrame代替yield return null，性能更好
-                    // PlayerLoopTiming.Update确保在Update循环中执行，减少延迟
-                    await UniTask.NextFrame(PlayerLoopTiming.Update, cancellationToken);
+                    cachedPositionOffset = positionShake.Evaluate(elapsed) * lastCalculatedIntensity;
+                    cachedRotationOffset = rotationShake.Evaluate(elapsed) * lastCalculatedIntensity;
                 }
-            }
-            finally
-            {
-                // 震动结束，重置变换
-                ResetTransform();
-                isShaking = false;
 
-                // 清理缓存值
-                lastCalculatedTime = -1f;
-                lastCalculatedIntensity = 0f;
-                cachedPositionOffset = Vector3.zero;
-                cachedRotationOffset = Vector3.zero;
+                ApplyShake(cachedPositionOffset, cachedRotationOffset);
 
-                // 清理取消令牌源
-                if (shakeCancellationTokenSource != null)
-                {
-                    shakeCancellationTokenSource.Dispose();
-                    shakeCancellationTokenSource = null;
-                }
+                elapsed += Time.deltaTime;
+                yield return null;
             }
+
+            ResetTransform();
+            isShaking = false;
+
+            lastCalculatedTime = -1f;
+            lastCalculatedIntensity = 0f;
+            cachedPositionOffset = Vector3.zero;
+            cachedRotationOffset = Vector3.zero;
         }
 
         /// <summary>
@@ -421,13 +272,6 @@ namespace FFramework.Utility
         protected virtual void OnDestroy()
         {
             StopShake();
-
-            // 确保取消令牌源被正确释放
-            if (shakeCancellationTokenSource != null)
-            {
-                shakeCancellationTokenSource.Dispose();
-                shakeCancellationTokenSource = null;
-            }
         }
 
 #if UNITY_EDITOR

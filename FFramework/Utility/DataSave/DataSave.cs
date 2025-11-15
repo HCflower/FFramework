@@ -1,3 +1,9 @@
+// =============================================================
+// 描述：数据保存系统
+// 作者：HCFlower
+// 创建时间：2025-11-15 18:49:00
+// 版本：1.0.0
+// =============================================================
 using System.Runtime.Serialization.Formatters.Binary;
 using UnityEngine;
 using System.IO;
@@ -5,9 +11,6 @@ using System;
 
 namespace FFramework.Utility
 {
-    /// <summary>
-    /// 数据保存系统
-    /// </summary>
     public static class DataSave
     {
         private static string savePath = Application.persistentDataPath + "/";

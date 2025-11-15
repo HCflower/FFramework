@@ -1,3 +1,9 @@
+// =============================================================
+// 描述：事件系统
+// 作者：HCFlower
+// 创建时间：2025-11-15 18:49:00
+// 版本：1.0.0
+// =============================================================
 using System.Collections.Generic;
 using FFramework.Architecture;
 using System.Diagnostics;
@@ -7,9 +13,6 @@ using System;
 
 namespace FFramework.Utility
 {
-    /// <summary>
-    /// 简化的事件系统 - 支持任意类型参数的事件中心
-    /// </summary>
     public class EventSystem : SingletonMono<EventSystem>
     {
         #region 内部类

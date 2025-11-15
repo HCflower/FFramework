@@ -1,12 +1,15 @@
+// =============================================================
+// 描述：UI系统管理器
+// 作者：HCFlower
+// 创建时间：2025-11-15 18:49:00
+// 版本：1.0.0
+// =============================================================
 using System.Collections.Generic;
 using FFramework.Architecture;
 using UnityEngine;
 
 namespace FFramework.Utility
 {
-    /// <summary>
-    /// UISystem管理器 - 提供UI面板管理、层级控制、组件查找等功能
-    /// </summary>
     public class UISystem : SingletonMono<UISystem>
     {
         #region 私有字段

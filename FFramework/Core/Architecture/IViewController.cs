@@ -1,10 +1,13 @@
+// =============================================================
+// 描述：视图控制器接口
+// 作者：HCFlower
+// 创建时间：2025-11-15 18:49:00
+// 版本：1.0.0
+// =============================================================
 using UnityEngine;
 
 namespace FFramework.Architecture
 {
-    /// <summary>
-    /// 视图控制器接口
-    /// </summary>
     public interface IViewController
     {
         /// <summary>

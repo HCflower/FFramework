@@ -1,3 +1,9 @@
+// =============================================================
+// 描述：架构管理器 - 管理Model和ViewController的生命周期
+// 作者：HCFlower
+// 创建时间：2025-11-15 18:49:00
+// 版本：1.0.0
+// =============================================================
 using System.Collections.Generic;
 using FFramework.Utility;
 using UnityEngine;
@@ -5,9 +11,6 @@ using System;
 
 namespace FFramework.Architecture
 {
-    /// <summary>
-    /// 架构管理器 - 管理Model和ViewController的生命周期
-    /// </summary>
     [DefaultExecutionOrder(-100)]
     public class ArchitectureManager : SingletonMono<ArchitectureManager>
     {

@@ -1,12 +1,15 @@
+// =============================================================
+// 描述：EventSystem 静态扩展 - 支持泛型事件的自动注销
+// 作者：HCFlower
+// 创建时间：2025-11-15 18:49:00
+// 版本：1.0.0
+// =============================================================
 using System.Collections.Generic;
 using UnityEngine;
 using System;
 
 namespace FFramework.Utility
 {
-    /// <summary>
-    /// EventSystem 静态扩展 - 支持泛型事件的自动注销
-    /// </summary>
     public static class EventSystemExtensions
     {
         /// <summary>

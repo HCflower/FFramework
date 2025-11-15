@@ -1,3 +1,9 @@
+// =============================================================
+// 描述：场景加载管理器
+// 作者：HCFlower
+// 创建时间：2025-11-15 18:49:00
+// 版本：1.0.0
+// =============================================================
 using UnityEngine.SceneManagement;
 using FFramework.Architecture;
 using System.Collections;
@@ -6,9 +12,6 @@ using System;
 
 namespace FFramework.Utility
 {
-    /// <summary>
-    /// 场景加载管理器
-    /// </summary>
     public class SceneLoad : Singleton<SceneLoad>
     {
         /// <summary>

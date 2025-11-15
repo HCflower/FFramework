@@ -1,10 +1,13 @@
+// =============================================================
+// 描述：Model基础类
+// 作者：HCFlower
+// 创建时间：2025-11-15 18:49:00
+// 版本：1.0.0
+// =============================================================
 using FFramework.Utility;
 
 namespace FFramework.Architecture
 {
-    /// <summary>
-    /// Model基础类
-    /// </summary>
     public abstract class BaseModel : IModel
     {
         protected EventSystem eventSystem;

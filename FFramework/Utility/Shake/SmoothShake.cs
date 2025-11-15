@@ -1,3 +1,10 @@
+// =============================================================
+// 描述：平滑震动效果
+// 作者：HCFlower
+// 创建时间：2025-11-16 00:44:00
+// 版本：1.0.0
+// =============================================================
+using System.Collections;
 using UnityEngine;
 
 namespace FFramework.Utility
@@ -12,6 +19,8 @@ namespace FFramework.Utility
         [Header("目标设置")]
         [Tooltip("指定震动目标,如果为空则使用当前GameObject")]
         public Transform shakeTarget;
+
+        private Coroutine shakeCoroutine;
 
         /// <summary>
         /// 获取实际的震动目标
@@ -58,6 +67,67 @@ namespace FFramework.Utility
         {
             shakeTarget = target;
             SaveOriginalTransform();
+        }
+
+        // 替换震动启动逻辑为协程
+        public override void StartShake()
+        {
+            if (shakePreset == null)
+            {
+                Debug.LogWarning($"ShakeBase: 没有设置震动预设文件，无法开始震动");
+                return;
+            }
+
+            if (isShaking)
+            {
+                StopShake();
+            }
+
+            SaveOriginalTransform();
+
+            shakeCoroutine = StartCoroutine(ShakeCoroutine());
+        }
+
+        public override void StopShake()
+        {
+            if (shakeCoroutine != null)
+            {
+                StopCoroutine(shakeCoroutine);
+                shakeCoroutine = null;
+            }
+            isShaking = false;
+            ResetTransform();
+        }
+
+        private IEnumerator ShakeCoroutine()
+        {
+            isShaking = true;
+            float totalDuration = fadeInDuration + holdDuration + fadeOutDuration;
+            float elapsed = 0f;
+            float lastCalculatedTime = -1f;
+            float lastCalculatedIntensity = 0f;
+            Vector3 cachedPositionOffset = Vector3.zero;
+            Vector3 cachedRotationOffset = Vector3.zero;
+
+            while (elapsed < totalDuration && isShaking)
+            {
+                if (Mathf.Abs(elapsed - lastCalculatedTime) > 0.001f)
+                {
+                    lastCalculatedTime = elapsed;
+                    lastCalculatedIntensity = CalculateIntensity(elapsed);
+
+                    cachedPositionOffset = positionShake.Evaluate(elapsed) * lastCalculatedIntensity;
+                    cachedRotationOffset = rotationShake.Evaluate(elapsed) * lastCalculatedIntensity;
+                }
+
+                ApplyShake(cachedPositionOffset, cachedRotationOffset);
+
+                elapsed += Time.deltaTime;
+                yield return null;
+            }
+
+            ResetTransform();
+            isShaking = false;
         }
 
         /// <summary>

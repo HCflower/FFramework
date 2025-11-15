@@ -1,11 +1,14 @@
+// =============================================================
+// 描述：ViewController基础类
+// 作者：HCFlower
+// 创建时间：2025-11-15 18:49:00
+// 版本：1.0.0
+// =============================================================
 using FFramework.Utility;
 using UnityEngine;
 
 namespace FFramework.Architecture
 {
-    /// <summary>
-    /// ViewController基础类
-    /// </summary>
     public abstract class BaseViewController : MonoBehaviour, IViewController
     {
         protected EventSystem eventSystem;

@@ -1,3 +1,9 @@
+// =============================================================
+// 描述：UI事件绑定静态扩展类 
+// 作者：HCFlower
+// 创建时间：2025-11-15 18:49:00
+// 版本：1.0.0
+// =============================================================
 using System.Collections.Generic;
 using UnityEngine.Events;
 using UnityEngine.UI;
@@ -7,9 +13,6 @@ using System;
 
 namespace FFramework.Utility
 {
-    /// <summary>
-    /// UI事件绑定静态扩展类 - 简化版本
-    /// </summary>
     public static class UIEventExtensions
     {
         #region 内部方法

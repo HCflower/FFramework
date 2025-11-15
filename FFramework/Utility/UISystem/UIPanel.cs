@@ -1,11 +1,14 @@
+// =============================================================
+// 描述：UI面板基类
+// 作者：HCFlower
+// 创建时间：2025-11-15 18:49:00
+// 版本：1.0.0
+// =============================================================
 using System.Collections.Generic;
 using UnityEngine;
 
 namespace FFramework.Utility
 {
-    /// <summary>
-    /// UI面板基类 - 提供完整的面板生命周期和事件管理
-    /// </summary>
     public abstract class UIPanel : MonoBehaviour
     {
         #region 私有字段

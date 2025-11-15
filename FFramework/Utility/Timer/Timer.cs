@@ -1,10 +1,13 @@
-﻿using System;
+﻿// =============================================================
+// 计时器
+// 作者：HCFlower
+// 创建时间：2025-11-16 00:44:00
+// 版本：1.0.0
+// =============================================================
+using System;
 
 namespace FFramework.Utility
 {
-    /// <summary>
-    /// 计时器基类
-    /// </summary>
     public abstract class Timer
     {
         protected float initialTime;
