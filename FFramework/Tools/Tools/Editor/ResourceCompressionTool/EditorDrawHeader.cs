@@ -110,6 +110,10 @@ public partial class ResourceCompressionTool
                     texturePreSettings.textureShape = (TextureImporterShape)EditorGUILayout.EnumPopup("纹理形状:", texturePreSettings.textureShape);
                     texturePreSettings.sRGBTexture = EditorGUILayout.Toggle("sRGB (颜色纹理)", texturePreSettings.sRGBTexture);
                     texturePreSettings.alphaSource = (TextureImporterAlphaSource)EditorGUILayout.EnumPopup("Alpha 来源", texturePreSettings.alphaSource);
+                    texturePreSettings.alphaIsTransparency = EditorGUILayout.Toggle("Alpha是否透明", texturePreSettings.alphaIsTransparency);
+#if UNITY_2020_1_OR_NEWER
+                    texturePreSettings.alphaPremultiply = EditorGUILayout.Toggle("Alpha预乘", texturePreSettings.alphaPremultiply);
+#endif
 
                     EditorGUILayout.Space(3);
                     EditorGUILayout.LabelField("高级设置", EditorStyles.miniBoldLabel);

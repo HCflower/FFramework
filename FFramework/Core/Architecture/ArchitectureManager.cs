@@ -33,6 +33,7 @@ namespace FFramework.Architecture
         /// </summary>
         public T RegisterModel<T>() where T : class, IModel, new()
         {
+            Debug.Log($"RegisterModel InstanceID: {GetInstanceID()} Type: {typeof(T).Name}");
             Type modelType = typeof(T);
 
             if (models.ContainsKey(modelType))
@@ -54,6 +55,7 @@ namespace FFramework.Architecture
         /// </summary>
         public T GetModel<T>() where T : class, IModel
         {
+            Debug.Log($"GetModel InstanceID: {GetInstanceID()} Type: {typeof(T).Name}");
             Type modelType = typeof(T);
 
             if (models.TryGetValue(modelType, out IModel model))

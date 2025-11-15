@@ -15,18 +15,24 @@ namespace FFramework.Architecture
         {
             get
             {
+#if UNITY_EDITOR
+                if (!Application.isPlaying)
+                    return null;
+#endif
                 if (instance == null)
                 {
                     instance = FindObjectOfType<T>();
-
                     if (instance == null)
                     {
                         GameObject singleton = new GameObject(typeof(T).Name);
                         instance = singleton.AddComponent<T>();
-                        DontDestroyOnLoad(singleton);
+#if UNITY_EDITOR
+                        if (Application.isPlaying)
+#endif
+                        {
+                            DontDestroyOnLoad(singleton);
+                        }
                     }
-
-                    // 确保初始化被调用
                     if (!isInitialized)
                     {
                         (instance as SingletonMono<T>).InitializeSingleton();
@@ -39,18 +45,8 @@ namespace FFramework.Architecture
 
         protected virtual void Awake()
         {
-            if (instance == null)
-            {
-                instance = this as T;
-                DontDestroyOnLoad(gameObject);
-
-                if (!isInitialized)
-                {
-                    InitializeSingleton();
-                    isInitialized = true;
-                }
-            }
-            else if (instance != this)
+            // 如果场景中有重复的单例对象，销毁自己
+            if (instance != null && instance != this)
             {
                 Destroy(gameObject);
             }

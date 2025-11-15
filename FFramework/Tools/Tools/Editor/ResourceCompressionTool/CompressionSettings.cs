@@ -19,6 +19,10 @@ public class TextureSettings
     public TextureImporterShape textureShape = TextureImporterShape.Texture2D;
     public bool sRGBTexture = true;
     public TextureImporterAlphaSource alphaSource = TextureImporterAlphaSource.FromInput;
+    public bool alphaIsTransparency; // 新增
+#if UNITY_2020_1_OR_NEWER
+    public bool alphaPremultiply;    // 新增
+#endif
     public TextureImporterNPOTScale nonPowerOf2 = TextureImporterNPOTScale.ToNearest;
     public bool readable = false;
     public bool streamingMipMaps = false;

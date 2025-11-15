@@ -171,6 +171,7 @@ public partial class ResourceCompressionTool
                     importer.filterMode = texturePreSettings.filterMode;
                     importer.anisoLevel = texturePreSettings.anisoLevel;
                     importer.wrapMode = texturePreSettings.wrapMode;
+                    // 保存并重新导入资源
                     importer.SaveAndReimport();
                     processedCount++;
                 }
@@ -216,14 +217,13 @@ public partial class ResourceCompressionTool
     private long CalculateTextureMemoryUsage(Texture2D texture, TextureImporter importer)
     {
         if (texture == null) return 0;
-        return UnityEngine.Profiling.Profiler.GetRuntimeMemorySizeLong(texture);
+        return texture.GetRawTextureData().Length;
     }
 
     #endregion
 
     #region Audio Logic
 
-    // ...existing code...
     private void ApplyAudioSettings()
     {
         if (selectedAudioClips.Count == 0)
@@ -294,7 +294,6 @@ public partial class ResourceCompressionTool
         Repaint();
         EditorUtility.DisplayDialog("完成", $"成功应用设置到 {processedCount} 个音频", "确定");
     }
-    // ...existing code...
 
     private void ResetAudioSettings()
     {
@@ -324,7 +323,7 @@ public partial class ResourceCompressionTool
     private long CalculateAudioMemoryUsage(AudioClip audio)
     {
         if (audio == null) return 0;
-        return UnityEngine.Profiling.Profiler.GetRuntimeMemorySizeLong(audio);
+        return audio.samples * audio.channels * 2; // 2字节/采样（16位）
     }
 
     #endregion
