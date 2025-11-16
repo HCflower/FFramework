@@ -55,6 +55,20 @@ public class Blackboard
 
     Dictionary<BlackboardKey, object> entries = new Dictionary<BlackboardKey, object>();
 
+    public List<Action> Preconditions { get; } = new List<Action>();
+
+    public void AddAction(Action action)
+    {
+        if (action == null)
+            throw new ArgumentNullException(nameof(action), "Action 不能为 null");
+        Preconditions.Add(action);
+    }
+
+    public void ClearActions()
+    {
+        Preconditions.Clear();
+    }
+
     // 尝试获取值
     public bool TryGetValue<T>(BlackboardKey key, out T value)
     {
