@@ -1,17 +1,31 @@
 // =============================================================
-// 描述：UI系统管理器
+// 描述：UI系统管理器（集成UIRoot功能）
 // 作者：HCFlower
-// 创建时间：2025-11-15 18:49:00
-// 版本：1.0.0
+// 创建时间：2025-11-21 22:30:00
+// 版本：1.1.0
 // =============================================================
 using System.Collections.Generic;
+using UnityEngine.EventSystems;
 using FFramework.Architecture;
+using UnityEngine.UI;
 using UnityEngine;
 
 namespace FFramework.Utility
 {
     public class UISystem : SingletonMono<UISystem>
     {
+        #region UI层级引用
+
+        [Header("UI Layers")]
+        public Transform BackgroundLayer;       // 背景层
+        public Transform PostProcessingLayer;   // 后期处理层
+        public Transform ContentLayer;          // 内容层
+        public Transform PopupLayer;            // 弹窗层
+        public Transform GuideLayer;            // 引导层    
+        public Transform DebugLayer;            // 调试层   
+
+        #endregion
+
         #region 私有字段
 
         // 缓存的UI面板字典（所有创建过的面板）
@@ -51,10 +65,16 @@ namespace FFramework.Utility
 
         protected override void InitializeSingleton()
         {
-            // 初始化层级面板列表
+            // 1. 确保UI根节点环境（Canvas, EventSystem, Layers）存在
+            SetupUIRoot();
+
+            // 2. 初始化层级面板列表
             foreach (UILayer layer in System.Enum.GetValues(typeof(UILayer)))
             {
-                layerPanels[layer] = new List<UIPanel>();
+                if (!layerPanels.ContainsKey(layer))
+                {
+                    layerPanels[layer] = new List<UIPanel>();
+                }
             }
 
             Debug.Log("[UISystem] UI系统初始化完成");
@@ -68,31 +88,106 @@ namespace FFramework.Utility
 
         #endregion
 
-        #region 内部方法
+        #region UI根节点设置 (原UIRoot逻辑)
 
-        private UIRoot GetUIRoot()
+        [ContextMenu("初始化UI根节点")]
+        public void SetupUIRoot()
         {
-            return UIRoot.Instance;
+            // 确保自身名称
+            if (gameObject.name != "UISystem") gameObject.name = "UISystem";
+
+            // 1. 添加必要组件
+            if (!TryGetComponent<Canvas>(out _))
+            {
+                var canvas = gameObject.AddComponent<Canvas>();
+                canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            }
+            if (!TryGetComponent<CanvasScaler>(out _))
+            {
+                var scaler = gameObject.AddComponent<CanvasScaler>();
+                scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+                scaler.referenceResolution = new Vector2(1920, 1080); // 默认参考分辨率
+                scaler.matchWidthOrHeight = 0.5f;
+            }
+            if (!TryGetComponent<GraphicRaycaster>(out _)) gameObject.AddComponent<GraphicRaycaster>();
+
+            // 2. 创建UI层级
+            BackgroundLayer = CreateAndAddUIlayerInGameObject("BackgroundLayer", this.transform);
+            PostProcessingLayer = CreateAndAddUIlayerInGameObject("PostProcessingLayer", this.transform);
+            ContentLayer = CreateAndAddUIlayerInGameObject("ContentLayer", this.transform);
+            PopupLayer = CreateAndAddUIlayerInGameObject("PopupLayer", this.transform);
+            GuideLayer = CreateAndAddUIlayerInGameObject("GuideLayer", this.transform);
+            DebugLayer = CreateAndAddUIlayerInGameObject("DebugLayer", this.transform);
+
+            // 3. 检查并创建 EventSystem
+            if (GameObject.FindObjectOfType<EventSystem>() == null)
+            {
+                var esObj = new GameObject("EventSystem");
+                esObj.transform.SetParent(this.transform.parent); // EventSystem通常不放在Canvas下，或者放在根目录
+                esObj.AddComponent<EventSystem>();
+                esObj.AddComponent<StandaloneInputModule>();
+            }
         }
+
+        /// <summary>
+        /// 创建并添加UI层
+        /// </summary>
+        private Transform CreateAndAddUIlayerInGameObject(string uiLayerName, Transform parent)
+        {
+            // 优先查找已存在的层级
+            Transform exist = parent.Find(uiLayerName);
+            if (exist != null)
+            {
+                // 确保它是全屏拉伸的
+                var rect = exist as RectTransform;
+                if (rect != null)
+                {
+                    rect.anchorMin = Vector2.zero;
+                    rect.anchorMax = Vector2.one;
+                    rect.offsetMin = Vector2.zero;
+                    rect.offsetMax = Vector2.zero;
+                }
+                return exist;
+            }
+
+            // 创建新层级
+            GameObject uiLayer = new GameObject(uiLayerName, typeof(RectTransform));
+            var rectTransform = uiLayer.GetComponent<RectTransform>();
+            rectTransform.SetParent(parent, false);
+
+            // 设置全屏拉伸
+            rectTransform.anchorMin = Vector2.zero;
+            rectTransform.anchorMax = Vector2.one;
+            rectTransform.offsetMin = Vector2.zero;
+            rectTransform.offsetMax = Vector2.zero;
+
+            // 重置变换
+            rectTransform.localPosition = Vector3.zero;
+            rectTransform.localRotation = Quaternion.identity;
+            rectTransform.localScale = Vector3.one;
+
+            // 这里的层级需要不阻挡射线，除非挂载了Graphic
+            // 通常层级节点本身不需要Image组件，所以默认是透明且穿透的
+
+            return rectTransform;
+        }
+
+        #endregion
+
+        #region 内部方法
 
         private Transform GetUILayer(UILayer layer)
         {
-            var uiRoot = GetUIRoot();
-            if (uiRoot == null)
-            {
-                Debug.LogError("[UISystem] UIRoot未找到，请确保场景中存在UIRoot");
-                return null;
-            }
-
+            // 直接返回本地引用
             switch (layer)
             {
-                case UILayer.BackgroundLayer: return uiRoot.BackgroundLayer;
-                case UILayer.PostProcessingLayer: return uiRoot.PostProcessingLayer;
-                case UILayer.ContentLayer: return uiRoot.ContentLayer;
-                case UILayer.GuideLayer: return uiRoot.GuideLayer;
-                case UILayer.PopupLayer: return uiRoot.PopupLayer;
-                case UILayer.DebugLayer: return uiRoot.DebugLayer;
-                default: return uiRoot.DebugLayer;
+                case UILayer.BackgroundLayer: return BackgroundLayer;
+                case UILayer.PostProcessingLayer: return PostProcessingLayer;
+                case UILayer.ContentLayer: return ContentLayer;
+                case UILayer.GuideLayer: return GuideLayer;
+                case UILayer.PopupLayer: return PopupLayer;
+                case UILayer.DebugLayer: return DebugLayer;
+                default: return ContentLayer;
             }
         }
 
@@ -104,7 +199,13 @@ namespace FFramework.Utility
         private T CreatePanel<T>(string panelName, UILayer layer, GameObject prefab) where T : UIPanel
         {
             Transform layerTransform = GetUILayer(layer);
-            if (layerTransform == null) return null;
+            if (layerTransform == null)
+            {
+                // 如果层级为空，尝试重新初始化
+                SetupUIRoot();
+                layerTransform = GetUILayer(layer);
+                if (layerTransform == null) return null;
+            }
 
             GameObject panelObject;
             if (prefab != null)
@@ -160,7 +261,7 @@ namespace FFramework.Utility
 
             if (!found)
             {
-                Debug.LogWarning($"[UISystem] 面板 {targetPanel.GetType().Name} 不在活跃栈中");
+                // Debug.LogWarning($"[UISystem] 面板 {targetPanel.GetType().Name} 不在活跃栈中");
             }
         }
 
@@ -320,6 +421,8 @@ namespace FFramework.Utility
         {
             Debug.Log($"<color=orange>[UISystem] 清理层级面板</color>: {layer}");
 
+            if (!layerPanels.ContainsKey(layer)) return;
+
             var panelsToRemove = new List<UIPanel>(layerPanels[layer]);
 
             foreach (var panel in panelsToRemove)
@@ -359,6 +462,8 @@ namespace FFramework.Utility
         /// </summary>
         public int GetActivePanelCountInLayer(UILayer layer)
         {
+            if (!layerPanels.ContainsKey(layer)) return 0;
+
             int count = 0;
             foreach (var panel in layerPanels[layer])
             {
@@ -483,6 +588,11 @@ namespace FFramework.Utility
                 topPanel.OnLock();
             }
 
+            if (!layerPanels.ContainsKey(layer))
+            {
+                layerPanels[layer] = new List<UIPanel>();
+            }
+
             if (!layerPanels[layer].Contains(panel))
             {
                 layerPanels[layer].Add(panel);
@@ -519,5 +629,41 @@ namespace FFramework.Utility
         }
 
         #endregion
+    }
+
+    /// <summary>
+    /// UI层级枚举
+    /// </summary>
+    public enum UILayer
+    {
+        /// <summary> 
+        /// 背景层 - 静态背景
+        /// </summary>
+        BackgroundLayer,
+
+        /// <summary> 
+        /// 后期处理层 - UI后期处理效果
+        /// </summary>
+        PostProcessingLayer,
+
+        /// <summary>
+        /// 内容层 - 主要UI功能
+        /// </summary>
+        ContentLayer,
+
+        /// <summary> 
+        /// 弹窗层 - 消息弹窗
+        /// </summary>
+        PopupLayer,
+
+        /// <summary>
+        /// 引导层 - 引导玩家操作
+        /// </summary>
+        GuideLayer,
+
+        /// <summary> 
+        /// 调试层 - 创建和调试UI
+        /// </summary>
+        DebugLayer
     }
 }

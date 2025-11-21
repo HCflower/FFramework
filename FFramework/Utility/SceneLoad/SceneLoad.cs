@@ -12,7 +12,7 @@ using System;
 
 namespace FFramework.Utility
 {
-    public class SceneLoad : Singleton<SceneLoad>
+    public class SceneLoad : SingletonMono<SceneLoad>
     {
         /// <summary>
         /// 加载进度回调
