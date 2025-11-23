@@ -705,6 +705,20 @@ namespace FFramework.Editor
                     $"[{TruncateString(context.GetType().Name, 8)}]"
             };
         }
+
+        /// <summary>
+        /// 将 object key 转换为字符串（用于显示）
+        /// </summary>
+        private string ConvertKeyToString(object key)
+        {
+            if (key == null) return "null";
+
+            // 如果是字符串，直接返回
+            if (key is string str) return str;
+
+            // 如果是值类型，使用 ToString()
+            return key.ToString();
+        }
         #endregion
 
         #region Data Management
@@ -718,20 +732,24 @@ namespace FFramework.Editor
 
             try
             {
-                // 检查事件结构是否发生变化
-                string[] eventNames = eventSystem.GetAllEventNames();
-                int currentEventStructureHash = GetEventStructureHash(eventNames);
+                // 获取所有事件Key（现在返回 object[]）
+                object[] eventKeys = eventSystem.GetAllEventKeys();
+
+                // 将 object[] 转换为 string[]（用于兼容原有逻辑）
+                string[] eventNames = eventKeys.Select(k => ConvertKeyToString(k)).ToArray();
+
+                int currentEventStructureHash = GetEventStructureHash(eventKeys);
 
                 bool structureChanged = forceRefresh || currentEventStructureHash != lastEventStructureHash;
 
                 if (structureChanged)
                 {
-                    RefreshListenerData(eventNames);
+                    RefreshListenerData(eventKeys);
                     lastEventStructureHash = currentEventStructureHash;
                 }
 
                 // 更新触发信息
-                RefreshTriggerData(eventNames);
+                RefreshTriggerData(eventKeys);
 
                 lastUpdateTime = System.DateTime.Now.ToString("HH:mm:ss");
             }
@@ -750,16 +768,34 @@ namespace FFramework.Editor
         /// <summary>
         /// 刷新监听者数据
         /// </summary>
-        private void RefreshListenerData(string[] eventNames)
+        private void RefreshListenerData(object[] eventKeys)
         {
             eventListeners.Clear();
             totalListeners = 0;
 
-            if (eventNames != null && eventNames.Length > 0)
+            if (eventKeys != null && eventKeys.Length > 0)
             {
-                foreach (string eventName in eventNames)
+                foreach (object eventKey in eventKeys)
                 {
-                    var listeners = eventSystem.GetEventListeners(eventName);
+                    // 将 key 转换为字符串用于显示
+                    string eventName = ConvertKeyToString(eventKey);
+
+                    // 获取监听者列表（需要根据key类型调用不同方法）
+                    List<EventSystem.ListenerInfo> listeners = null;
+
+                    if (eventKey is string strKey)
+                    {
+                        listeners = eventSystem.GetEventListeners(strKey);
+                    }
+                    else
+                    {
+                        // 对于结构体key，使用反射调用泛型方法
+                        var method = typeof(EventSystem).GetMethod("GetEventListeners",
+                            System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
+                        var genericMethod = method.MakeGenericMethod(eventKey.GetType());
+                        listeners = genericMethod.Invoke(eventSystem, new[] { eventKey }) as List<EventSystem.ListenerInfo>;
+                    }
+
                     if (listeners != null && listeners.Count > 0)
                     {
                         var enhancedListeners = listeners.Select(l => new EnhancedListenerInfo(l, eventName)).ToList();
@@ -786,13 +822,30 @@ namespace FFramework.Editor
         /// <summary>
         /// 刷新触发信息数据
         /// </summary>
-        private void RefreshTriggerData(string[] eventNames)
+        private void RefreshTriggerData(object[] eventKeys)
         {
-            if (eventNames == null) return;
+            if (eventKeys == null) return;
 
-            foreach (string eventName in eventNames)
+            foreach (object eventKey in eventKeys)
             {
-                var triggerInfo = eventSystem.GetLastTrigger(eventName);
+                string eventName = ConvertKeyToString(eventKey);
+
+                // 获取最后触发信息
+                EventSystem.TriggerInfo triggerInfo = null;
+
+                if (eventKey is string strKey)
+                {
+                    triggerInfo = eventSystem.GetLastTrigger(strKey);
+                }
+                else
+                {
+                    // 对于结构体key，使用反射调用泛型方法
+                    var method = typeof(EventSystem).GetMethod("GetLastTrigger",
+                        System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
+                    var genericMethod = method.MakeGenericMethod(eventKey.GetType());
+                    triggerInfo = genericMethod.Invoke(eventSystem, new[] { eventKey }) as EventSystem.TriggerInfo;
+                }
+
                 if (triggerInfo != null)
                 {
                     // 如果事件触发列表不存在，创建新的
@@ -833,7 +886,7 @@ namespace FFramework.Editor
             }
 
             // 清理不再存在的事件的缓存
-            var currentEventNames = new HashSet<string>(eventNames);
+            var currentEventNames = new HashSet<string>(eventKeys.Select(k => ConvertKeyToString(k)));
             var cachedEventNames = eventTriggers.Keys.ToList();
 
             foreach (string cachedEventName in cachedEventNames)
@@ -848,16 +901,33 @@ namespace FFramework.Editor
         /// <summary>
         /// 计算事件结构哈希值
         /// </summary>
-        private int GetEventStructureHash(string[] eventNames)
+        private int GetEventStructureHash(object[] eventKeys)
         {
-            if (eventNames == null || eventNames.Length == 0)
+            if (eventKeys == null || eventKeys.Length == 0)
                 return 0;
 
             int hash = 17;
-            foreach (string eventName in eventNames)
+            foreach (object eventKey in eventKeys)
             {
+                string eventName = ConvertKeyToString(eventKey);
                 hash = hash * 31 + eventName.GetHashCode();
-                hash = hash * 31 + eventSystem.GetListenerCount(eventName);
+
+                // 获取监听者数量
+                int listenerCount = 0;
+                if (eventKey is string strKey)
+                {
+                    listenerCount = eventSystem.GetListenerCount(strKey);
+                }
+                else
+                {
+                    // 对于结构体key使用反射
+                    var method = typeof(EventSystem).GetMethod("GetListenerCount",
+                        System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
+                    var genericMethod = method.MakeGenericMethod(eventKey.GetType());
+                    listenerCount = (int)genericMethod.Invoke(eventSystem, new[] { eventKey });
+                }
+
+                hash = hash * 31 + listenerCount;
             }
             return hash;
         }

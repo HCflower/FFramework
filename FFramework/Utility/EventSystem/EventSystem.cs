@@ -491,36 +491,51 @@ namespace FFramework.Utility
 
         #region 字段
 
-        private readonly Dictionary<string, EventInfoBase> _eventDict = new();
+        // 改用 object 作为 Key，这样可以支持字符串和结构体
+        private readonly Dictionary<object, EventInfoBase> _eventDict = new();
 
         #endregion
 
         #region 公共API - 事件注册
 
         /// <summary>
-        /// 注册无参事件
+        /// 注册无参事件（支持字符串Key）
         /// </summary>
         public void RegisterEvent(string eventName, Action callback)
         {
             if (string.IsNullOrEmpty(eventName) || callback == null) return;
-
-            var eventInfo = GetOrCreateEventInfo<EventInfo>(eventName);
-            eventInfo?.AddListener(callback);
+            RegisterEventInternal(eventName, callback);
         }
 
         /// <summary>
-        /// 注册泛型事件
+        /// 注册无参事件（支持结构体Key）
+        /// </summary>
+        public void RegisterEvent<TKey>(TKey eventKey, Action callback) where TKey : struct
+        {
+            if (callback == null) return;
+            RegisterEventInternal(eventKey, callback);
+        }
+
+        /// <summary>
+        /// 注册泛型事件（支持字符串Key）
         /// </summary>
         public void RegisterEvent<T>(string eventName, Action<T> callback)
         {
             if (string.IsNullOrEmpty(eventName) || callback == null) return;
-
-            var eventInfo = GetOrCreateEventInfo<EventInfo<T>>(eventName);
-            eventInfo?.AddListener(callback);
+            RegisterEventInternal(eventName, callback);
         }
 
         /// <summary>
-        /// 注销无参事件
+        /// 注册泛型事件（支持结构体Key）
+        /// </summary>
+        public void RegisterEvent<TKey, T>(TKey eventKey, Action<T> callback) where TKey : struct
+        {
+            if (callback == null) return;
+            RegisterEventInternal(eventKey, callback);
+        }
+
+        /// <summary>
+        /// 注销无参事件（支持字符串Key）
         /// </summary>
         public void UnregisterEvent(string eventName, Action callback)
         {
@@ -529,7 +544,16 @@ namespace FFramework.Utility
         }
 
         /// <summary>
-        /// 注销泛型事件
+        /// 注销无参事件（支持结构体Key）
+        /// </summary>
+        public void UnregisterEvent<TKey>(TKey eventKey, Action callback) where TKey : struct
+        {
+            if (callback == null) return;
+            TryRemoveCallback(eventKey, callback);
+        }
+
+        /// <summary>
+        /// 注销泛型事件（支持字符串Key）
         /// </summary>
         public void UnregisterEvent<T>(string eventName, Action<T> callback)
         {
@@ -537,12 +561,21 @@ namespace FFramework.Utility
             TryRemoveCallback(eventName, callback);
         }
 
+        /// <summary>
+        /// 注销泛型事件（支持结构体Key）
+        /// </summary>
+        public void UnregisterEvent<TKey, T>(TKey eventKey, Action<T> callback) where TKey : struct
+        {
+            if (callback == null) return;
+            TryRemoveCallback(eventKey, callback);
+        }
+
         #endregion
 
-        #region 公共API - 事件触发（重点关注触发位置记录）
+        #region 公共API - 事件触发
 
         /// <summary>
-        /// 触发无参数事件 - 会自动记录触发位置
+        /// 触发无参数事件（支持字符串Key）
         /// </summary>
         public void TriggerEvent(string eventName, object context = null)
         {
@@ -551,7 +584,16 @@ namespace FFramework.Utility
         }
 
         /// <summary>
-        /// 触发泛型事件 - 会自动记录触发位置
+        /// 触发无参数事件（支持结构体Key）
+        /// </summary>
+        public void TriggerEvent<TKey>(TKey eventKey, object context = null) where TKey : struct
+        {
+            var triggerInfo = new TriggerInfo(context);
+            TriggerEventInternal(eventKey, null, triggerInfo);
+        }
+
+        /// <summary>
+        /// 触发泛型事件（支持字符串Key）
         /// </summary>
         public void TriggerEvent<T>(string eventName, T parameter, object context = null)
         {
@@ -559,12 +601,21 @@ namespace FFramework.Utility
             TriggerEventInternal(eventName, parameter, triggerInfo);
         }
 
+        /// <summary>
+        /// 触发泛型事件（支持结构体Key）
+        /// </summary>
+        public void TriggerEvent<TKey, T>(TKey eventKey, T parameter, object context = null) where TKey : struct
+        {
+            var triggerInfo = new TriggerInfo(context);
+            TriggerEventInternal(eventKey, parameter, triggerInfo);
+        }
+
         #endregion
 
         #region 调试和定位方法
 
         /// <summary>
-        /// 获取指定事件的最后触发位置信息
+        /// 获取指定事件的最后触发位置信息（支持字符串Key）
         /// </summary>
         public TriggerInfo GetLastTrigger(string eventName)
         {
@@ -575,24 +626,36 @@ namespace FFramework.Utility
         }
 
         /// <summary>
-        /// 打印指定事件的触发位置信息
+        /// 获取指定事件的最后触发位置信息（支持结构体Key）
+        /// </summary>
+        public TriggerInfo GetLastTrigger<TKey>(TKey eventKey) where TKey : struct
+        {
+            if (!_eventDict.TryGetValue(eventKey, out var eventInfo))
+                return null;
+
+            return eventInfo.LastTrigger;
+        }
+
+        /// <summary>
+        /// 打印指定事件的触发位置信息（支持字符串Key）
         /// </summary>
         public void DebugPrintTriggerLocation(string eventName)
         {
             var triggerInfo = GetLastTrigger(eventName);
-            if (triggerInfo != null)
-            {
-                UnityEngine.Debug.Log($"=== 事件 '{eventName}' 最后触发位置 ===");
-                UnityEngine.Debug.Log(triggerInfo.GetDetailedInfo());
-            }
-            else
-            {
-                UnityEngine.Debug.Log($"事件 '{eventName}' 暂无触发记录");
-            }
+            PrintTriggerLocationInternal(eventName, triggerInfo);
         }
 
         /// <summary>
-        /// 打印所有事件的触发位置
+        /// 打印指定事件的触发位置信息（支持结构体Key）
+        /// </summary>
+        public void DebugPrintTriggerLocation<TKey>(TKey eventKey) where TKey : struct
+        {
+            var triggerInfo = GetLastTrigger(eventKey);
+            PrintTriggerLocationInternal(eventKey, triggerInfo);
+        }
+
+        /// <summary>
+        /// 打印所有事件的触发位置信息
         /// </summary>
         public void DebugPrintAllTriggerLocations()
         {
@@ -613,7 +676,7 @@ namespace FFramework.Utility
         #region 公共API - 信息查询
 
         /// <summary>
-        /// 获取指定事件的监听者列表
+        /// 获取指定事件的监听者列表（支持字符串Key）
         /// </summary>
         public List<ListenerInfo> GetEventListeners(string eventName)
         {
@@ -623,17 +686,27 @@ namespace FFramework.Utility
             return eventInfo.GetListeners();
         }
 
+        /// <summary>
+        /// 获取指定事件的监听者列表（支持结构体Key）
+        /// </summary>
+        public List<ListenerInfo> GetEventListeners<TKey>(TKey eventKey) where TKey : struct
+        {
+            if (!_eventDict.TryGetValue(eventKey, out var eventInfo))
+                return new List<ListenerInfo>();
+
+            return eventInfo.GetListeners();
+        }
 
         /// <summary>
-        /// 获取所有事件名称
+        /// 获取所有事件Key
         /// </summary>
-        public string[] GetAllEventNames()
+        public object[] GetAllEventKeys()
         {
             return _eventDict.Where(kvp => !kvp.Value.IsEmpty()).Select(kvp => kvp.Key).ToArray();
         }
 
         /// <summary>
-        /// 检查事件是否存在且有监听者
+        /// 检查事件是否存在且有监听者（支持字符串Key）
         /// </summary>
         public bool HasEvent(string eventName)
         {
@@ -643,7 +716,16 @@ namespace FFramework.Utility
         }
 
         /// <summary>
-        /// 获取事件监听者数量
+        /// 检查事件是否存在且有监听者（支持结构体Key）
+        /// </summary>
+        public bool HasEvent<TKey>(TKey eventKey) where TKey : struct
+        {
+            return _eventDict.TryGetValue(eventKey, out var eventInfo) &&
+                   !eventInfo.IsEmpty();
+        }
+
+        /// <summary>
+        /// 获取事件监听者数量（支持字符串Key）
         /// </summary>
         public int GetListenerCount(string eventName)
         {
@@ -654,11 +736,22 @@ namespace FFramework.Utility
         }
 
         /// <summary>
+        /// 获取事件监听者数量（支持结构体Key）
+        /// </summary>
+        public int GetListenerCount<TKey>(TKey eventKey) where TKey : struct
+        {
+            if (!_eventDict.TryGetValue(eventKey, out var eventInfo))
+                return 0;
+
+            return eventInfo.GetListenerCount();
+        }
+
+        /// <summary>
         /// 查找指定对象注册的所有事件
         /// </summary>
-        public Dictionary<string, List<ListenerInfo>> FindEventsByTarget(object target)
+        public Dictionary<object, List<ListenerInfo>> FindEventsByTarget(object target)
         {
-            var result = new Dictionary<string, List<ListenerInfo>>();
+            var result = new Dictionary<object, List<ListenerInfo>>();
 
             foreach (var kvp in _eventDict)
             {
@@ -706,13 +799,24 @@ namespace FFramework.Utility
         }
 
         /// <summary>
-        /// 注销指定事件的所有监听者
+        /// 注销指定事件的所有监听者（支持字符串Key）
         /// </summary>
         public void UnregisterAllEvent(string eventName)
         {
             if (string.IsNullOrEmpty(eventName)) return;
 
             if (_eventDict.TryGetValue(eventName, out var eventInfo))
+            {
+                eventInfo.Clear();
+            }
+        }
+
+        /// <summary>
+        /// 注销指定事件的所有监听者（支持结构体Key）
+        /// </summary>
+        public void UnregisterAllEvent<TKey>(TKey eventKey) where TKey : struct
+        {
+            if (_eventDict.TryGetValue(eventKey, out var eventInfo))
             {
                 eventInfo.Clear();
             }
@@ -735,7 +839,7 @@ namespace FFramework.Utility
         #region 调试方法
 
         /// <summary>
-        /// 打印指定事件的详细信息
+        /// 打印指定事件的详细信息（支持字符串Key）
         /// </summary>
         public void DebugPrintEventDetails(string eventName)
         {
@@ -745,7 +849,139 @@ namespace FFramework.Utility
                 return;
             }
 
-            UnityEngine.Debug.Log($"=== 事件 '{eventName}' 详细信息 ===");
+            PrintEventDetailsInternal(eventName, eventInfo);
+        }
+
+        /// <summary>
+        /// 打印指定事件的详细信息（支持结构体Key）
+        /// </summary>
+        public void DebugPrintEventDetails<TKey>(TKey eventKey) where TKey : struct
+        {
+            if (!_eventDict.TryGetValue(eventKey, out var eventInfo))
+            {
+                UnityEngine.Debug.Log($"事件 '{eventKey}' 不存在");
+                return;
+            }
+
+            PrintEventDetailsInternal(eventKey, eventInfo);
+        }
+
+        /// <summary>
+        /// 打印所有事件信息
+        /// </summary>
+        public void DebugPrintAllEvents()
+        {
+            UnityEngine.Debug.Log("=== EventSystem 概览 ===");
+            UnityEngine.Debug.Log($"总事件数: {_eventDict.Count}");
+            UnityEngine.Debug.Log($"活跃事件数: {_eventDict.Values.Count(e => !e.IsEmpty())}");
+
+            foreach (var kvp in _eventDict.Where(kvp => !kvp.Value.IsEmpty()))
+            {
+                var lastTrigger = kvp.Value.LastTrigger?.GetShortInfo() ?? "未触发";
+                var keyStr = kvp.Key is string str ? $"'{str}'" : kvp.Key.ToString();
+                UnityEngine.Debug.Log($"{keyStr} -> 监听者:{kvp.Value.GetListenerCount()} 最后触发者:{lastTrigger}");
+            }
+        }
+
+        #endregion
+
+        #region 内部方法
+
+        /// <summary>
+        /// 内部注册事件方法
+        /// </summary>
+        private void RegisterEventInternal<T>(object eventKey, Action<T> callback)
+        {
+            var eventInfo = GetOrCreateEventInfo<EventInfo<T>>(eventKey);
+            eventInfo?.AddListener(callback);
+        }
+
+        /// <summary>
+        /// 内部注册无参事件方法
+        /// </summary>
+        private void RegisterEventInternal(object eventKey, Action callback)
+        {
+            var eventInfo = GetOrCreateEventInfo<EventInfo>(eventKey);
+            eventInfo?.AddListener(callback);
+        }
+
+        /// <summary>
+        /// 内部触发事件方法
+        /// </summary>
+        private void TriggerEventInternal(object eventKey, object parameter, TriggerInfo triggerInfo)
+        {
+            if (eventKey == null) return;
+
+            if (_eventDict.TryGetValue(eventKey, out var eventInfo) && !eventInfo.IsEmpty())
+            {
+                try
+                {
+                    eventInfo.Invoke(parameter, triggerInfo);
+                }
+                catch (Exception ex)
+                {
+                    var keyStr = eventKey is string str ? $"'{str}'" : eventKey.ToString();
+                    UnityEngine.Debug.LogError($"EventSystem: 事件 {keyStr} 执行时发生异常: {ex.Message}");
+                }
+            }
+        }
+
+        /// <summary>
+        /// 获取或创建事件信息
+        /// </summary>
+        private T GetOrCreateEventInfo<T>(object eventKey) where T : EventInfoBase, new()
+        {
+            if (!_eventDict.TryGetValue(eventKey, out var eventInfo))
+            {
+                eventInfo = new T();
+                _eventDict[eventKey] = eventInfo;
+            }
+
+            if (eventInfo is T typedEventInfo)
+            {
+                return typedEventInfo;
+            }
+
+            var keyStr = eventKey is string str ? $"'{str}'" : eventKey.ToString();
+            UnityEngine.Debug.LogError($"EventSystem: 事件 {keyStr} 类型不匹配");
+            return null;
+        }
+
+        /// <summary>
+        /// 尝试移除回调
+        /// </summary>
+        private void TryRemoveCallback(object eventKey, Delegate callback)
+        {
+            if (_eventDict.TryGetValue(eventKey, out var eventInfo))
+            {
+                eventInfo.TryRemove(callback);
+            }
+        }
+
+        /// <summary>
+        /// 内部打印触发位置方法
+        /// </summary>
+        private void PrintTriggerLocationInternal(object eventKey, TriggerInfo triggerInfo)
+        {
+            var keyStr = eventKey is string str ? $"'{str}'" : eventKey.ToString();
+            if (triggerInfo != null)
+            {
+                UnityEngine.Debug.Log($"=== 事件 {keyStr} 最后触发位置 ===");
+                UnityEngine.Debug.Log(triggerInfo.GetDetailedInfo());
+            }
+            else
+            {
+                UnityEngine.Debug.Log($"事件 {keyStr} 暂无触发记录");
+            }
+        }
+
+        /// <summary>
+        /// 内部打印事件详情方法
+        /// </summary>
+        private void PrintEventDetailsInternal(object eventKey, EventInfoBase eventInfo)
+        {
+            var keyStr = eventKey is string str ? $"'{str}'" : eventKey.ToString();
+            UnityEngine.Debug.Log($"=== 事件 {keyStr} 详细信息 ===");
             UnityEngine.Debug.Log($"监听者数量: {eventInfo.GetListenerCount()}");
 
             var listeners = eventInfo.GetListeners();
@@ -767,77 +1003,6 @@ namespace FFramework.Utility
             }
         }
 
-        /// <summary>
-        /// 打印所有事件信息
-        /// </summary>
-        public void DebugPrintAllEvents()
-        {
-            UnityEngine.Debug.Log("=== EventSystem 概览 ===");
-            UnityEngine.Debug.Log($"总事件数: {_eventDict.Count}");
-            UnityEngine.Debug.Log($"活跃事件数: {_eventDict.Values.Count(e => !e.IsEmpty())}");
-
-            foreach (var kvp in _eventDict.Where(kvp => !kvp.Value.IsEmpty()))
-            {
-                var lastTrigger = kvp.Value.LastTrigger?.GetShortInfo() ?? "未触发";
-                UnityEngine.Debug.Log($"'{kvp.Key}' -> 监听者:{kvp.Value.GetListenerCount()} 最后触发者:{lastTrigger}");
-            }
-        }
-
-        #endregion
-
-        #region 内部方法
-
-        /// <summary>
-        /// 内部触发事件方法
-        /// </summary>
-        private void TriggerEventInternal(string eventName, object parameter, TriggerInfo triggerInfo)
-        {
-            if (string.IsNullOrEmpty(eventName)) return;
-
-            if (_eventDict.TryGetValue(eventName, out var eventInfo) && !eventInfo.IsEmpty())
-            {
-                try
-                {
-                    eventInfo.Invoke(parameter, triggerInfo);
-                }
-                catch (Exception ex)
-                {
-                    UnityEngine.Debug.LogError($"EventSystem: 事件 {eventName} 执行时发生异常: {ex.Message}");
-                }
-            }
-        }
-
-        /// <summary>
-        /// 获取或创建事件信息
-        /// </summary>
-        private T GetOrCreateEventInfo<T>(string eventName) where T : EventInfoBase, new()
-        {
-            if (!_eventDict.TryGetValue(eventName, out var eventInfo))
-            {
-                eventInfo = new T();
-                _eventDict[eventName] = eventInfo;
-            }
-
-            if (eventInfo is T typedEventInfo)
-            {
-                return typedEventInfo;
-            }
-
-            UnityEngine.Debug.LogError($"EventSystem: 事件 {eventName} 类型不匹配");
-            return null;
-        }
-
-        /// <summary>
-        /// 尝试移除回调
-        /// </summary>
-        private void TryRemoveCallback(string eventName, Delegate callback)
-        {
-            if (_eventDict.TryGetValue(eventName, out var eventInfo))
-            {
-                eventInfo.TryRemove(callback);
-            }
-        }
-
         #endregion
 
         #region Unity生命周期
@@ -853,21 +1018,27 @@ namespace FFramework.Utility
         #region 静态API(兼容性)
 
         public static void S_RegisterEvent(string eventName, Action callback) => Instance.RegisterEvent(eventName, callback);
+        public static void S_RegisterEvent<TKey>(TKey eventKey, Action callback) where TKey : struct => Instance.RegisterEvent(eventKey, callback);
         public static void S_RegisterEvent<T>(string eventName, Action<T> callback) => Instance.RegisterEvent(eventName, callback);
-        public static void S_RegisterEvent(string eventName, Action<object> callback) => Instance.RegisterEvent(eventName, callback);
+        public static void S_RegisterEvent<TKey, T>(TKey eventKey, Action<T> callback) where TKey : struct => Instance.RegisterEvent(eventKey, callback);
 
         public static void S_UnregisterEvent(string eventName, Action callback) => Instance.UnregisterEvent(eventName, callback);
+        public static void S_UnregisterEvent<TKey>(TKey eventKey, Action callback) where TKey : struct => Instance.UnregisterEvent(eventKey, callback);
         public static void S_UnregisterEvent<T>(string eventName, Action<T> callback) => Instance.UnregisterEvent(eventName, callback);
-        public static void S_UnregisterEvent(string eventName, Action<object> callback) => Instance.UnregisterEvent(eventName, callback);
+        public static void S_UnregisterEvent<TKey, T>(TKey eventKey, Action<T> callback) where TKey : struct => Instance.UnregisterEvent(eventKey, callback);
 
         public static void S_TriggerEvent(string eventName) => Instance.TriggerEvent(eventName);
+        public static void S_TriggerEvent<TKey>(TKey eventKey) where TKey : struct => Instance.TriggerEvent(eventKey);
         public static void S_TriggerEvent<T>(string eventName, T parameter) => Instance.TriggerEvent(eventName, parameter);
+        public static void S_TriggerEvent<TKey, T>(TKey eventKey, T parameter) where TKey : struct => Instance.TriggerEvent(eventKey, parameter);
 
         public static bool S_HasEvent(string eventName) => Instance.HasEvent(eventName);
+        public static bool S_HasEvent<TKey>(TKey eventKey) where TKey : struct => Instance.HasEvent(eventKey);
         public static int S_GetListenerCount(string eventName) => Instance.GetListenerCount(eventName);
+        public static int S_GetListenerCount<TKey>(TKey eventKey) where TKey : struct => Instance.GetListenerCount(eventKey);
 
-        // 新增静态API
         public static TriggerInfo S_GetLastTrigger(string eventName) => Instance.GetLastTrigger(eventName);
+        public static TriggerInfo S_GetLastTrigger<TKey>(TKey eventKey) where TKey : struct => Instance.GetLastTrigger(eventKey);
 
         #endregion
     }
